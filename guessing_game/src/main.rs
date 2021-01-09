@@ -3,6 +3,7 @@ use rand::Rng;
 use std::cmp::Ordering;
 
 fn main() {
+    // this is a macro, when using ! (bang) at the end of the keyword
     println!("Guess the number!");
 
     // generate random number between 1 and 101 by pulling in a crate
@@ -10,7 +11,7 @@ fn main() {
 
     println!("The secret number is: {}", secret_number);
 
-    loop {    
+    loop {
         println!("Please input your guess.");
 
         // create a place to store input, make it mutable
