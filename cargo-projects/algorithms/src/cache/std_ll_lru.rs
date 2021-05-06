@@ -129,7 +129,7 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
             let tail_prev_index = tail_prev_index.clone().take();
 
             if let Some(val_node) = self.cache.get_mut(tail_prev_index) {
-                let mut v = val_node.clone();
+                let v = val_node.clone();
                 let mut v = v.borrow_mut();
                 let v = v.as_mut().unwrap();
                 v.next = None;
@@ -569,16 +569,10 @@ mod std_ll_lru_tests {
             cache.put(val);
         }
 
-        // println!("BOLOG {:?}", cache);
+        // println!("CACHE {:?}", cache);
 
         for val in &mut cache {
-            // println!("IN LOOP ");
-            // let a = val.as_mut().unwrap();
-            // a.value;
             println!("Node {:?}", val);
-            // println!("BEFORE {:?}", val.as_ref().unwrap().value);
-            // val.as_mut().unwrap().value = 11;
-            // println!("AFTER {:?}", val.as_ref().unwrap().value);
         }
 
         // for value in cache.cache.into_inner() {}
