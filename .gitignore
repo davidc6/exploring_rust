@@ -2,6 +2,7 @@
 /atm_machine/target
 /password_checker/target
 
+# Cargo generated
 debug/
 target/
 
