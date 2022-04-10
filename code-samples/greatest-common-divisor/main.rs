@@ -4,13 +4,21 @@ fn main() {
   // read from command line and save to a vector
   let args: Vec<String>  = env::args().collect();
   
-  let my_string = &args[1].to_string(); // convert first cli arg to string
-  let mut n: i32 = my_string.parse().unwrap_or(0);
-
-  let my_string_2 = &args[2].to_string();
-  let mut m: i32 = my_string_2.parse().unwrap_or(0); // convert second cli arg to string
+  if args.len() == 1 {
+    println!("Usage: gcd 10 90");
+    return;
+  }
   
-  assert!(n != 0 && m != 0); // 
+  let my_string = &args[1].to_string(); // turn first cli arg to string
+  let mut n: u64 = my_string.parse().unwrap_or(0); // convert to 64 bit unsigned int
+
+  let my_string_2 = &args[2].to_string(); // turn second cli arg to string
+  let mut m: u64 = my_string_2.parse().unwrap_or(0); // convert to 64 bit unsigned int
+    
+  if n == 0 || m == 0 {
+    println!("One of the arguments is 0");
+    return;
+  }
   
   while m != 0 {
     if m < n {
