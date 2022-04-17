@@ -1,6 +1,7 @@
 use std::env;
 
 fn main() {
+  // args owns the vector here
   let mut args: Vec<String> = env::args().collect();
   
   if args.len() == 1 {
@@ -10,6 +11,7 @@ fn main() {
   
   args.remove(0);
 
+  // & - borrow a reference to the first element
   let first = &args[0].to_string();
   let first_number: u64 = first.parse().unwrap_or(0);
   
