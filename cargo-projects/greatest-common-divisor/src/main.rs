@@ -1,29 +1,37 @@
 use std::env;
+use std::str::FromStr;
 
 fn main() {
-  // args owns the vector here
-  let mut args: Vec<String> = env::args().collect();
+  // automatically gets freed when args go out of scope at the end of main
+  let mut args = Vec::new();
   
-  if args.len() == 1 {
-    eprintln!("Usage: gcd <number> <number>");
-    return;
+  for arg in env::args().skip(1) {
+    // u64 results Result and expect parses it
+    args.push(u64::from_str(&arg)
+              .expect("error parsing arg"));
   }
   
-  args.remove(0);
+  if args.len() == 0 {
+    eprintln!("No arguments passed in");
+    std::process::exit(1);
+  }
+  
+  let mut d = args[0];
+  
+  // vector ownership stays with args
+  // & - borrow reference to vector elements staring with the second one
+  // on each iteration we borrow reference to each element
+  for m in &args[1..] {
+    // * - dereference
+    // *m - we yield the value of m that it refers to
+    d = greatest_common_divisor(d, *m);
+  }
 
-  // & - borrow a reference to the first element
-  let first = &args[0].to_string();
-  let first_number: u64 = first.parse().unwrap_or(0);
-  
-  let second = &args[1].to_string();
-  let second_number: u64 = second.parse().unwrap_or(0);
-  
-  let number = greatest_common_divisor(first_number, second_number);
-  
-  println!("{}", number);
+  println!("{}", d);
 }
 
 fn greatest_common_divisor(mut n: u64, mut m: u64) -> u64 {
+  assert!(n != 0 && m != 0);
   while m != 0 {
     if m < n { 
       let t = m;
@@ -41,12 +49,12 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_gcd_1() {
+  fn test_gcd_two_numbers() {
     assert_eq!(greatest_common_divisor(10, 90), 10);    
   }
   
   #[test]
-  fn test_gcd_2() {
-    assert_eq!(greatest_common_divisor(1, 2), 1);    
+  fn test_gcd_one_number() {
+    assert_eq!(greatest_common_divisor(2, 1), 1);    
   }
 }
