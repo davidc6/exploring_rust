@@ -1,6 +1,19 @@
 use std::env;
 use std::str::FromStr;
 
+fn greatest_common_divisor(mut n: u64, mut m: u64) -> u64 {
+  assert!(n != 0 && m != 0);
+  while m != 0 {
+    if m < n { 
+      let t = m;
+      m = n;
+      n = t;
+    }
+    m = m % n;
+  }
+  return n;
+}
+
 fn main() {
   // automatically gets freed when args go out of scope at the end of main
   let mut args = Vec::new();
@@ -28,19 +41,6 @@ fn main() {
   }
 
   println!("{}", d);
-}
-
-fn greatest_common_divisor(mut n: u64, mut m: u64) -> u64 {
-  assert!(n != 0 && m != 0);
-  while m != 0 {
-    if m < n { 
-      let t = m;
-      m = n;
-      n = t;
-    }
-    m = m % n;
-  }
-  return n;
 }
 
 #[cfg(test)]
