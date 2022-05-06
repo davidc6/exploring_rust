@@ -31,10 +31,33 @@ things they point to
 `let a = vec![1, 2, 3]` - contiguous growable array, allocated on the heap, reference 
 to it is stored in the stack 
 
+### Ownership
+
+- Stack - static memory allocation (we can't modify context of this area; fixed size; high memory addresses; allocation is quicker)
+- Heap - dynamic memory allocation (not fixed and can vary at runtime; size is dependent on the system; lower memory addresses; allocation is slower as have to find first)
+
+- Ownership:
+  - Keeps track of what parts of code are using what data on the heap
+  - Minimizes duplicate data on the heap
+  - Cleans up used data on the heap (to keep clean up unused space)
+  
+- Borrowing - when a value has an owner and another function borrows the value from the owner
+- Referencing - when original value is references somewhere else in the code (even when that original variable is out of scope). References are immutable by default (but can be made mutable)
+
+- Immutable by default can prevent data race at compile time
+- A data race is like race condition can occur when:
+  - Two or more pointers access the same data at the same time
+  - At least one of the pointers is being used to write to the data
+  - There's no mechanism being used to sync access to data
+
+### Misc
+
 `::` - 
 
 `impl` - implementation block, allows to define methods for a type
   - `&self` - within `impl` &self is alias for the type that impl block is for
+  
+`::` - to access module path
 
 ## Examples
 
@@ -46,3 +69,4 @@ to it is stored in the stack
 - Convert string to int -  https://programming-idioms.org/idiom/22/convert-string-to-integer/1163/rust
 - What are the differences between [], &[], and vec![]? - https://stackoverflow.com/questions/57848114/what-are-the-differences-between-and-vec
 - Clippy - https://github.com/rust-lang/rust-clippy
+- Impls & Traits - https://learning-rust.github.io/docs/b5.impls_and_traits.html
