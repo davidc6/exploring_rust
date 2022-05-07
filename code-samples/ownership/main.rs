@@ -39,3 +39,11 @@ fn some_fn(x: &mut String) {
   // let mut f = x.to_string();
   x.push_str(", reference updated.");
 }
+
+fn dangle() -> &String {
+  // s will go out of scope once the function is finished
+  let x = String::from("Hi");
+  
+  // this essentially becomes dangling pointer
+  &x
+} // Rust won't let us do this
