@@ -40,15 +40,22 @@ to it is stored in the stack
   - Keeps track of what parts of code are using what data on the heap
   - Minimizes duplicate data on the heap
   - Cleans up used data on the heap (to keep clean up unused space)
+  - Each value has a variable called owner (only one at a time)
+  - When owner is out of scope, value is dropped
   
 - Borrowing - when a value has an owner and another function borrows the value from the owner
 - Referencing - when original value is references somewhere else in the code (even when that original variable is out of scope). References are immutable by default (but can be made mutable)
+  - One can only have either one mutable reference or any number of immutable references
+  - References must be valid
 
 - Immutable by default can prevent data race at compile time
 - A data race is like race condition can occur when:
   - Two or more pointers access the same data at the same time
   - At least one of the pointers is being used to write to the data
   - There's no mechanism being used to sync access to data
+
+- Slice enables us to reference a contiguous seq of elements rather than the whole collection
+  - It is a sort of a reference and does not have ownership 
 
 ### Misc
 
@@ -62,7 +69,8 @@ to it is stored in the stack
 ## Examples
 
 - [Greatest common divisor](./greatest-common-divisor/main.rs)
-- [Greatest common divisor](./struct-impl-trait/main.rs)
+- [Structs, implement and traits](./struct-impl-trait/main.rs)
+- [Sieve of Erathosthenes](./sieve-of-erathosthenes/main.rs)
 
 ## Reference material
 
