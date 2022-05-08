@@ -9,7 +9,10 @@ fn sieve<const N: usize>() -> [bool; N] {
       // update all multiples of p
       let mut y = p * p;
 
-      while y < N {
+      while y <= N {
+        if y == N {
+          break;
+        }
         prime[y] = false;
         y += p;
       }
@@ -22,7 +25,7 @@ fn sieve<const N: usize>() -> [bool; N] {
 }
 
 fn main() {
-  const X: usize = 120;
+  const X: usize = 7;
   let array = sieve::<{X + 1}>();
 
   for (i, &val) in array.iter().enumerate() {
