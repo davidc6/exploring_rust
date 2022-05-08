@@ -66,6 +66,11 @@ to it is stored in the stack
   
 `::` - to access module path
 
+### Commands
+
+`$ rustc --crate-name sieve --crate-type lib main.rs` - emit create that is a library
+`$ rustc --crate-name sieve main.rs --test` - emits tests harness
+
 ## Examples
 
 - [Greatest common divisor](./greatest-common-divisor/main.rs)
