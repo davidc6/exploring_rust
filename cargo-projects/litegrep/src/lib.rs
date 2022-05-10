@@ -26,7 +26,37 @@ pub fn execute(config: Configuration) -> Result<(), Box<dyn Error>> {
   // we propagate error here by using ? mark
   let file_contents = fs::read_to_string(config.haystack)?;
 
-  println!("{}", file_contents);
+  for line in search(&config.needle, &file_contents) {
+    println!("{}", line);
+  }
 
   Ok(())
+}
+
+// we define lifetype explicitly here and it needs to be used in the return value
+pub fn search<'a>(needle: &str, haystack: &'a str) -> Vec<&'a str> {
+  let mut results = Vec::new();
+
+  for line in haystack.lines() {
+    if line.contains(needle) {
+      results.push(line);
+    }
+  }
+  
+  results
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  
+  #[test]
+  fn it_works() {
+    let needle = "hello";
+    let haystack = "\n
+hello from the\n
+other side";
+    
+    assert_eq!(vec!["hello from the"], search(needle, haystack));
+  }
 }
