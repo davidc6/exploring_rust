@@ -5,14 +5,14 @@
 `cargo` - compilation manager
   - `cargo new hello-world` - creates new app / set up a new app
 `rustup` - toolchain manager
-  
+
 `rustc` - Rust compiler
 
 ## Syntax / library
 
 `!` - macro invocation e.g. `println!()`
 
-`panic` - abrupt termination
+`panic` - abrupt termination; allows the program to terminate immediately; should be used when a program reaches unrecoverable state
 
 `env.args()` - an iterator, produces each value on demand
 
@@ -56,15 +56,38 @@ to it is stored in the stack
 
 - Slice enables us to reference a contiguous seq of elements rather than the whole collection
   - It is a sort of a reference and does not have ownership 
+  
+#### Tips
+
+- Use references where full ownership is not required.
+- Duplicate the value
+- Reduce the number of long-lived objects
+- Data should be wrapped in a type that is designed to assist with movement issues 
+  
+#### Lifetimes
+
+- Every reference has a lifetime (the scope for which the reference is valid)
+- Same as types, lifetimes are inferred most of the times
+- Lifetimes allow us to prevent dangling references
+
+### Error handling
+
+`Box<dyn Err>` - dynamic error, allows us to handle error of various types; dyn highlights the fact that calls on the associated Trait are dynamically dispatched. This relies on the fact that all errors implement Error trait (which is not always the case). "Boxing" an error means that we can store it 
+somewhere (heap) and hold a pointer to that location.
+
+### Attributes
+
+`#[derive(Debug)]` - this is some metadata that is applied to some module, crate or item. For instance,
+`[#cfg(test)]` allows to run tests only when we run `cargo test` command.
 
 ### Misc
-
-`::` - 
 
 `impl` - implementation block, allows to define methods for a type
   - `&self` - within `impl` &self is alias for the type that impl block is for
   
 `::` - to access module path
+
+`expressions vs statements` - https://nickymeuleman.netlify.app/garden/rust-expression-statement
 
 ### Commands
 
@@ -76,6 +99,7 @@ to it is stored in the stack
 - [Greatest common divisor](./greatest-common-divisor/main.rs)
 - [Structs, implement and traits](./struct-impl-trait/main.rs)
 - [Sieve of Erathosthenes](./sieve-of-erathosthenes/main.rs)
+- [CubeSat](./cube-sats/main.rs)
 
 ## Reference material
 
