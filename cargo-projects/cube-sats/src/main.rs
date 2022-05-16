@@ -6,6 +6,7 @@ struct CubeSat {
   messages: Vec<String>
 }
 
+#[derive(Debug)]
 struct Message {
   content: String,
   to: u64
@@ -71,6 +72,7 @@ fn main() {
     let sat = ground_base.connect(id);
     
     let msg = sat.receive(&mut mail);
+    println!("{:?}: {:?}", sat, msg);
   }
   
   // let mut sat_a = CubeSat { id: 1, messages: Vec::new() };
