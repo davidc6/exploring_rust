@@ -31,7 +31,6 @@ impl GroundBase {
 }
 
 struct Mailbox {
-  // to: u64,
   messages: Vec<Message>
 }
 
@@ -62,8 +61,6 @@ fn main() {
     let msg = String::from("hello");
 
     ground_base.send(&mut sat, msg);
-
-    println!("CubeSat ID: {}, message: {:?}", sat.id, sat.messages);
   }
   
   let sat_ids = fetch_all_sat_ids();
@@ -74,19 +71,4 @@ fn main() {
     let msg = sat.receive(&mut mail);
     println!("{:?}: {:?}", sat, msg);
   }
-  
-  // let mut sat_a = CubeSat { id: 1, messages: Vec::new() };
-  // let message_a = String::from("hello"); // stored on the heap
-  
-  // let mut sat_b = CubeSat { id: 2, messages: Vec::new() };
-  // let message_b = String::from("hello 2");
-  
-  // ground_base.send_msg(&mut sat_a, message_a);
-  // ground_base.send_msg(&mut sat_b, message_b);
-
-  // // println!("{:?}", sat_a);
-  // println!("{}", ground_base.id);
-  // println!("CubeSat ID: {}, message: {:?}", sat_a.id, sat_a.messages);
-  // println!("{}", sat_a.receive().unwrap());
-  // println!("CubeSat ID: {}, message: {:?}", sat_b.id, sat_b.messages);
 }
