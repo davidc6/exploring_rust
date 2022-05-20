@@ -39,6 +39,7 @@ impl Mailbox {
         return Some(msg);
       }
     }
+
     None
   }
   
@@ -57,19 +58,19 @@ fn main() {
   
   let sat_ids = fetch_all_sat_ids();
   
-  for id in sat_ids {
+  for (i, id) in sat_ids.into_iter().enumerate() {
     let sat = ground_base.connect(id);
-    let msg = Message { to: sat.id, content: String::from("hello") };
+    let msg = Message { to: sat.id, content: format!("{} {}",String::from("hello"), i) };
 
     ground_base.send(&mut mailbox, msg);
   }
-  
+
   let sat_ids = fetch_all_sat_ids();
   
   for id in sat_ids {
     let sat = ground_base.connect(id);
     
     let msg = sat.receive(&mut mailbox);
-    println!("{:?}: {:?}", sat, msg);
+    println!("{:?}: {:?}", sat, msg.unwrap().content);
   }
 }
