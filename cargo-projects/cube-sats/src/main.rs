@@ -5,7 +5,7 @@ struct CubeSat {
 
 impl CubeSat {
   fn receive(&self, mailbox: &mut Mailbox) -> Option<Message> {
-    mailbox.deliver(&self)
+    mailbox.deliver(self)
   }
 }
 
@@ -13,7 +13,7 @@ impl CubeSat {
 struct Message {
   content: String,
   to: u64
-}
+}  
 
 struct GroundBase;
 
@@ -58,19 +58,19 @@ fn main() {
   
   let sat_ids = fetch_all_sat_ids();
   
-  for (i, id) in sat_ids.into_iter().enumerate() {
-    let sat = ground_base.connect(id);
+  for (i, id) in sat_ids.iter().enumerate() {
+    let sat = ground_base.connect(*id);
     let msg = Message { to: sat.id, content: format!("{} {}",String::from("hello"), i) };
 
     ground_base.send(&mut mailbox, msg);
   }
 
-  let sat_ids = fetch_all_sat_ids();
+  // let sat_ids = fetch_all_sat_ids();
   
   for id in sat_ids {
     let sat = ground_base.connect(id);
-    
     let msg = sat.receive(&mut mailbox);
-    println!("{:?}: {:?}", sat, msg.unwrap().content);
+
+    println!("{:?}: {}", sat, msg.unwrap().content);
   }
 }
