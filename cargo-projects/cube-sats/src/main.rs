@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)] // tells copiler to add implementation of each trait
 struct CubeSat {
   id: u64
 }
@@ -15,6 +15,7 @@ struct Message {
   to: u64
 }  
 
+#[derive(Copy, Clone)]
 struct GroundBase;
 
 impl GroundBase {
@@ -52,7 +53,21 @@ fn fetch_all_sat_ids() -> Vec<u64> {
   vec![1,2,3]
 }
 
+fn check_sat(sat: CubeSat) -> u64 {
+  sat.id
+}
+
 fn main() {
+  // testing Copy and Clone traits
+  let sat_d = CubeSat { id: 100 };
+
+  let sat_d_id = check_sat(sat_d.clone());
+  println!("sat id: {:?}", sat_d_id.clone());
+
+  let sat_d_id = check_sat(sat_d);
+  println!("sat id: {:?}", sat_d_id);
+
+  // testing actual program implementation
   let mut mailbox = Mailbox { messages: vec![] };
   let ground_base = GroundBase{};
   
