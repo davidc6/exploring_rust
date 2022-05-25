@@ -1,3 +1,6 @@
+use std::rc::Rc; // reference counting / track valid references
+use std::cell::RefCell; // mutable memory location with dynamically checked borrow rules
+
 #[derive(Debug, Clone, Copy)] // tells copiler to add implementation of each trait
 struct CubeSat {
   id: u64
@@ -14,6 +17,11 @@ struct Message {
   content: String,
   to: u64
 }  
+
+#[derive(Debug)]
+struct GroundStation {
+  freq: f64 // Mhz
+}
 
 #[derive(Copy, Clone)]
 struct GroundBase;
@@ -66,6 +74,30 @@ fn main() {
 
   let sat_d_id = check_sat(sat_d);
   println!("sat id: {:?}", sat_d_id);
+
+  // ch 4.20
+  // 1. Adding functionality can reduce runtime performance
+  // 2. If Clone is expensive, Rc<T> can be a good alternative (allows to share ownership)
+  let base: Rc<RefCell<GroundStation>> = Rc::new(RefCell::new(
+    GroundStation {
+      freq: 87.65
+    }
+  ));
+
+  println!("base: {:?}", base);
+
+  {
+    let mut base_2 = base.borrow_mut();
+    base_2.freq -= 12.34;
+    println!("base 2: {:?}", base_2);
+  }
+
+  println!("base: {:?}", base);
+  let mut base_3 = base.borrow_mut();
+  base_3.freq += 43.21;
+
+  println!("base: {:?}", base);
+  println!("base_3: {:?}", base_3);
 
   // testing actual program implementation
   let mut mailbox = Mailbox { messages: vec![] };
