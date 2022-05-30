@@ -15,6 +15,9 @@ fn main() {
 
   let res = sqrt(124);
   println!("square root: {}", res);
+
+  let result1 = fib((2, 3));
+  println!("{:?}", result1);
 }
 
 fn double(x: &i32) -> i32 {
@@ -43,6 +46,24 @@ fn sqrt(n: usize) -> usize {
   }
 
   return i - 1;
+}
+
+const OUTSIZE: usize = 5;
+fn fib(ns: (i32, i32)) -> [i32; OUTSIZE] {
+  let ( mut prev , mut next ) = ns;
+
+  let mut arr = [0;5];
+  let mut count = 0;
+
+  while count < OUTSIZE {
+    let current = prev + next;
+    arr[count] = current;
+    prev = next;
+    next = current;
+    count += 1;
+  }
+
+  return arr;
 }
 
 // Slice an array if in range
