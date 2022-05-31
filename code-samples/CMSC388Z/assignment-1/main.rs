@@ -18,6 +18,19 @@ fn main() {
 
   let result1 = fib((2, 3));
   println!("{:?}", result1);
+
+  let mut a = [0; 10];
+  let mut counter = 0;
+  for i in 0..a.len() {
+      a[i] = counter;
+      counter += 1;
+  }
+
+  let index = binary_search(&a, 3);
+  println!("{:?}", index);
+
+  let index2 = binary_search_index(&a, 3);
+  println!("{:?}", index2);
 }
 
 fn double(x: &i32) -> i32 {
@@ -72,4 +85,47 @@ fn slice_arr(arr: &[i32], range: (usize, usize)) -> Result<&[i32], &'static str>
     return Ok(&arr[(range.0 - 1)..(range.1 - 1)]);
   }
   Err("OOB!")
+}
+
+fn binary_search(arr: &[i32], query: i32) -> Option<usize> {
+  // find middle
+  let middle_index = arr.len() / 2;
+
+  if arr[middle_index] == query {
+    return Some(middle_index);
+  }
+
+  if arr[middle_index] < query {
+    return binary_search(&arr[middle_index..arr.len()], query);
+  }
+
+  if arr[middle_index] > query {
+    return binary_search(&arr[0..middle_index], query);
+  }
+
+  None
+}
+
+fn binary_search_index(arr: &[i32], query: i32) -> Option<usize> {
+  let mut low = 0;
+  let mut high = arr.len() - 1;
+
+  while low <= high {
+    let mid = ((high - low) / 2) + low;
+    let value = &arr[mid];
+
+    if value == &query {
+      return Some(mid);
+    }
+
+    if value < &query {
+      low = mid + 1;
+    }
+
+    if value > &query {
+      high = mid - 1;
+    }
+  }
+
+  None
 }
