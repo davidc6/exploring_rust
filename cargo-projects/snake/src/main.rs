@@ -1,4 +1,9 @@
 use std::collections::LinkedList;
+use rand::Rng;
+
+const NUM_FOODS: usize = 5;
+const INIT_FOOD_LIFE: f32 = 1.0;
+
 
 #[derive(Debug, Copy, Clone)]
 struct Food {
@@ -60,6 +65,16 @@ impl Game {
     }
 
     return true;
+  }
+
+  fn update_food(&mut self) {
+    while &self.foods.len() < &NUM_FOODS {
+      let mut rng = rand::thread_rng();
+      let x = rng.gen_range(0..10);
+      let y = rng.gen_range(0..10);
+      let food = Food { time: INIT_FOOD_LIFE, position: (x, y) };
+      let _ = &self.foods.push(food);
+    }
   }
 }
 
@@ -123,6 +138,7 @@ fn main() {
   game.foods.push(food3);
   game.foods.push(food4);
 
+  game.update_food(); // food, auto update
   game.update_food_life();
   game.update_food_expired();
   game.check_eating(&mut snake, &food3);
