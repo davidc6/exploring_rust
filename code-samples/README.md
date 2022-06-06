@@ -21,6 +21,12 @@
 
 `b"world"` - byte literal is used to indicate that this is a byte string (sequence of bytes)
 
+### Types
+
+`u8 (0 - 255)`, `u16 (65535)` etc - basic integer types
+  - `u8` - 1 byte / 8 bits
+  - `u16` - 2 bytes / 16 bits
+
 ### Array
 
 `let a = [1,2,3]` - stack allocated stack
