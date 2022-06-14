@@ -112,7 +112,40 @@ fn main() {
 
     let mut pixels = vec![0; bounds.0 * bounds.1];
 
-    render(&mut pixels, bounds, upper_left, lower_right);
+    // work out rows of pixels each band should have given that we have 8 threads
+    let threads = 8;
+    let rows_per_band = bounds.1 / threads + 1;
+
+    {
+        // divides pixel buffer into bands
+        // produce mutable, nonoverlaping slices of the buffer (rows of pixels)
+        let bands: Vec<&mut [u8]> = pixels.chunks_mut(rows_per_band * bounds.0).collect();
+
+        // use crossbeam here to enable multi-threading
+        // a closure that expects a single "spawner" argument
+        // closure fn argument type gets inferred
+        // ::scope also ensures that all threads have completed before returning
+        crossbeam::scope(|spawner| {
+            // iterate over the pixel buffer's bands
+            // into_iter() gives exclusive ownership of one band to each iteration
+            // i.e. one thread at a time can write to it
+            // enumerate() produces tuples (each vector element, index)
+            for (i, band) in bands.into_iter().enumerate() {
+                let top = rows_per_band * i;
+                let height = band.len() / bounds.0;
+                let band_bounds = (bounds.0, height);
+                let band_upper_left = pixels_to_point(bounds, (0, top), upper_left, lower_right);
+                let band_lower_right = pixels_to_point(bounds, (bounds.0, top + height), upper_left, lower_right);
+
+                // create a thread
+                // move indicates that the closure takes ownership of the variables it uses
+                spawner.spawn(move |_| {
+                    render(band, band_bounds, band_upper_left, band_lower_right);
+                });
+            }
+        }).unwrap();
+    }
+
 
     write_image(&args[1], &pixels, bounds)
         .expect("error writing PNG file");
