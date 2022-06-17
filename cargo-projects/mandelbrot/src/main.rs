@@ -7,16 +7,18 @@ use std::env;
 
 fn escape_time(c: Complex<f64>, limit: usize) -> Option<usize> {
     let mut z = Complex { re: 0.0, im: 0.0 };
+
     for i in 0..limit {
         if z.norm_sqr() > 4.0 {
             return Some(i);
         }
         z = z * z + c;
     }
+
     None
 }
 
-// opens a file and attempts to writes the image to it
+// opens a file and attempts to write the image to it
 fn write_image(filename: &str, pixels: &[u8], bounds: (usize, usize)) -> Result<(), std::io::Error> {
     // ? operator is a shorthand for the code below which returns error if it fails or successfully opend file
     // let output = File::create(path)?;
@@ -121,10 +123,11 @@ fn main() {
         // produce mutable, nonoverlaping slices of the buffer (rows of pixels)
         let bands: Vec<&mut [u8]> = pixels.chunks_mut(rows_per_band * bounds.0).collect();
 
-        // use crossbeam here to enable multi-threading
+        // we use crossbeam here to enable multi-threading
         // a closure that expects a single "spawner" argument
         // closure fn argument type gets inferred
         // ::scope also ensures that all threads have completed before returning
+        // if none of the threads panic, crossbeam returns Ok() enum variant or Err() if any of threads panic
         crossbeam::scope(|spawner| {
             // iterate over the pixel buffer's bands
             // into_iter() gives exclusive ownership of one band to each iteration
@@ -138,14 +141,13 @@ fn main() {
                 let band_lower_right = pixels_to_point(bounds, (bounds.0, top + height), upper_left, lower_right);
 
                 // create a thread
-                // move indicates that the closure takes ownership of the variables it uses
+                // "move" indicates that the closure takes ownership of the variables it uses
                 spawner.spawn(move |_| {
                     render(band, band_bounds, band_upper_left, band_lower_right);
                 });
             }
         }).unwrap();
     }
-
 
     write_image(&args[1], &pixels, bounds)
         .expect("error writing PNG file");
