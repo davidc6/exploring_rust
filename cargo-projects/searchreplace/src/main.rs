@@ -1,4 +1,5 @@
 use std::{env, fs};
+use regex::Regex;
 
 #[derive(Debug)]
 struct Args {
@@ -24,6 +25,11 @@ fn parse() -> Args {
     Args { search: args[0].clone(), replace: args[1].clone(), input: args[2].clone(), output: args[3].clone() }
 }
 
+fn replace(target: &str, replaced: &str, text: &str) -> Result<String, regex::Error> {
+    let regex = Regex::new(target)?;
+    Ok(regex.replace_all(text, replaced).to_string())
+}
+
 fn main() {
     let args = parse();
 
@@ -36,8 +42,16 @@ fn main() {
         }
     };
 
+    let replaced_data = match replace(&args.search, &args.replace, &data) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("{} could not replace text: {:?}", "Error:", e);
+            std::process::exit(1);
+        }
+    };
+
     // write data to file
-    match fs::write(&args.output, &data) {
+    match fs::write(&args.output, &replaced_data) {
         Ok(_) => {},
         Err(e) => {
             eprintln!("{} could not write to file '{}': {:?}", "Error:", args.output, e);
