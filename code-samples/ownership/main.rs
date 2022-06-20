@@ -47,3 +47,29 @@ fn dangle() -> &String {
   // this essentially becomes dangling pointer
   &x
 } // Rust won't let us do this
+
+fn example1() {
+  struct Person { name: String, birth: i32 }
+    
+  // returns a Vector (not a pointer)
+  // ownership moves from Vec::new() to composers
+  let mut composers = Vec::new();
+  // to_string() returns a fresh instance of String
+  // Person takes ownership of the string
+  // The entire Person structure gets passed to composers via push method
+  // composers gets ownership over Person and String as well
+  composers.push(Person { name: "Palestrina".to_string(), birth: 1525 });
+}
+
+fn example2() {
+  struct Person {
+    name: Option<String>,
+    age: String
+  }
+  // t owns Vector
+  let mut t = vec![Person { name: Some("A".to_string()), age: "1".to_string() }];
+  // get name and replace with None since "A" is wrapped in Some type
+  // same as std::mem::replace(&mut t[0].name, None);
+  let name = t[0].name.take();
+  println!("{:?}", t[0].name);
+}
