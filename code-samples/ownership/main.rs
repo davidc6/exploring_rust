@@ -73,3 +73,13 @@ fn example2() {
   let name = t[0].name.take();
   println!("{:?}", t[0].name);
 }
+
+// Arc and Rc
+// moves and reference pointers are two ways to relax the ownership model
+fn example3() {
+    // Rc is a reference-counter pointer, Rc pointer is immutable
+    // the value owned by Rc is immutable
+    let s = Rc::new("hello".to_string());
+    let t = s.clone(); // points to the original heap-allocated String, refers to the same block of memory
+    let u = s.clone(); // points to the original heap-allocated String, refers to the same block of memory
+}
