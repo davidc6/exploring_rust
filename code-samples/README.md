@@ -144,6 +144,11 @@ somewhere (heap) and hold a pointer to that location.
   - `unsafe` block is Rust's way to allow access to advanced features where safety is up to you
   - 
 
+### Functional programming (features)
+
+- **Closures** - functional like construct that you can store in a variable
+- **Iterators** - a style of processing series of elements
+
 ### Misc
 
 `impl` - implementation block, allows to define methods for a type
