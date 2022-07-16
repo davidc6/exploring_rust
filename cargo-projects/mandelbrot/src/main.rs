@@ -174,3 +174,8 @@ fn test_pixel_to_point() {
         Complex { re: -1.0, im: 1.0 },
         Complex { re: 1.0, im: -1.0 }), Complex { re: -0.5, im: -0.75 })
 }
+
+#[test]
+fn test_escape_time() {
+    assert_eq!(escape_time(Complex { re: 1.25, im: -0.0625 }, 6), Some(2));
+}
