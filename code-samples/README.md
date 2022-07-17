@@ -26,6 +26,7 @@
 `u8 (0 - 255)`, `u16 (65535)` etc - basic integer types
   - `u8` - 1 byte / 8 bits
   - `u16` - 2 bytes / 16 bits
+`unit type` / `()` - empty value is used when there is no other significant value that can be returned.
 
 ### Strings
 
