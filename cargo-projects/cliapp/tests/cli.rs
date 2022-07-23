@@ -14,3 +14,10 @@ fn runs_and_exist_successfully() {
     let mut cmd = Command::cargo_bin("cliapp").unwrap();
     cmd.arg("hello").assert().success();
 }
+
+#[test]
+fn hello1() {
+    let mut cmd = Command::cargo_bin("cliapp").unwrap();
+    let expected = String::from("Hello there\n");
+    cmd.arg("Hello there").assert().success().stdout(expected);
+}
