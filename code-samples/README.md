@@ -21,7 +21,7 @@
 - `u8 (0 - 255)`, `u16 (65535)` etc - basic integer types
   - `u8` - 1 byte / 8 bits
   - `u16` - 2 bytes / 16 bits
-- `unit type` / `()` - empty value is used when there is no other significant value that can be returned.
+- `unit type` / `()` - formally a zero-length tuple, this empty value is used when there is no other significant value that can be returned. Fns that appear to not return any value and expressions that are terminated with a semicolon return `()`.
 
 ### Strings
 
