@@ -3,7 +3,8 @@ use predicates::prelude::*;
 
 // method calls on std::error::Error are (dyn) dynamically dispatched
 // and the error will live inside a poiner and its' memory is allocated 
-// on the heap (Box).
+// on the heap (Box); aka smart pointer to heap memory where variables are accessed
+// through the pointer and their sizes may vary during the execution of the program
 // () - unit type is used here as no other meaningful type could be returned
 type TestOutcome = Result<(), Box<dyn std::error::Error>>;
 
