@@ -1,8 +1,8 @@
 use std::io::{Write, BufReader, Read, stdout};
-use std::fs::{File};
-use std::path::{Path};
+use std::{error::Error, fs::File, path::Path, process};
 use clap::{arg, Command, ArgAction};
-use std::error::{Error};
+
+
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matching = Command::new("Concat")
@@ -17,12 +17,32 @@ fn main() -> Result<(), Box<dyn Error>> {
         let filepath = Path::new(filepath_str);
 
         if filepath.exists() {
-            let file = File::open(filepath)?;
+            let file = match File::open(filepath) {
+                Ok(file) => file,
+                Err(err) => {
+                    println!("Error: {}", err);
+                    process::exit(1);
+                }
+            };
+
             let mut buffered = BufReader::new(file);
             let mut buffer = Vec::new();
-            buffered.read_to_end(&mut buffer)?;
 
-            stdout().write_all(&buffer)?;
+            match buffered.read_to_end(&mut buffer) {
+                Ok(_) => (),
+                Err(err) => {
+                    println!("Error: {}", err);
+                    process::exit(1);
+                }
+            };
+
+            match stdout().write_all(&buffer) {
+                Ok(_) => (),
+                Err(err) => {
+                    println!("Error: {}", err);
+                    process::exit(1);
+                }
+            };
         }
     }
 
