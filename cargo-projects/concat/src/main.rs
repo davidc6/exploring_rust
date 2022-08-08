@@ -50,6 +50,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{:?}", matching.get_one::<String>("number"));
     }
 
-    println!("END");
     Ok(())
 }
