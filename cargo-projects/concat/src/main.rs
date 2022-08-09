@@ -2,7 +2,9 @@ use std::io::{Write, BufReader, Read, stdout, BufRead};
 use std::{error::Error, fs::File, path::Path, process};
 use clap::{arg, Command, ArgAction, Arg, ArgMatches};
 
-fn main() -> Result<(), Box<dyn Error>> {
+type ReturnType<T> = Result<T, Box<dyn Error>>;
+
+fn init() -> ReturnType<()> {
     let files_arg = Arg::new("verbose").multiple_values(true);
     let matches = Command::new("Concat")
         .version("0.1")
@@ -65,6 +67,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             });
     }
-
     Ok(())
+}
+
+fn main() {
+    if let Err(e) = init() {
+        eprintln!("{}", e);
+        std::process::exit(1);
+    }
+
+    // Ok(())
 }
