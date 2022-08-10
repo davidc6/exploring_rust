@@ -11,6 +11,7 @@ fn init() -> ReturnType<()> {
         .author("davidc6")
         .arg(files_arg)
         .arg(arg!(--number).required(false).takes_value(false))
+        .arg(arg!(--nonblank).required(false).takes_value(false).long("number-nonblank"))
         .get_matches();
 
     let files = match matches.try_get_many::<String>("verbose") {
@@ -21,7 +22,8 @@ fn init() -> ReturnType<()> {
         }
     };
 
-    let should_show_line_numbers = matches.is_present("number");
+    let should_show_blank = matches.is_present("number");
+    let should_show_non_blank = matches.is_present("nonblank");
 
     let mut count: u8 = 1;
     
@@ -49,12 +51,11 @@ fn init() -> ReturnType<()> {
                         let b_unwrapped = line.unwrap();
                         let line_as_byte = b_unwrapped.as_bytes();
 
-                        if line_as_byte.len() == 0 && should_show_line_numbers {
-                            // println!("empty line");
+                        if line_as_byte.is_empty() && should_show_non_blank {
                             continue;
                         }
 
-                        if should_show_line_numbers {
+                        if should_show_blank || should_show_non_blank {
                             stdout().write(count_as_bytes);
                             stdout().write(b" ");
                         }
@@ -75,6 +76,4 @@ fn main() {
         eprintln!("{}", e);
         std::process::exit(1);
     }
-
-    // Ok(())
 }
