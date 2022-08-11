@@ -71,6 +71,37 @@ fn init() -> ReturnType<()> {
     Ok(())
 }
 
+struct AppState {
+    should_count_empty_lines: bool,
+    should_count_non_empty_lines: bool,
+    files: Vec<String>,
+}
+
+fn retrieve_args() -> ReturnType<AppState> {
+    let files_arg = Arg::new("verbose").multiple_values(true);
+    let matches = Command::new("Concat")
+        .version("0.1")
+        .author("davidc6")
+        .arg(files_arg)
+        .arg(arg!(--number).required(false).takes_value(false))
+        .arg(arg!(--nonblank).required(false).takes_value(false).long("number-nonblank"))
+        .get_matches();
+
+    let files = match matches.try_get_many::<String>("verbose") {
+        Ok(files) => files.map(move |s| s).unwrap(),
+        Err(err) => {
+            println!("{:?}", err);
+            process::exit(1);
+        }
+    };
+
+    Ok(AppState {
+        should_count_empty_lines: matches.is_present("number"),
+        should_count_non_empty_lines: matches.is_present("nonblank"),
+        files: files.map(String::from).collect::<Vec<String>>()
+    })
+}
+
 fn main() {
     if let Err(e) = init() {
         eprintln!("{}", e);
