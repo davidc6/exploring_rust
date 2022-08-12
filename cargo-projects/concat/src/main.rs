@@ -71,6 +71,7 @@ fn init() -> ReturnType<()> {
     Ok(())
 }
 
+#[derive(Debug)]
 struct AppState {
     should_count_empty_lines: bool,
     should_count_non_empty_lines: bool,
@@ -88,7 +89,7 @@ fn retrieve_args() -> ReturnType<AppState> {
         .get_matches();
 
     let files = match matches.try_get_many::<String>("verbose") {
-        Ok(files) => files.map(move |s| s).unwrap(),
+        Ok(files) => files.unwrap(),
         Err(err) => {
             println!("{:?}", err);
             process::exit(1);
@@ -103,6 +104,16 @@ fn retrieve_args() -> ReturnType<AppState> {
 }
 
 fn main() {
+    let app_state = match retrieve_args() {
+        Ok(args) => args,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("{:?}", app_state);
+
     if let Err(e) = init() {
         eprintln!("{}", e);
         std::process::exit(1);
