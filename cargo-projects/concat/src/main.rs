@@ -78,6 +78,13 @@ struct AppState {
     files: Vec<String>,
 }
 
+fn exec(args: AppState) -> ReturnType<()> {
+    for filename in args.files {
+        println!("{:?}", filename);
+    }
+    Ok(())
+}
+
 fn retrieve_args() -> ReturnType<AppState> {
     let files_arg = Arg::new("verbose").multiple_values(true);
     let matches = Command::new("Concat")
@@ -112,7 +119,7 @@ fn main() {
         }
     };
 
-    println!("{:?}", app_state);
+    exec(app_state);
 
     if let Err(e) = init() {
         eprintln!("{}", e);
