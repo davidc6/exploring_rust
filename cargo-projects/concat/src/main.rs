@@ -1,4 +1,4 @@
-use std::io::{Write, BufReader, Read, stdout, BufRead};
+use std::io::{Write, BufReader, Read, stdout, stdin, BufRead};
 use std::{error::Error, fs::File, path::Path, process};
 use clap::{arg, Command, ArgAction, Arg, ArgMatches};
 
@@ -79,10 +79,23 @@ struct AppState {
 }
 
 fn exec(args: AppState) -> ReturnType<()> {
+    // iterate through the files
     for filename in args.files {
-        println!("{:?}", filename);
+        // attempt to open the file
+        match open_file(&filename) {
+            Err(err) => eprintln!("Failed to open {}, {}", filename, err),
+            Ok(_) => println!("Opened {}", filename)
+        }
     }
     Ok(())
+}
+
+// Box is necessary to hold the filehandle on the heap
+fn open_file(filename: &str) -> ReturnType<Box<dyn BufRead>> {
+    match filename {
+        "-" => Ok(Box::new(BufReader::new(stdin()))),
+        _ => Ok(Box::new(BufReader::new(File::open(filename)?)))
+    }
 }
 
 fn retrieve_args() -> ReturnType<AppState> {
