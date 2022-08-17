@@ -21,6 +21,18 @@ fn bad_file_gen() -> String {
     }
 }
 
+// args - a slice of &str arguments
+fn run(args: &[&str], expected_file: &str) -> TestResult {
+    let expected = fs::read_to_string(expected_file)?;
+    Command::cargo_bin(PROGRAM)?
+        .args(args)
+        .assert()
+        .success()
+        .stdout(expected);
+
+    Ok(())
+}
+
 #[test]
 fn ignore_bad_file() -> TestResult {
     let bad_file = bad_file_gen();
@@ -30,4 +42,12 @@ fn ignore_bad_file() -> TestResult {
         .success()
         .stderr(predicates::str::is_match("os error 2")?);
     Ok(())
+}
+
+const FILE_ONE: &str = "file1.txt";
+
+// TODO - add a script to generate test file
+#[test]
+fn bustle() -> TestResult {
+    run(&[FILE_ONE], "file1.txt.out")
 }
