@@ -1,6 +1,6 @@
 use std::io::{Write, BufReader, Read, stdout, stdin, BufRead};
 use std::{error::Error, fs::File, path::Path, process};
-use clap::{arg, Command, ArgAction, Arg, ArgMatches};
+use clap::{arg, Command, ArgAction, Arg, ArgMatches, App};
 
 type ReturnType<T> = Result<T, Box<dyn Error>>;
 
@@ -78,15 +78,56 @@ struct AppState {
     files: Vec<String>,
 }
 
+// The compiler does not exactly know the size of BufRead return type
+// Hence we allocated memory on the heap by using Box (a pointer with a known size)
+fn read_file_and_count_lines(data: Box<dyn BufRead>, should_empty: bool, should_non_empty: bool, counter: &mut u32) {
+    for line in data.lines() {
+        let line_raw = line.unwrap();
+        let line_as_bytes = line_raw.as_bytes();
+
+        // no flags
+        if should_empty == false && should_non_empty == false {
+            stdout().write(line_as_bytes);
+            stdout().write(&"\x0A".as_bytes());
+            continue;
+        }
+
+        // count empty line
+        if line_as_bytes.is_empty() && should_empty {
+            *counter += 1;
+            let str = counter.to_string();
+            stdout().write(str.as_bytes());
+            stdout().write(&"\x0A".as_bytes());
+            continue;
+        }
+
+        if line_as_bytes.is_empty() && should_non_empty {
+            continue;
+        }
+
+        // count non-empty lines
+        *counter += 1;
+        let str = counter.to_string();
+        stdout().write(str.as_bytes());
+        stdout().write(b" ");
+        stdout().write(line_as_bytes);
+        stdout().write(&"\x0A".as_bytes());
+    }
+}
+
 fn exec(args: AppState) -> ReturnType<()> {
-    // iterate through the files
-    for filename in args.files {
-        // attempt to open the file
+    let mut counter: u32 = 0;
+    let AppState { should_count_empty_lines, should_count_non_empty_lines, files } = args;
+
+    for filename in files {
         match open_file(&filename) {
             Err(err) => eprintln!("Failed to open {}, {}", filename, err),
-            Ok(_) => println!("Opened {}", filename)
+            Ok(data) => {
+                read_file_and_count_lines(data, should_count_empty_lines, should_count_non_empty_lines, &mut counter);
+            }
         }
     }
+
     Ok(())
 }
 
@@ -124,7 +165,7 @@ fn retrieve_args() -> ReturnType<AppState> {
 }
 
 fn main() {
-    let app_state = match retrieve_args() {
+    let mut app_state = match retrieve_args() {
         Ok(args) => args,
         Err(e) => {
             eprintln!("{}", e);
@@ -134,8 +175,8 @@ fn main() {
 
     exec(app_state);
 
-    if let Err(e) = init() {
-        eprintln!("{}", e);
-        std::process::exit(1);
-    }
+    // if let Err(e) = init() {
+    //     eprintln!("{}", e);
+    //     std::process::exit(1);
+    // }
 }
