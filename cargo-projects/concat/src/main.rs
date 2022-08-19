@@ -1,75 +1,8 @@
-use std::io::{Write, BufReader, Read, stdout, stdin, BufRead};
-use std::{error::Error, fs::File, path::Path, process};
-use clap::{arg, Command, ArgAction, Arg, ArgMatches, App};
+use std::io::{Write, BufReader, stdout, stdin, BufRead};
+use std::{error::Error, fs::File, process};
+use clap::{arg, Command, Arg};
 
 type ReturnType<T> = Result<T, Box<dyn Error>>;
-
-fn init() -> ReturnType<()> {
-    let files_arg = Arg::new("verbose").multiple_values(true);
-    let matches = Command::new("Concat")
-        .version("0.1")
-        .author("davidc6")
-        .arg(files_arg)
-        .arg(arg!(--number).required(false).takes_value(false))
-        .arg(arg!(--nonblank).required(false).takes_value(false).long("number-nonblank"))
-        .get_matches();
-
-    let files = match matches.try_get_many::<String>("verbose") {
-        Ok(files) => files.map(|s| s.collect::<Vec<_>>()).unwrap(),
-        Err(err) => {
-            println!("{:?}", err);
-            process::exit(1);
-        }
-    };
-
-    let should_show_blank = matches.is_present("number");
-    let should_show_non_blank = matches.is_present("nonblank");
-
-    let mut count: u8 = 1;
-    
-    if files.len() > 1 {
-        files
-            .iter()
-            .for_each(|file| {
-                let filepath = Path::new(file);
-
-                if filepath.exists() {
-                    let file = match File::open(filepath) {
-                        Ok(file) => file,
-                        Err(err) => {
-                            println!("Error: {}", err);
-                            process::exit(1);
-                        }
-                    };
-
-                    let buffered = BufReader::new(file);
-
-                    for line in buffered.lines() {
-                        let count_str = count.to_string(); // convert value to String
-                        let count_as_bytes = count_str.as_bytes(); // returns byte slice of String contents
-
-                        let b_unwrapped = line.unwrap();
-                        let line_as_byte = b_unwrapped.as_bytes();
-
-                        if line_as_byte.is_empty() && should_show_non_blank {
-                            continue;
-                        }
-
-                        if should_show_blank || should_show_non_blank {
-                            stdout().write(count_as_bytes);
-                            stdout().write(b" ");
-                        }
-
-                        stdout().write_all(line_as_byte);
-                        stdout().write(&"\x0A".as_bytes());
-
-                        count += 1;
-                    }
-                }
-            });
-    }
-    Ok(())
-}
 
 #[derive(Debug)]
 struct AppState {
@@ -85,38 +18,27 @@ fn read_file_and_count_lines(data: Box<dyn BufRead>, should_empty: bool, should_
         let line_raw = line.unwrap();
         let line_as_bytes = line_raw.as_bytes();
 
-        // no flags
-        if should_empty == false && should_non_empty == false {
-            stdout().write(line_as_bytes);
-            stdout().write(&"\x0A".as_bytes());
-            continue;
-        }
-
-        // count empty line
-        if line_as_bytes.is_empty() && should_empty {
-            *counter += 1;
-            let str = counter.to_string();
-            stdout().write(str.as_bytes());
-            stdout().write(&"\x0A".as_bytes());
-            continue;
-        }
+        let count_str = counter.to_string(); // convert value to String
+        let count_as_bytes = count_str.as_bytes(); // returns byte slice of String contents
 
         if line_as_bytes.is_empty() && should_non_empty {
             continue;
         }
 
-        // count non-empty lines
-        *counter += 1;
-        let str = counter.to_string();
-        stdout().write(str.as_bytes());
-        stdout().write(b" ");
-        stdout().write(line_as_bytes);
+        if should_empty || should_non_empty {
+            stdout().write(count_as_bytes);
+            stdout().write(b" ");
+        }
+
+        stdout().write_all(line_as_bytes);
         stdout().write(&"\x0A".as_bytes());
+
+        *counter += 1;
     }
 }
 
 fn exec(args: AppState) -> ReturnType<()> {
-    let mut counter: u32 = 0;
+    let mut counter: u32 = 1;
     let AppState { should_count_empty_lines, should_count_non_empty_lines, files } = args;
 
     for filename in files {
