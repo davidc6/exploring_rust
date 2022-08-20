@@ -87,18 +87,16 @@ fn retrieve_args() -> ReturnType<AppState> {
 }
 
 fn main() {
-    let mut app_state = match retrieve_args() {
+    let app_state = match retrieve_args() {
         Ok(args) => args,
         Err(e) => {
             eprintln!("{}", e);
-            std::process::exit(1);
+            process::exit(1);
         }
     };
 
-    exec(app_state);
-
-    // if let Err(e) = init() {
-    //     eprintln!("{}", e);
-    //     std::process::exit(1);
-    // }
+    if let Err(e) = exec(app_state) {
+        println!("{:?}", e);
+        process::exit(1);
+    }
 }
