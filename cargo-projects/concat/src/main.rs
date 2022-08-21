@@ -62,13 +62,13 @@ fn open_file(filename: &str) -> ReturnType<Box<dyn BufRead>> {
 }
 
 fn retrieve_args() -> ReturnType<AppState> {
-    let files_arg = Arg::new("verbose").multiple_values(true);
+    let files_arg = Arg::new("FILE").multiple_values(true).default_value("-");
     let matches = Command::new("Concat")
         .version("0.1")
         .author("davidc6")
         .arg(files_arg)
-        .arg(arg!(--number).required(false).takes_value(false))
-        .arg(arg!(--nonblank).required(false).takes_value(false).long("number-nonblank"))
+        .arg(arg!(--number "Number lines").required(false).takes_value(false).short('n').conflicts_with("number_nonblank"))
+        .arg(arg!(--nonblank "Number nonblank lines").required(false).takes_value(false).short('b').long("number-nonblank"))
         .get_matches();
 
     let files = match matches.try_get_many::<String>("verbose") {
