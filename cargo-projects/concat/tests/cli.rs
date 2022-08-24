@@ -46,8 +46,8 @@ fn ignore_bad_file() -> TestResult {
 
 const FILE_ONE: &str = "file1.txt";
 
-// TODO - add a script to generate test file
+// TODO - add a script to generate the test file
 #[test]
-fn bustle() -> TestResult {
+fn file_one() -> TestResult {
     run(&[FILE_ONE], "file1.txt.out")
 }
