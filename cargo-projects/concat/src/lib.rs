@@ -33,8 +33,10 @@ fn read_file_and_count_lines(data: Box<dyn BufRead>, should_empty: bool, should_
         stdout().write_all(line_as_bytes);
         stdout().write(&"\x0A".as_bytes());
 
+        // value counter reference points to 
         *counter += 1;
     }
+
     Ok(())
 }
 
@@ -54,7 +56,19 @@ pub fn exec() -> ReturnType<()> {
         match open_file(&filename) {
             Err(err) => eprintln!("Failed to open {}, {}", filename, err),
             Ok(data) => {
-                read_file_and_count_lines(data, should_count_empty_lines, should_count_non_empty_lines, &mut counter);
+                // &mut counter borrows a mutable reference to counter
+                match read_file_and_count_lines(
+                    data, 
+                    should_count_empty_lines, 
+                    should_count_non_empty_lines, 
+                    &mut counter
+                ) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        eprintln!("{:?}", e);
+                        process::exit(1);
+                    }
+                }
             }
         }
     }
