@@ -2,31 +2,26 @@
 
 ## Tooling
 
-`cargo` - compilation manager
+- `cargo` - compilation manager
   - `cargo new hello-world` - creates new app / set up a new app
-`rustup` - toolchain manager
-
-`rustc` - Rust compiler
+- `rustup` - toolchain manager
+- `rustc` - Rust compiler
 
 ## Syntax / library
 
-`!` - macro invocation e.g. `println!()`
-
-`panic` - abrupt termination; allows the program to terminate immediately; should be used when a program reaches unrecoverable state
-
-`env.args()` - an iterator, produces each value on demand
-
-`traits` - a collection of methods that types implement
+- `!` - macro invocation e.g. `println!()`
+- `panic` - abrupt termination; allows the program to terminate immediately; should be used when a program reaches unrecoverable state
+- `env.args()` - an iterator, produces each value on demand
+- `traits` - a collection of methods (behaviour) that a type implements/can implement
   - when importing a trait must be in scope to use its methods
-
-`b"world"` - byte literal is used to indicate that this is a byte string (sequence of bytes)
+- `b"world"` - byte literal is used to indicate that this is a byte string (sequence of bytes)
 
 ### Types
 
-`u8 (0 - 255)`, `u16 (65535)` etc - basic integer types
+- `u8 (0 - 255)`, `u16 (65535)` etc - basic integer types
   - `u8` - 1 byte / 8 bits
   - `u16` - 2 bytes / 16 bits
-`unit type` / `()` - empty value is used when there is no other significant value that can be returned.
+- `unit type` / `()` - empty value is used when there is no other significant value that can be returned.
 
 ### Strings
 
@@ -35,6 +30,23 @@
 - Non UTF-8 binary data - `Vec<u8>` and `&[u8]`
 - Env var names and command-line args (presented by OS) - `OsString` and `&OsStr`
 - C interop with null terminated strings - `std::ffi::CString` and `&CStr`
+- Other String-Like Types (refer to Programming Rust 2nd ed)
+
+### Array, Vector, Slice
+
+- Array (contiguos block of memory, fixed size)
+```rs
+let ar: [i32, 4] = [1, 8, 9, 12]
+```
+- Vector (dynamic allocation)
+```rs
+let ve: Vec<i32> = vec![1, 8, 9, 12]
+```
+- Slice (temporary view into an array or vector)
+```rs
+let ar: [i32, 4] = [1, 8, 9, 12]
+let sl = &ar[1..3]
+```
 
 ### Array
 
