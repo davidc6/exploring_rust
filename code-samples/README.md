@@ -111,9 +111,15 @@ to it is stored in the stack
   
 #### Lifetimes
 
+- How a reference is expected to live (regardless of the memory type or whether it's on a stack or heap)
+- Lifetimes are about references
+- Lifetimes really ensures that memory does not get cleaned up before a reference can use it
+- Lifetimes enforce a piece of memory is still valid for a reference
 - Every reference has a lifetime (the scope for which the reference is valid)
 - Same as types, lifetimes are inferred most of the times
 - Lifetimes allow us to prevent dangling references
+- `static` is a variable that lives for the whole lifetime of the application
+- Lifetime subtyping
 
 ### Error handling
 
