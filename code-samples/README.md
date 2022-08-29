@@ -25,6 +25,7 @@
 
 ### Strings
 
+- Are Vectors of u8s
 - If dealing with unicode test - `String` and `&str`
 - For filenames - `use::path::PathBuf` & `&Path`
 - Non UTF-8 binary data - `Vec<u8>` and `&[u8]`
@@ -120,6 +121,60 @@ to it is stored in the stack
 - Lifetimes allow us to prevent dangling references
 - `static` is a variable that lives for the whole lifetime of the application
 - Lifetime subtyping
+
+```rs
+// without specifying lifetimes the compiler will complain
+// lifetimes make sure that the data references is valid as long as the struct is
+struct User<'a> {
+    name: &'a str
+}
+
+fn main() {
+    let user1 = User {
+        name: "John"
+    };
+
+    println!("{:?}", user1.name);
+}
+```
+
+```rs
+fn main() {
+    let a_vec = vec![1, 2, 3, 4];
+    let b_vec = vec![5, 6, 7, 8];
+
+    let sliced_vec = get_slice(&a_vec, &b_vec);
+    
+    println!("{:?}", sliced_vec);
+}
+
+// not specifing lifetimes here will have the compiler complain as 
+// it cannot implicitly determine what the lifetime should be
+fn get_slice<'a>(sliced_vec_1: &'a[u8], sliced_vec_2: &'a[u8]) -> &'a[u8]  {
+    if sliced_vec_1.len() > sliced_vec_2.len() {
+        &sliced_vec_1[0..2]
+    } else {
+        &sliced_vec_2[0..1]
+    }
+}
+```
+
+```rs
+fn main() {
+    let a = 8;
+    let b = 9;
+    
+    println!("{}", compare(&a, &b));
+}
+
+fn compare<'a, T: std::cmp::PartialOrd>(a: &'a T, b: &'a T) -> &'a T {
+    if a > b {
+        a
+    } else {
+        b
+    }
+}
+```
 
 ### Error handling
 
