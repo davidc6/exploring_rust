@@ -61,8 +61,19 @@ to it is stored in the stack
 
 ### Ownership
 
+**Is a set of rules that governs how Rust program manages memory**
+
+1. Garbage collection
+2. Explicit allocation and deallocation
+3. Through a set of rules the compiler checks
+
 - Stack - static memory allocation (we can't modify context of this area; fixed size; high memory addresses; allocation is quicker)
 - Heap - dynamic memory allocation (not fixed and can vary at runtime; size is dependent on the system; lower memory addresses; allocation is slower as have to find first)
+
+- RAII (Resource Aqcquisition Is Initialization) - sometimes referred to as scope-bound resource management, resources being file handles, network sockets, which usage need to be controlled. The lifetime of the object is dependent on it's variable scope, when the variable goes out of scope the destructor will be called and the resource will be released. 
+
+- clone() - to deeply copy heap data
+- copy() - to copy stack data
 
 - Ownership:
   - Keeps track of what parts of code are using what data on the heap
@@ -222,6 +233,11 @@ somewhere (heap) and hold a pointer to that location.
 
 - **Closures** - functional like construct that you can store in a variable
 - **Iterators** - a style of processing series of elements
+
+## Function
+
+- Not putting a semicolon means this is what's returned from the function
+
 
 ### Misc
 
