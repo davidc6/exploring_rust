@@ -109,6 +109,11 @@ to it is stored in the stack
 - `Rc` and `Arc` are types provided by the standard library that allows values to have multiple owners under certain conditions
 - One can borrow a reference to a value and references are non-owning pointers with limited lifetimes
 
+#### Slice type
+
+- Allows to reference a segment of a contigous collection rather than the whole collection
+- It is a reference so does not have ownership
+
 #### Moves
 
 - Assigning value to a var, passing it to fn / returning it from fn does not copy a value it moves it
