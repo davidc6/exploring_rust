@@ -10,7 +10,10 @@ fn find_str<'a>(s: &'a String, order: usize) -> &'a str {
     let mut finish = 0;
     let mut count = 0;
 
-    for (index, value) in s.bytes().enumerate() {
+    // as_bytes() - String contents to byte slice
+    // iter() - iterator over the slice
+    // enumerate() - iterator that gives iter count and value
+    for (index, value) in s.as_bytes().iter().enumerate() {
         if value == space && start == finish {
             start += 1;
             continue;
