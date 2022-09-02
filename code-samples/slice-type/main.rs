@@ -1,16 +1,16 @@
 fn main() {
     let s = String::from("Hello world this is Rust");
-    let a = find_str(&s, 1); // find the first word
+    let a = find_str(&s, 2); // find the first word
     println!("{:?}", a);
 }
 
 fn find_str<'a>(s: &'a String, order: usize) -> &'a str {
-    let space = ' ';
+    let space = b' ';
     let mut start = 0;
     let mut finish = 0;
     let mut count = 0;
 
-    for (index, value) in s.chars().enumerate() {
+    for (index, value) in s.bytes().enumerate() {
         if value == space && start == finish {
             start += 1;
             continue;
