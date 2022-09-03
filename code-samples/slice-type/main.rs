@@ -1,10 +1,14 @@
 fn main() {
     let s = String::from("Hello world this is Rust");
     let a = find_str(&s, 2); // find the first word
+    // uncommenting this will generate compiler error,
+    // .clear() requires mutable references and then println immutable
+    // and Rust does not allow this
+    // s.clear(); 
     println!("{:?}", a);
 }
 
-fn find_str<'a>(s: &'a String, order: usize) -> &'a str {
+fn find_str<'a>(s: &'a str, order: usize) -> &'a str {
     let space = b' ';
     let mut start = 0;
     let mut finish = 0;
@@ -13,7 +17,7 @@ fn find_str<'a>(s: &'a String, order: usize) -> &'a str {
     // as_bytes() - String contents to byte slice
     // iter() - iterator over the slice
     // enumerate() - iterator that gives iter count and value
-    for (index, value) in s.as_bytes().iter().enumerate() {
+    for (index, &value) in s.as_bytes().iter().enumerate() {
         if value == space && start == finish {
             start += 1;
             continue;
