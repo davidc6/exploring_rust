@@ -241,8 +241,17 @@ somewhere (heap) and hold a pointer to that location.
 
 ## Function
 
+- Rust is an expression-based language (primarily), meaning that (almost) everything is an expression therefore yields a value
+- There are only two kinds of statements
+  - Declaration statement - variable bindings are expressions in some languages but not in Rust as they do not return anything, expressions can be part of declaration statements
+  ```rs
+  let str = "one"; // does not return anything
+  ```
+  - Expression statement - evaluates an expression and ignores its result
+- Statements do not yield a value
+- In Rust the value of a variable assignment is an empty tuple (`()`) 
 - Not putting a semicolon means this is what's returned from the function
-
+- Using `return` as the last line of a function is considered bad style
 
 ### Misc
 
