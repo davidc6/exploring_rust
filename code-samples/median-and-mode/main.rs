@@ -1,22 +1,33 @@
 use std::collections::HashMap;
 
-type ReturnType<'a> = (usize, HashMap<&'a usize, i8>);
+type ReturnType = (usize, usize);
+// return variant 2
+// type ReturnType<'a> = (usize, HashMap<&'a usize, usize>);
 
 fn find(i: &mut [usize; 7]) -> ReturnType {
     i.sort();
     let median = i.len() / 2;
     
     let mut hm = HashMap::new();
+    let mut most_frequent = 0;
     
     for val in i.iter() {
         if hm.contains_key(&val) {
-            hm.insert(val, hm.get(&val).unwrap() + 1);
-            continue;
+            let new_val = hm.get(&val).unwrap() + 1;
+
+            hm.insert(val, new_val);
+        } else {
+            hm.insert(val, 1);
         }
-        hm.insert(val, 1);
+
+        if hm.get(&val) > hm.get(&most_frequent) {
+            most_frequent = *val;
+        }
     }
     
-    (median, hm)
+    // return variant 2
+    // (median, hm)
+    (median, most_frequent)
 }
 
 fn main() {
