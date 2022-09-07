@@ -1,6 +1,20 @@
 use std::io::{Write, BufReader, stdout, stdin, BufRead};
 use std::{error::Error, fs::File, process};
-use clap::{arg, Command, Arg};
+use clap::{Parser};
+
+#[derive(Parser)]
+#[clap(name = "Concat", author = "daivdc6", version = "1.0")]
+struct Cli {
+    /// Path(s) to file(s)
+    #[clap(value_parser, required = true)]
+    file: Vec<String>,
+    /// Optional number lines
+    #[clap(short = 'n', long = "number", action)]
+    number: bool,
+    /// Number nonblank lines
+    #[clap(short = 'b', long = "number-nonblank", action)]
+    nonblank: bool,
+}
 
 type ReturnType<T> = Result<T, Box<dyn Error>>;
 
@@ -85,38 +99,11 @@ fn open_file(filename: &str) -> ReturnType<Box<dyn BufRead>> {
 }
 
 fn retrieve_args() -> ReturnType<AppState> {
-    let files_arg = Arg::new("FILE").multiple_values(true).default_value("-");
-    let matches = Command::new("Concat")
-        .version("0.1")
-        .author("davidc6")
-        .arg(files_arg)
-        .arg(
-            arg!(--number "Number lines")
-                .required(false)
-                .takes_value(false)
-                .short('n')
-                .conflicts_with("nonblank")
-            )
-        .arg(
-            arg!(--nonblank "Number nonblank lines")
-                .required(false)
-                .takes_value(false)
-                .short('b')
-                .long("number-nonblank")
-            )
-        .get_matches();
-
-    let files = match matches.try_get_many::<String>("FILE") {
-        Ok(files) => files.unwrap(),
-        Err(err) => {
-            println!("{:?}", err);
-            process::exit(1);
-        }
-    };
+    let cli = Cli::parse();
 
     Ok(AppState {
-        should_count_empty_lines: matches.is_present("number"),
-        should_count_non_empty_lines: matches.is_present("nonblank"),
-        files: files.map(String::from).collect::<Vec<String>>()
+        should_count_empty_lines: cli.number,
+        should_count_non_empty_lines: cli.nonblank,
+        files: cli.file
     })
 }
