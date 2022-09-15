@@ -1,11 +1,6 @@
 use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write, Read}};
 use serde::{Serialize, Deserialize};
 
-enum HttpVersion {
-    One,
-    Two
-}
-
 #[derive(Debug)]
 struct Request {
     method: String,
