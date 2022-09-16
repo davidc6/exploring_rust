@@ -103,8 +103,6 @@ fn process_connection(mut stream: TcpStream) {
         .take_while(|line| !line.is_empty())
         .collect();
 
-        println!("Hello {:?}", request);
-
     let response = "HTTP/1.1 200 OK\r\n\r\n";
 
     stream.write_all(response.as_bytes()).unwrap();
@@ -212,12 +210,8 @@ fn main() {
     // bind (connect) socket to the address and port
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
-    println!("STARTED");
-
     // iterator over streams (open client / server connection)
     for stream in listener.incoming() {
-    println!("INSIDE");
-
         let stream = stream.unwrap();
         // println!("{:?}", stream);        
         // process_connection(stream);
