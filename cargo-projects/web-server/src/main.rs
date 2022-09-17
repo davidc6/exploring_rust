@@ -109,33 +109,38 @@ fn process_connection(mut stream: TcpStream) {
 }
 
 fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
-    let  mut buf2 = BufReader::new(stream.try_clone().unwrap());
+    let mut buf2 = BufReader::new(stream.try_clone().unwrap());
 
     // let buf3 = std::io::Cursor::new(stream);
     let mut buf4 = String::new();
     // let mut buf4 = vec![];
     // buf3.read_line(buf4);
+
     let mut should_exit = false;
+
+
     loop {
-    let mut buf4 = String::new();
+        let mut buf4 = String::new();
 
         let len = buf2.read_line(&mut buf4).unwrap();
-        // println!("{:?}", std::str::from_utf8(buf2.buffer()));
-        println!("{} {:?}", len, buf4);
+
+        println!("{:?}", std::str::from_utf8(buf2.buffer()));
 
         if buf4 == "\r\n" {
-            let mut buf5 = [0; 42];
+            // println!("{} {:?}", len, buf4);
 
-            should_exit = true;
-            buf2.read_exact(&mut buf5);
-            println!("{:?}", std::str::from_utf8(&buf5).unwrap());
+            let mut buf5 = [0; 43];
+
+            // should_exit = true;
+            // buf2.read_exact(&mut buf5)?;
+
+            println!("HELLO {:?}", std::str::from_utf8(&buf5).unwrap());
             break;
         }
 
         // if should_exit {
         //     break;
         // }
-
     }
 
     // stream.write_all(&[1])?;
@@ -149,8 +154,6 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // 8096
     // let mut buf2 = [0; 173];
     // stream.read_exact(&mut buf2)?;
-
-
 
     println!("BBB");
 
@@ -203,7 +206,6 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
 
     stream.write_all(response.as_bytes()).unwrap();
     Ok(())
-
 }
 
 fn main() {
@@ -214,8 +216,8 @@ fn main() {
     for stream in listener.incoming() {
         let stream = stream.unwrap();
         // println!("{:?}", stream);        
-        // process_connection(stream);
-        handle_test(stream);
+        process_connection(stream);
+        // handle_test(stream);
         println!("Connection established");
     }
 }
