@@ -27,8 +27,8 @@ impl Request {
 #[derive(Serialize, Deserialize, Debug)]
 
 struct Test {
-    name: String,
-    email: String
+    prod: u8,
+    // email: String
 }
 
 struct Response {
@@ -109,39 +109,36 @@ fn process_connection(mut stream: TcpStream) {
 }
 
 fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
-    let mut buf2 = BufReader::new(stream.try_clone().unwrap());
+    // creates independently owned handle which references the same stream
+    let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
-    // let buf3 = std::io::Cursor::new(stream);
-    let mut buf4 = String::new();
-    // let mut buf4 = vec![];
-    // buf3.read_line(buf4);
-
-    let mut should_exit = false;
-
+    // let mut should_exit = false;
+    let mut buf5 = [0; 12];
 
     loop {
-        let mut buf4 = String::new();
+        let mut line = String::new();
+    
+            let num_bytes_read = buffered_stream.read_line(&mut line).unwrap();
 
-        let len = buf2.read_line(&mut buf4).unwrap();
+            // println!("{:?}", std::str::from_utf8(buffered_stream.buffer()));
 
-        println!("{:?}", std::str::from_utf8(buf2.buffer()));
+            println!("{} {:?}", num_bytes_read, line);
+    
+            if line == "\r\n" {
+    
+                // should_exit = true;
+                buffered_stream.read_exact(&mut buf5);
 
-        if buf4 == "\r\n" {
-            // println!("{} {:?}", len, buf4);
+                println!("{:?}", std::str::from_utf8(&buf5).unwrap());
 
-            let mut buf5 = [0; 43];
-
-            // should_exit = true;
-            // buf2.read_exact(&mut buf5)?;
-
-            println!("HELLO {:?}", std::str::from_utf8(&buf5).unwrap());
-            break;
+                break;
+            }
+    
+            // if should_exit {
+            //     break;
+            // }
+    
         }
-
-        // if should_exit {
-        //     break;
-        // }
-    }
 
     // stream.write_all(&[1])?;
     // stream.read_exact(&mut [0; 512])?;
@@ -152,21 +149,21 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     println!("AAA");
     
     // 8096
-    // let mut buf2 = [0; 173];
-    // stream.read_exact(&mut buf2)?;
+    // let mut buffered_stream = [0; 150];
+    // stream.read_exact(&mut buffered_stream)?;
 
     println!("BBB");
 
     let mut body_vec: Vec<u8> = vec![];
     let mut counter = 0;
 
-    // for byte in buf2.bytes() {
+    // for byte in buffered_stream.bytes() {
     //     if *byte.as_ref().unwrap() == 0 {
     //         break;
     //     }
 
     //     if counter == 4 {
-    //         body_vec.push(byte.unwrap());
+    //         body_vec.push(9);
     //         continue;
     //     }
 
@@ -184,20 +181,21 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // }
 
 
-    // let s = match std::str::from_utf8(&buf2) {
+    // let s = match std::str::from_utf8(&buffered_stream) {
     //     Ok(v) => v,
     //     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
     // };
 
     // buf.lines()
 
-    // let zero_pos = buf2.iter().find(|&&x| x == 0);
+    // let zero_pos = buffered_stream.iter().find(|&&x| x == 0);
 
     // println!("{:?}", s);
-    // println!("{:?}", buf2);
-
+    // println!("{:?}", buffered_stream);
     // println!("{:?}", std::str::from_utf8(&body_vec).unwrap());
-    let s = std::str::from_utf8(&body_vec);
+
+    let s = std::str::from_utf8(&buf5);
+
     // let deserialized: Test = serde_json::from_str(std::str::from_utf8(&body_vec).unwrap()).unwrap();
     let des: Test = serde_json::from_str(s.unwrap()).unwrap();
 
@@ -216,8 +214,8 @@ fn main() {
     for stream in listener.incoming() {
         let stream = stream.unwrap();
         // println!("{:?}", stream);        
-        process_connection(stream);
-        // handle_test(stream);
+        // process_connection(stream);
+        handle_test(stream);
         println!("Connection established");
     }
 }
