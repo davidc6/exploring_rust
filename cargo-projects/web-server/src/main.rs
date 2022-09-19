@@ -112,7 +112,6 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // creates independently owned handle which references the same stream
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
-    // let mut should_exit = false;
     let mut buf5 = [0; 12];
 
     loop {
@@ -121,23 +120,15 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
             let num_bytes_read = buffered_stream.read_line(&mut line).unwrap();
 
             // println!("{:?}", std::str::from_utf8(buffered_stream.buffer()));
-
             println!("{} {:?}", num_bytes_read, line);
     
-            if line == "\r\n" {
-    
-                // should_exit = true;
+            if line == "\r\n" {    
                 buffered_stream.read_exact(&mut buf5);
 
                 println!("{:?}", std::str::from_utf8(&buf5).unwrap());
 
                 break;
-            }
-    
-            // if should_exit {
-            //     break;
-            // }
-    
+            }    
         }
 
     // stream.write_all(&[1])?;
@@ -146,13 +137,10 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // println!("{:?}", buf.lines());
 
     // let a: Vec<_> = buf.lines().map(|line| line.unwrap()).take_while(|line| !line.is_empty()).collect();
-    println!("AAA");
     
     // 8096
     // let mut buffered_stream = [0; 150];
     // stream.read_exact(&mut buffered_stream)?;
-
-    println!("BBB");
 
     let mut body_vec: Vec<u8> = vec![];
     let mut counter = 0;
