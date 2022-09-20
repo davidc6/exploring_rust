@@ -1,5 +1,6 @@
-use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write, Read}};
+use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write, Read}, f32::consts::E, hash::Hash};
 use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 struct Request {
@@ -28,6 +29,7 @@ impl Request {
 
 struct Test {
     prod: u8,
+    thisIs: String
     // email: String
 }
 
@@ -39,7 +41,24 @@ struct Response {
 }
 
 fn process_method(line: String) -> Vec<String> {
-    line.split(" ").map(String::from).collect()
+    line.split(' ').map(String::from).collect()
+}
+
+fn process_header<'a>(header: String) -> (String, String) {
+    // header name, value, end of line
+    let clean_header: Vec<_> = header.split("\r\n").collect();
+
+    // if clean_header.len() > 0 {
+    let parts: Vec<_> = clean_header[0].split(":").collect();
+    println!("Header {} {}", parts[0], parts[1]);
+
+    // }
+
+    // if parts[0].contains("Content-Length") {
+    //     return parts[1].trim_start();
+    // }
+
+    (parts[0].to_string(), parts[1].trim_start().to_string())
 }
 
 fn process_connection(mut stream: TcpStream) {
@@ -112,24 +131,89 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // creates independently owned handle which references the same stream
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
+    // body buffer - TODO
+    let mut map: HashMap<String, String> = HashMap::new();
     let mut buf5 = [0; 12];
+    let mut data = Vec::new();
 
     loop {
         let mut line = String::new();
-    
-            let num_bytes_read = buffered_stream.read_line(&mut line).unwrap();
+        let num_bytes_read = buffered_stream.read_line(&mut line).unwrap();
+
+        if num_bytes_read == 2 {
+            let mut buf10 = [0; 4096];
+
+            loop {
+                let n = buffered_stream.read(&mut buf10)?;
+
+                println!("SIZE {:?}", n);
+
+                if n == 0 {
+                    println!("BREAK");
+                    break;
+                }
+
+                data.extend_from_slice(&buf10[..n]);
+                if 4096 > n {
+                    break;
+                }
+            }
+            break;
+        }
+
+        // parsing takes place
+        if !line.contains("HTTP") {
+            let (name, value) = process_header(line);
+            map.insert(name, value);
+        }
+
+
+
+    }
+    println!("{:?}", data);
+    // end of request
+    // if num_bytes_read == 2 {
+    //     let length = map.get("Content-Length").unwrap().parse().unwrap();
+
+    //     let mut counter = 0;
+
+    //     loop {
+    //         let mut buf7 = [0; 4];
+
+    //         // counter.push()
+
+    //         body.push_str(std::str::from_utf8(&buf7).unwrap());
+    //         counter += 4;
+
+    //     }
+
+
+
+
+                // buffered_stream.read_exact(&mut buf5);
+
+                // println!("{:?}", std::str::from_utf8(&buf5).unwrap());
+
+                // println!("{}", length);
+
+                // break;
+            // }
+
+
 
             // println!("{:?}", std::str::from_utf8(buffered_stream.buffer()));
-            println!("{} {:?}", num_bytes_read, line);
-    
-            if line == "\r\n" {    
-                buffered_stream.read_exact(&mut buf5);
 
-                println!("{:?}", std::str::from_utf8(&buf5).unwrap());
+            // if line == "\r\n" {    
+            //     buffered_stream.read_exact(&mut buf5);
 
-                break;
-            }    
-        }
+            //     println!("{:?}", std::str::from_utf8(&buf5).unwrap());
+
+            //     break;
+            // }
+
+            // println!("{} {:?}", num_bytes_read, line);
+
+        // }
 
     // stream.write_all(&[1])?;
     // stream.read_exact(&mut [0; 512])?;
@@ -182,7 +266,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // println!("{:?}", buffered_stream);
     // println!("{:?}", std::str::from_utf8(&body_vec).unwrap());
 
-    let s = std::str::from_utf8(&buf5);
+    let s = std::str::from_utf8(&data);
 
     // let deserialized: Test = serde_json::from_str(std::str::from_utf8(&body_vec).unwrap()).unwrap();
     let des: Test = serde_json::from_str(s.unwrap()).unwrap();
