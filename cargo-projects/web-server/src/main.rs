@@ -166,11 +166,8 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
             let (name, value) = process_header(line);
             map.insert(name, value);
         }
-
-
-
     }
-    println!("{:?}", data);
+
     // end of request
     // if num_bytes_read == 2 {
     //     let length = map.get("Content-Length").unwrap().parse().unwrap();
@@ -215,56 +212,6 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
 
         // }
 
-    // stream.write_all(&[1])?;
-    // stream.read_exact(&mut [0; 512])?;
-    // Ok(())
-    // println!("{:?}", buf.lines());
-
-    // let a: Vec<_> = buf.lines().map(|line| line.unwrap()).take_while(|line| !line.is_empty()).collect();
-    
-    // 8096
-    // let mut buffered_stream = [0; 150];
-    // stream.read_exact(&mut buffered_stream)?;
-
-    let mut body_vec: Vec<u8> = vec![];
-    let mut counter = 0;
-
-    // for byte in buffered_stream.bytes() {
-    //     if *byte.as_ref().unwrap() == 0 {
-    //         break;
-    //     }
-
-    //     if counter == 4 {
-    //         body_vec.push(9);
-    //         continue;
-    //     }
-
-    //     if *byte.as_ref().unwrap() == 13 {
-    //         counter += 1;
-    //         continue;
-    //     }
-
-    //     if *byte.as_ref().unwrap() == 10 {
-    //         counter += 1;
-    //         continue;
-    //     }
-
-    //     counter = 0;
-    // }
-
-
-    // let s = match std::str::from_utf8(&buffered_stream) {
-    //     Ok(v) => v,
-    //     Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-    // };
-
-    // buf.lines()
-
-    // let zero_pos = buffered_stream.iter().find(|&&x| x == 0);
-
-    // println!("{:?}", s);
-    // println!("{:?}", buffered_stream);
-    // println!("{:?}", std::str::from_utf8(&body_vec).unwrap());
 
     let s = std::str::from_utf8(&data);
 
