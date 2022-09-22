@@ -141,7 +141,9 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
         let num_bytes_read = buffered_stream.read_line(&mut line).unwrap();
 
         if num_bytes_read == 2 {
-            let mut buf10 = [0; 4096];
+            // big enough buffer size should allow to store data
+            const BUFFER_SIZE: usize = 4096;
+            let mut buf10 = [0; BUFFER_SIZE];
 
             loop {
                 let n = buffered_stream.read(&mut buf10)?;
@@ -154,7 +156,8 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
                 }
 
                 data.extend_from_slice(&buf10[..n]);
-                if 4096 > n {
+
+                if BUFFER_SIZE > n {
                     break;
                 }
             }
@@ -170,31 +173,15 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
 
     // end of request
     // if num_bytes_read == 2 {
-    //     let length = map.get("Content-Length").unwrap().parse().unwrap();
 
-    //     let mut counter = 0;
+    // buffered_stream.read_exact(&mut buf5);
 
-    //     loop {
-    //         let mut buf7 = [0; 4];
+    // println!("{:?}", std::str::from_utf8(&buf5).unwrap());
 
-    //         // counter.push()
+    // println!("{}", length);
 
-    //         body.push_str(std::str::from_utf8(&buf7).unwrap());
-    //         counter += 4;
-
-    //     }
-
-
-
-
-                // buffered_stream.read_exact(&mut buf5);
-
-                // println!("{:?}", std::str::from_utf8(&buf5).unwrap());
-
-                // println!("{}", length);
-
-                // break;
-            // }
+    // break;
+// }
 
 
 
