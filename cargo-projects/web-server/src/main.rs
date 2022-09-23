@@ -45,19 +45,8 @@ fn process_method(line: String) -> Vec<String> {
 }
 
 fn process_header<'a>(header: String) -> (String, String) {
-    // header name, value, end of line
     let clean_header: Vec<_> = header.split("\r\n").collect();
-
-    // if clean_header.len() > 0 {
     let parts: Vec<_> = clean_header[0].split(":").collect();
-    println!("Header {} {}", parts[0], parts[1]);
-
-    // }
-
-    // if parts[0].contains("Content-Length") {
-    //     return parts[1].trim_start();
-    // }
-
     (parts[0].to_string(), parts[1].trim_start().to_string())
 }
 
@@ -148,10 +137,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
             loop {
                 let n = buffered_stream.read(&mut buf10)?;
 
-                println!("SIZE {:?}", n);
-
                 if n == 0 {
-                    println!("BREAK");
                     break;
                 }
 
@@ -161,6 +147,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
                     break;
                 }
             }
+
             break;
         }
 
@@ -170,35 +157,6 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
             map.insert(name, value);
         }
     }
-
-    // end of request
-    // if num_bytes_read == 2 {
-
-    // buffered_stream.read_exact(&mut buf5);
-
-    // println!("{:?}", std::str::from_utf8(&buf5).unwrap());
-
-    // println!("{}", length);
-
-    // break;
-// }
-
-
-
-            // println!("{:?}", std::str::from_utf8(buffered_stream.buffer()));
-
-            // if line == "\r\n" {    
-            //     buffered_stream.read_exact(&mut buf5);
-
-            //     println!("{:?}", std::str::from_utf8(&buf5).unwrap());
-
-            //     break;
-            // }
-
-            // println!("{} {:?}", num_bytes_read, line);
-
-        // }
-
 
     let s = std::str::from_utf8(&data);
 
