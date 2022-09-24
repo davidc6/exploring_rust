@@ -57,12 +57,9 @@ fn process_connection(mut stream: TcpStream) {
         http_version: String::from(""),
         headers: vec![]
     };
-    
+
     // create new buffer to read the stream that wraps mutatable a mutable red to TcpStream
     let buf = BufReader::new(&mut stream);
-
-    println!("{:?}", buf);
-
     let (req): Vec<_> = buf
         .lines() // streams of data are split here on newline byte
         .enumerate()
