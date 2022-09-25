@@ -1,6 +1,7 @@
 use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write, Read}, f32::consts::E, hash::Hash};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
+use serde_json::Value;
 
 #[derive(Debug)]
 struct Request {
@@ -25,12 +26,17 @@ impl Request {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
 
+// struct Test {
+//     prod: u8,
+//     thisIs: String
+//     // email: String
+// }
+
+#[derive(Serialize, Deserialize, Debug)]
 struct Test {
-    prod: u8,
-    thisIs: String
-    // email: String
+    #[serde(flatten)]
+    fields: HashMap<String, Value>,
 }
 
 struct Response {
@@ -64,8 +70,6 @@ fn process_connection(mut stream: TcpStream) {
         .lines() // streams of data are split here on newline byte
         .enumerate()
         .map(|(index, line)| {
-            println!("{:?}", line);
-
             let end = match line {
                 Ok(line) => {
                     match index {
@@ -118,29 +122,29 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
     // body buffer - TODO
-    let mut map: HashMap<String, String> = HashMap::new();
-    let mut buf5 = [0; 12];
+    let mut headers_map: HashMap<String, String> = HashMap::new();
     let mut data = Vec::new();
 
     loop {
         let mut line = String::new();
-        let num_bytes_read = buffered_stream.read_line(&mut line).unwrap();
+        let bytes_read = buffered_stream.read_line(&mut line).unwrap();
 
-        if num_bytes_read == 2 {
+        // same as newline (\r\n) which is 2 bytes  
+        if bytes_read == 2 {
             // big enough buffer size should allow to store data
             const BUFFER_SIZE: usize = 4096;
-            let mut buf10 = [0; BUFFER_SIZE];
+            let mut body_buffer = [0; BUFFER_SIZE];
 
             loop {
-                let n = buffered_stream.read(&mut buf10)?;
+                let bytes_read = buffered_stream.read(&mut body_buffer)?;
 
-                if n == 0 {
+                if bytes_read == 0 {
                     break;
                 }
 
-                data.extend_from_slice(&buf10[..n]);
+                data.extend_from_slice(&body_buffer[..bytes_read]);
 
-                if BUFFER_SIZE > n {
+                if BUFFER_SIZE > bytes_read {
                     break;
                 }
             }
@@ -148,22 +152,22 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
             break;
         }
 
-        // parsing takes place
         if !line.contains("HTTP") {
-            let (name, value) = process_header(line);
-            map.insert(name, value);
+            let (header_name, header_value) = process_header(line);
+            headers_map.insert(header_name, header_value);
         }
     }
 
-    let s = std::str::from_utf8(&data);
+    let body_string_slice = std::str::from_utf8(&data);
 
     // let deserialized: Test = serde_json::from_str(std::str::from_utf8(&body_vec).unwrap()).unwrap();
-    let des: Test = serde_json::from_str(s.unwrap()).unwrap();
+    let deserialised_request: Test = serde_json::from_str(body_string_slice.unwrap()).unwrap();
 
-    println!("{:?}", des);
+    println!("REQUEST {:?}", deserialised_request.fields);
     let response = "HTTP/1.1 200 OK\r\n\r\n";
 
     stream.write_all(response.as_bytes()).unwrap();
+
     Ok(())
 }
 
