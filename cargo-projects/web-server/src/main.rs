@@ -26,15 +26,8 @@ impl Request {
     }
 }
 
-
-// struct Test {
-//     prod: u8,
-//     thisIs: String
-//     // email: String
-// }
-
 #[derive(Serialize, Deserialize, Debug)]
-struct Test {
+struct Body {
     #[serde(flatten)]
     fields: HashMap<String, Value>,
 }
@@ -161,7 +154,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     let body_string_slice = std::str::from_utf8(&data);
 
     // let deserialized: Test = serde_json::from_str(std::str::from_utf8(&body_vec).unwrap()).unwrap();
-    let deserialised_request: Test = serde_json::from_str(body_string_slice.unwrap()).unwrap();
+    let deserialised_request: Body = serde_json::from_str(body_string_slice.unwrap()).unwrap();
 
     println!("REQUEST {:?}", deserialised_request.fields);
     let response = "HTTP/1.1 200 OK\r\n\r\n";
