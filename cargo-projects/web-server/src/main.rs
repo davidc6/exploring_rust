@@ -39,75 +39,16 @@ struct Response {
     // body:
 }
 
-fn process_method(line: String) -> Vec<String> {
-    line.split(' ').map(String::from).collect()
+fn process_method(line: String) -> (String, String, String) {
+    let separated: Vec<String> = line.trim_end().split(' ').map(String::from).collect();
+
+    (separated[0].to_string(), separated[1].to_string(), separated[2].to_string())
 }
 
 fn process_header<'a>(header: String) -> (String, String) {
     let clean_header: Vec<_> = header.split("\r\n").collect();
     let parts: Vec<_> = clean_header[0].split(":").collect();
     (parts[0].to_string(), parts[1].trim_start().to_string())
-}
-
-fn process_connection(mut stream: TcpStream) {
-    let mut request = Request {
-        method: String::from(""),
-        uri: String::from(""),
-        http_version: String::from(""),
-        headers: vec![]
-    };
-
-    // create new buffer to read the stream that wraps mutatable a mutable red to TcpStream
-    let buf = BufReader::new(&mut stream);
-    let (req): Vec<_> = buf
-        .lines() // streams of data are split here on newline byte
-        .enumerate()
-        .map(|(index, line)| {
-            let end = match line {
-                Ok(line) => {
-                    match index {
-                        0 => {
-                            let res = process_method(line);
-
-                            request.method(res.get(0).unwrap().to_string());
-                            request.uri(res.get(1).unwrap().to_string());
-                            request.http_version(res.get(2).unwrap().to_string());
-
-                            String::from("a")
-                        },
-                        _ => {
-                            match request.method {
-                                _ if request.method == *"GET" && !line.is_empty() => {
-                                    request.headers.push(line);
-                                    String::from("a")
-                                },
-                                _ if request.method == *"POST" && !line.is_empty() => {
-                                    request.headers.push(line);
-                                    String::from("a")
-                                },
-                                _ => {
-                                    String::from("")
-                                }
-                            }
-                        }
-                    }
-                },
-                Err(e) => {
-                    match e.kind() {
-                        std::io::ErrorKind::InvalidData => String::from("Check your requets for non-UTF8 data"),
-                        _ => String::from("There has been an error, check again later")
-                    }
-                }
-            };
-
-            end
-        })
-        .take_while(|line| !line.is_empty())
-        .collect();
-
-    let response = "HTTP/1.1 200 OK\r\n\r\n";
-
-    stream.write_all(response.as_bytes()).unwrap();
 }
 
 fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
@@ -117,12 +58,18 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // body buffer - TODO
     let mut headers_map: HashMap<String, String> = HashMap::new();
     let mut data = Vec::new();
+    let mut request = Request {
+        method: String::from(""),
+        uri: String::from(""),
+        http_version: String::from(""),
+        headers: vec![]
+    };
 
     loop {
         let mut line = String::new();
         let bytes_read = buffered_stream.read_line(&mut line).unwrap();
 
-        // same as newline (\r\n) which is 2 bytes  
+        // same as new empty line (\r\n) which is 2 bytes  
         if bytes_read == 2 {
             // big enough buffer size should allow to store data
             const BUFFER_SIZE: usize = 4096;
@@ -148,16 +95,25 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
         if !line.contains("HTTP") {
             let (header_name, header_value) = process_header(line);
             headers_map.insert(header_name, header_value);
+            continue;
         }
+
+        let (method, uri, http_ver) = process_method(line);
+        
+        request.method(method);
+        request.uri(uri);
+        request.http_version(http_ver);
+        // request.uri(res.get(1).unwrap().to_string());
+        // request.http_version(res.get(2).unwrap().to_string());
     }
 
-    let body_string_slice = std::str::from_utf8(&data);
+    println!("{:?}", request);
 
-    // let deserialized: Test = serde_json::from_str(std::str::from_utf8(&body_vec).unwrap()).unwrap();
+    let body_string_slice = std::str::from_utf8(&data);
     let deserialised_request: Body = serde_json::from_str(body_string_slice.unwrap()).unwrap();
 
     println!("REQUEST {:?}", deserialised_request.fields);
-    let response = "HTTP/1.1 200 OK\r\n\r\n";
+    let response = "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\n\r\n{\"hello\":\"one\"}\r\n";
 
     stream.write_all(response.as_bytes()).unwrap();
 
