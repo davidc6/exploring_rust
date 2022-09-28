@@ -33,31 +33,39 @@ struct Body {
 }
 
 struct Response {
-    // http_version: 
-    // status_code: 
-    // headers:
-    // body:
+    http_version: String,
+    status_code: String,
+    headers: Option<Vec<String>>,
+    body: String
 }
 
 fn process_method(line: String) -> (String, String, String) {
     let separated: Vec<String> = line.trim_end().split(' ').map(String::from).collect();
 
-    (separated[0].to_string(), separated[1].to_string(), separated[2].to_string())
+    (separated[0].to_owned(), separated[1].to_owned(), separated[2].to_owned())
 }
 
-fn process_header<'a>(header: String) -> (String, String) {
+fn process_header(header: String) -> (String, String) {
     let clean_header: Vec<_> = header.split("\r\n").collect();
-    let parts: Vec<_> = clean_header[0].split(":").collect();
-    (parts[0].to_string(), parts[1].trim_start().to_string())
+    let parts: Vec<_> = clean_header[0].split(':').collect();
+    (parts[0].to_owned(), parts[1].trim_start().to_owned())
+}
+
+fn build_response(request: Request) {
+    let res = Response {
+        http_version: request.http_version,
+        headers: None,
+        body: "abc".to_string(),
+        status_code: "200".to_string()
+    };
 }
 
 fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // creates independently owned handle which references the same stream
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
-    // body buffer - TODO
     let mut headers_map: HashMap<String, String> = HashMap::new();
-    let mut data = Vec::new();
+    let mut body_data = Vec::new();
     let mut request = Request {
         method: String::from(""),
         uri: String::from(""),
@@ -67,11 +75,11 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
 
     loop {
         let mut line = String::new();
-        let bytes_read = buffered_stream.read_line(&mut line).unwrap();
+        let bytes_read = buffered_stream.read_line(&mut line)?;
 
         // same as new empty line (\r\n) which is 2 bytes  
         if bytes_read == 2 {
-            // big enough buffer size should allow to store data
+            // big enough buffer size should allow to store body
             const BUFFER_SIZE: usize = 4096;
             let mut body_buffer = [0; BUFFER_SIZE];
 
@@ -82,7 +90,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
                     break;
                 }
 
-                data.extend_from_slice(&body_buffer[..bytes_read]);
+                body_data.extend_from_slice(&body_buffer[..bytes_read]);
 
                 if BUFFER_SIZE > bytes_read {
                     break;
@@ -103,13 +111,9 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
         request.method(method);
         request.uri(uri);
         request.http_version(http_ver);
-        // request.uri(res.get(1).unwrap().to_string());
-        // request.http_version(res.get(2).unwrap().to_string());
     }
 
-    println!("{:?}", request);
-
-    let body_string_slice = std::str::from_utf8(&data);
+    let body_string_slice = std::str::from_utf8(&body_data);
     let deserialised_request: Body = serde_json::from_str(body_string_slice.unwrap()).unwrap();
 
     println!("REQUEST {:?}", deserialised_request.fields);
