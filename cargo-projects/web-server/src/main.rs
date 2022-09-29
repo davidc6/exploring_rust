@@ -2,6 +2,8 @@ use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write, Read}, 
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use serde_json::Value;
+use std::fmt; // Import `fmt`
+
 
 #[derive(Debug)]
 struct Request {
@@ -32,11 +34,19 @@ struct Body {
     fields: HashMap<String, Value>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 struct Response {
     http_version: String,
     status_code: String,
-    headers: Option<Vec<String>>,
+    headers: Option<HashMap<String, String>>,
     body: String
+}
+
+impl fmt::Display for Response {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Use `self.number` to refer to each positional data point.
+        write!(f, "({}, {})", self.http_version, self.status_code)
+    }
 }
 
 fn process_method(line: String) -> (String, String, String) {
@@ -51,13 +61,21 @@ fn process_header(header: String) -> (String, String) {
     (parts[0].to_owned(), parts[1].trim_start().to_owned())
 }
 
-fn build_response(request: Request) {
+fn build_response(request: Request) -> String {
+    let mut headers_map: HashMap<String, String> = HashMap::new();
+    headers_map.insert("content-type".to_owned(), "application/json".to_owned());
+
     let res = Response {
         http_version: request.http_version,
-        headers: None,
+        headers: Some(headers_map),
+        status_code: "200".to_string(),
         body: "abc".to_string(),
-        status_code: "200".to_string()
     };
+
+    let http_version = res.http_version;
+    let body = res.body;
+
+    format!("{http_version} 200 OK\r\nContent-Length: 3\r\n\r\n{body}")
 }
 
 fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
@@ -111,6 +129,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
         request.method(method);
         request.uri(uri);
         request.http_version(http_ver);
+
     }
 
     let body_string_slice = std::str::from_utf8(&body_data);
@@ -119,7 +138,14 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     println!("REQUEST {:?}", deserialised_request.fields);
     let response = "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\n\r\n{\"hello\":\"one\"}\r\n";
 
-    stream.write_all(response.as_bytes()).unwrap();
+    let res = build_response(request);
+
+    println!("{:?}", res);
+
+    // println!("RESPONSE {:?}", serde_json::to_string(&res).unwrap());
+    stream.write_all(res.as_bytes()).unwrap();
+
+    // stream.write_all(response.as_bytes()).unwrap();
 
     Ok(())
 }
