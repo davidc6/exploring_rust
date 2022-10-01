@@ -153,8 +153,6 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     let body_string_slice = std::str::from_utf8(&body_data);
     let deserialised_request: Body = serde_json::from_str(body_string_slice.unwrap()).unwrap();
 
-    println!("REQUEST {:?}", deserialised_request.fields);
-    // let response = "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\n\r\n{\"hello\":\"one\"}\r\n";
     let response = build_response(request);
     stream.write_all(response.as_bytes()).unwrap();
 
