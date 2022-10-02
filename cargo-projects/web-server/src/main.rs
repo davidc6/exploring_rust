@@ -43,9 +43,9 @@ struct Response {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct BodyResponse {
-    name: String,
-    message: String
+struct BodyResponse<'a> {
+    name: &'a str,
+    message: &'a str
 }
 
 impl fmt::Display for Response {
@@ -72,8 +72,8 @@ fn build_response(request: Request) -> String {
     headers_map.insert("content-type".to_owned(), "application/json".to_owned());
 
     let body = BodyResponse {
-        name: "User".to_string(),
-        message: "This is my message".to_string()
+        name: "User",
+        message: "This is my message"
     };
 
     let parsed = serde_json::to_string(&body).unwrap();
