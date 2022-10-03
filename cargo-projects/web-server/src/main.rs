@@ -10,7 +10,7 @@ struct Request {
     method: String,
     uri: String,
     http_version: String,
-    headers: Vec<String>
+    headers: HashMap<String, String>
     // body: 
 }
 
@@ -101,13 +101,13 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // creates independently owned handle which references the same stream
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
-    let mut headers_map: HashMap<String, String> = HashMap::new();
+    let mut request_headers: HashMap<String, String> = HashMap::new();
     let mut body_data = Vec::new();
     let mut request = Request {
         method: String::from(""),
         uri: String::from(""),
         http_version: String::from(""),
-        headers: vec![]
+        headers: request_headers
     };
 
     loop {
@@ -139,7 +139,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
 
         if !line.contains("HTTP") {
             let (header_name, header_value) = process_header(line);
-            headers_map.insert(header_name, header_value);
+            request.headers.insert(header_name, header_value);
             continue;
         }
 
@@ -166,9 +166,6 @@ fn main() {
     // iterator over streams (open client / server connection)
     for stream in listener.incoming() {
         let stream = stream.unwrap();
-        // println!("{:?}", stream);        
-        // process_connection(stream);
         handle_test(stream);
-        println!("Connection established");
     }
 }
