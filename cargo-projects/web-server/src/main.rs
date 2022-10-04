@@ -4,29 +4,27 @@ use std::collections::HashMap;
 use serde_json::Value;
 use std::fmt; // Import `fmt`
 
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Request {
     method: String,
     uri: String,
     http_version: String,
     headers: HashMap<String, String>
-    // body: 
 }
 
-impl Request {
-    fn method(&mut self, val: String) {
-        self.method = val;
-    }
+// impl Request {
+//     fn method(&mut self, val: String) {
+//         self.method = val;
+//     }
 
-    fn uri(&mut self, val: String) {
-        self.uri = val;
-    }
+//     fn uri(&mut self, val: String) {
+//         self.uri = val;
+//     }
 
-    fn http_version(&mut self, val: String) {
-        self.http_version = val;
-    }
-}
+//     fn http_version(&mut self, val: String) {
+//         self.http_version = val;
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Body {
@@ -97,18 +95,21 @@ fn build_response(request: Request) -> String {
     format!("{http_version} 200 OK\r\n{headers}\r\n\r\n{parsed}\r\n")
 }
 
+fn build_request(method: String, uri: String, http_version: String) -> Request {
+    Request {
+        method,
+        uri,
+        http_version,
+        ..Default::default()
+    }
+}
+
 fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     // creates independently owned handle which references the same stream
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
-    let mut request_headers: HashMap<String, String> = HashMap::new();
     let mut body_data = Vec::new();
-    let mut request = Request {
-        method: String::from(""),
-        uri: String::from(""),
-        http_version: String::from(""),
-        headers: request_headers
-    };
+    let mut request = Request::default();
 
     loop {
         let mut line = String::new();
@@ -143,11 +144,9 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
             continue;
         }
 
-        let (method, uri, http_ver) = process_method(line);
-        
-        request.method(method);
-        request.uri(uri);
-        request.http_version(http_ver);
+        // first / request line of the HTTP message 
+        let (method, uri, http_version) = process_method(line);
+        request = build_request(method, uri, http_version);
     }
 
     let body_string_slice = std::str::from_utf8(&body_data);
