@@ -1,4 +1,4 @@
-use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write, Read}, f32::consts::E, hash::Hash, error::Error};
+use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write, Read}};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use serde_json::Value;
@@ -81,7 +81,7 @@ fn build_response(request: request::Request) -> String {
     let parsed = serde_json::to_string(&body).unwrap();
 
     let res = Response {
-        http_version: request.http_version.to_owned(),
+        http_version: request.http_version,
         headers: Some(headers_map),
         status_code: "200".to_string(),
         body: "abc".to_string(),
