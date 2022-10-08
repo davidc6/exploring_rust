@@ -1,34 +1,13 @@
-use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write, Read}};
-use serde::{Serialize, Deserialize};
+use std::{net::{TcpListener, TcpStream}};
+use std::io::{BufReader, BufRead, Write, Read};
 use std::collections::HashMap;
+use std::fmt;
+use serde::{Serialize, Deserialize};
 use serde_json::Value;
-use std::fmt; // Import `fmt`
 
 mod request;
 
-// use crate::request::{Request};
-
-// #[derive(Debug, Default)]
-// struct Request {
-//     method: String,
-//     uri: String,
-//     http_version: String,
-//     headers: HashMap<String, String>
-// }
-
-// impl Request {
-//     fn method(&mut self, val: String) {
-//         self.method = val;
-//     }
-
-//     fn uri(&mut self, val: String) {
-//         self.uri = val;
-//     }
-
-//     fn http_version(&mut self, val: String) {
-//         self.http_version = val;
-//     }
-// }
+use crate::request::{Request};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Body {
@@ -69,19 +48,24 @@ fn process_header(header: String) -> (String, String) {
     (parts[0].to_owned(), parts[1].trim_start().to_owned())
 }
 
+// fn build_res() {
+//     response::new()
+//         .
+// }
+
 fn build_response(request: request::Request) -> String {
     let mut headers_map: HashMap<String, String> = HashMap::new();
     headers_map.insert("content-type".to_owned(), "application/json".to_owned());
 
     let body = BodyResponse {
-        name: "User",
+        name: "New user",
         message: "This is my message"
     };
 
     let parsed = serde_json::to_string(&body).unwrap();
 
     let res = Response {
-        http_version: request.http_version,
+        http_version: request.http_version(),
         headers: Some(headers_map),
         status_code: "200".to_string(),
         body: "abc".to_string(),
@@ -104,7 +88,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
     let mut body_data = Vec::new();
-    let mut request = request::Request::new();
+    let mut request = Request::builder();
 
     loop {
         let mut line = String::new();
@@ -135,7 +119,7 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
 
         if !line.contains("HTTP") {
             let (header_name, header_value) = process_header(line);
-            request.headers.insert(header_name, header_value);
+            request.header((header_name, header_value));
             continue;
         }
 
@@ -144,13 +128,13 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
         request
             .method(method)
             .uri(uri)
-            .http_version(http_version);
+            .version(http_version);
     }
 
     let body_string_slice = std::str::from_utf8(&body_data);
     let deserialised_request: Body = serde_json::from_str(body_string_slice.unwrap()).unwrap();
 
-    let response = build_response(request);
+    let response = build_response(request.body());
     stream.write_all(response.as_bytes()).unwrap();
 
     Ok(())
