@@ -6,8 +6,10 @@ use serde::{Serialize, Deserialize};
 use serde_json::Value;
 
 mod request;
+mod response;
 
 use crate::request::{Request};
+use crate::response::{Response};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Body {
@@ -16,7 +18,7 @@ struct Body {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Response {
+struct ResponseOld {
     http_version: String,
     status_code: String,
     headers: Option<HashMap<String, String>>,
@@ -29,43 +31,56 @@ struct BodyResponse<'a> {
     message: &'a str
 }
 
-impl fmt::Display for Response {
+impl fmt::Display for ResponseOld {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Use `self.number` to refer to each positional data point.
         write!(f, "({}, {})", self.http_version, self.status_code)
     }
 }
 
-fn process_method(line: String) -> (String, String, String) {
+// method, uri, version
+fn process_request_line(line: String) -> (String, String, String) {
     let separated: Vec<String> = line.trim_end().split(' ').map(String::from).collect();
 
     (separated[0].to_owned(), separated[1].to_owned(), separated[2].to_owned())
 }
 
+// header name, header value
 fn process_header(header: String) -> (String, String) {
     let clean_header: Vec<_> = header.split("\r\n").collect();
     let parts: Vec<_> = clean_header[0].split(':').collect();
     (parts[0].to_owned(), parts[1].trim_start().to_owned())
 }
 
-// fn build_res() {
-//     response::new()
-//         .
-// }
+fn build_response2(request: Request) -> String {
+    let body = BodyResponse {
+        name: "New user",
+        message: "This is my message"
+    };
+    let parsed = serde_json::to_string(&body).unwrap();
+
+    let response = Response::builder()
+        .method(request.method())
+        .status(&"200".to_string())
+        .version(request.http_version())
+        .body(parsed);
+
+    // version status OK \r\n headers \r\n\r\n body \r\n
+     // let parsed = serde_json::to_vec(&).unwrap();
+    // format!("{version} 200 OK\r\n{headers}\r\n\r\n{parsed}\r\n")
+
+    let ver = response.version().to_owned();
+    let head = response.headers();
+
+    format!("{} 200 OK\r\n{}\r\n{}\r\n", ver, head, "")
+}
 
 fn build_response(request: request::Request) -> String {
     let mut headers_map: HashMap<String, String> = HashMap::new();
     headers_map.insert("content-type".to_owned(), "application/json".to_owned());
 
-    let body = BodyResponse {
-        name: "New user",
-        message: "This is my message"
-    };
-
-    let parsed = serde_json::to_string(&body).unwrap();
-
-    let res = Response {
-        http_version: request.http_version(),
+    let res = ResponseOld {
+        http_version: request.http_version().to_owned(),
         headers: Some(headers_map),
         status_code: "200".to_string(),
         body: "abc".to_string(),
@@ -80,10 +95,17 @@ fn build_response(request: request::Request) -> String {
         headers.push_str(&v);
     }
 
+    let body = BodyResponse {
+        name: "New user",
+        message: "This is my message"
+    };
+
+    let parsed = serde_json::to_string(&body).unwrap();
+
     format!("{http_version} 200 OK\r\n{headers}\r\n\r\n{parsed}\r\n")
 }
 
-fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
+fn process_stream(mut stream: TcpStream) -> std::io::Result<()> {
     // creates independently owned handle which references the same stream
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
@@ -117,14 +139,15 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
             break;
         }
 
+        // lines following the first line, i.e. headers
         if !line.contains("HTTP") {
-            let (header_name, header_value) = process_header(line);
-            request.header((header_name, header_value));
+            let (name, value) = process_header(line);
+            request.header((name, value));
             continue;
         }
 
-        // first / request line of the HTTP message 
-        let (method, uri, http_version) = process_method(line);
+        // first / request line of the HTTP message - e.g. POST / HTTP/1.1
+        let (method, uri, http_version) = process_request_line(line);
         request
             .method(method)
             .uri(uri)
@@ -134,7 +157,8 @@ fn handle_test(mut stream: TcpStream) -> std::io::Result<()> {
     let body_string_slice = std::str::from_utf8(&body_data);
     let deserialised_request: Body = serde_json::from_str(body_string_slice.unwrap()).unwrap();
 
-    let response = build_response(request.body());
+    // let response = build_response(request.body());
+    let response = build_response2(request.body());
     stream.write_all(response.as_bytes()).unwrap();
 
     Ok(())
@@ -147,6 +171,6 @@ fn main() {
     // iterator over streams (open client / server connection)
     for stream in listener.incoming() {
         let stream = stream.unwrap();
-        handle_test(stream);
+        process_stream(stream);
     }
 }
