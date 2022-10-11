@@ -1,38 +1,5 @@
 use std::{collections::HashMap};
 
-// #[derive(Default)]
-// pub struct Request<'a> {
-//     method: &'a str,
-//     uri: &'a str,
-//     pub http_version: &'a str,
-//     pub headers: HashMap<String, String>
-// }
-
-// impl<'a> Request<'a> {
-//     pub fn new() -> Request<'a> {
-//         Request::default()
-//     }
-
-//     pub fn method(&mut self, val: &'a str) -> &mut Request<'a> {
-//         self.method = val;
-//         self
-//     }
-
-//     pub fn uri(&mut self, val: &'a str) -> &mut Request<'a> {
-//         self.uri = val;
-//         self
-//     }
-
-//     pub fn http_version(&mut self, val: &'a str) -> &mut Request<'a> {
-//         self.http_version = val;
-//         self
-//     }
-
-//     pub fn build(&mut self) -> &mut Request<'a> {
-//         self
-//     }
-// }
-
 #[derive(Default)]
 pub struct Request {
     method: String,
@@ -54,6 +21,8 @@ pub struct RequestBuilder {
     request: Attrs
 }
 
+// This builder enables to construct a response object
+// which can be quite complicated
 impl RequestBuilder {
     pub fn new() -> RequestBuilder {
         RequestBuilder::default()
@@ -104,16 +73,16 @@ impl Request {
         RequestBuilder::new()
     }
 
-    pub fn method(self) -> String {
-        self.method
+    pub fn method(&self) -> &String {
+        &self.method
     }
 
     pub fn uri(self) -> String {
         self.uri
     }
 
-    pub fn http_version(self) -> String {
-        self.http_version
+    pub fn http_version(&self) -> &String {
+        &self.http_version
     }
 
     pub fn headers(self) -> HashMap<String, String> {
