@@ -60,19 +60,18 @@ fn build_response2(request: Request) -> String {
     let parsed = serde_json::to_string(&body).unwrap();
 
     let response = Response::builder()
+        .header(("content-type".into(), "application/json".into()));
+
+    // response.header());
+
+    let r = response
         .method(request.method())
         .status(&"200".to_string())
         .version(request.http_version())
         .body(parsed);
 
-    // version status OK \r\n headers \r\n\r\n body \r\n
-     // let parsed = serde_json::to_vec(&).unwrap();
-    // format!("{version} 200 OK\r\n{headers}\r\n\r\n{parsed}\r\n")
-
-    let ver = response.version().to_owned();
-    let head = response.headers();
-
-    format!("{} 200 OK\r\n{}\r\n{}\r\n", ver, head, "")
+    // {version} {status} OK \r\n {headers} \r\n\r\n {body} \r\n
+    format!("{} 200 OK\r\n{}\r\n{}\r\n", r.version(), r.headers(), r.body())
 }
 
 fn build_response(request: request::Request) -> String {
@@ -103,6 +102,10 @@ fn build_response(request: request::Request) -> String {
     let parsed = serde_json::to_string(&body).unwrap();
 
     format!("{http_version} 200 OK\r\n{headers}\r\n\r\n{parsed}\r\n")
+}
+
+fn send_response(res: String) {
+    let r = String::from(res);
 }
 
 fn process_stream(mut stream: TcpStream) -> std::io::Result<()> {
