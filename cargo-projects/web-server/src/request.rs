@@ -23,25 +23,27 @@ pub struct RequestBuilder {
 
 // This builder enables to construct a response object
 // which can be quite complicated
-impl RequestBuilder {
+impl<'a> RequestBuilder {
+    // Returns default values for RequestBuilder type
     pub fn new() -> RequestBuilder {
         RequestBuilder::default()
     }
 
     // &mut self -> mutable ref to self / RequestBuilder instance
-    // version() mutates self.request.verion (the value it borrows)
+    // version() mutates self.request.version (the value it borrows)
+    // returns instance after it has been mutated
     pub fn version(&mut self, version: String) -> &mut RequestBuilder {
         self.request.version = version;
         self
     }
 
-    pub fn method(&mut self, version: String) -> &mut RequestBuilder {
-        self.request.version = version;
+    pub fn method(&mut self, method: String) -> &mut RequestBuilder {
+        self.request.method = method;
         self
     }
 
-    pub fn uri(&mut self, version: String) -> &mut RequestBuilder {
-        self.request.version = version;
+    pub fn uri(&mut self, uri: String) -> &mut RequestBuilder {
+        self.request.uri = uri;
         self
     }
 
