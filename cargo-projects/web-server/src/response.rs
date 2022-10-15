@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Response {
     method: String,
     status: String,
     version: String,
     headers: HashMap<String, String>,
-    header: String,
     body: String
 }
 
@@ -19,8 +18,19 @@ impl Response {
         &self.version
     }
 
-    pub fn headers(&self) -> &String {
-        &self.header
+    pub fn status(&self) -> &String {
+        &self.status
+    }
+
+    pub fn headers(&self) -> String {
+        let map = self.headers.clone();
+        let mut header: String = String::from("");
+
+        for (k, v) in map.iter() {
+            header = format!("{}{}:{}\r\n", header, k, v);
+        }
+
+        header
     }
 
     pub fn body(&self) -> &String {
@@ -28,7 +38,7 @@ impl Response {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ResponseBuilder {
     response: Response
 }
@@ -38,37 +48,27 @@ impl ResponseBuilder {
         ResponseBuilder::default()
     }
 
-    pub fn method(mut self, method: &String) -> ResponseBuilder {
+    pub fn method(&mut self, method: &String) -> &mut ResponseBuilder {
         self.response.method = method.to_owned();
         self
     }
 
-    pub fn status(mut self, status: &String) -> ResponseBuilder {
+    pub fn status(&mut self, status: &String) -> &mut ResponseBuilder {
         self.response.status = status.to_owned();
         self
     }
 
-    pub fn header(mut self, header: (String, String)) -> ResponseBuilder {
+    pub fn header(&mut self, header: (String, String)) -> &mut ResponseBuilder {
         self.response.headers.insert(header.0, header.1);
         self
     }
 
-    pub fn version(mut self, version: &String) -> ResponseBuilder {
+    pub fn version(&mut self, version: &String) -> &mut ResponseBuilder {
         self.response.version = version.to_owned();
         self
     }
 
     pub fn body(mut self, body: String) -> Response {
-        // concat headers
-        let map = self.response.headers.clone();
-        let mut header: String = "".into();
-
-        for (k, v) in map.iter() {
-            header = format!("{}{}:{}\r\n", header, k, v);
-        }
-
-        self.response.header = header;
-
         // instantiate Response
         Response {
             method: self.response.method,
@@ -76,7 +76,6 @@ impl ResponseBuilder {
             version: self.response.version,
             headers: self.response.headers,
             body,
-            header: self.response.header
         }
     }
 }
