@@ -52,63 +52,37 @@ fn process_header(header: String) -> (String, String) {
     (parts[0].to_owned(), parts[1].trim_start().to_owned())
 }
 
-fn build_response2(request: Request) -> String {
+fn build_response(request: Request) -> Response {
     let body = BodyResponse {
         name: "New user",
         message: "This is my message"
     };
     let parsed = serde_json::to_string(&body).unwrap();
-
-    let response = Response::builder()
-        .header(("content-type".into(), "application/json".into()));
-
-    // response.header());
-
-    let r = response
+    let content_length = parsed.len() + 2; // end of line UTF8 is 2 more bytes
+    let mut r = Response::builder();
+    r
+        .header(("content-type".into(), "application/json".into()))
+        .header(("content-length".to_string(), content_length.to_string()))
         .method(request.method())
         .status(&"200".to_string())
-        .version(request.http_version())
-        .body(parsed);
+        .version(request.http_version());
 
-    // {version} {status} OK \r\n {headers} \r\n\r\n {body} \r\n
-    format!("{} 200 OK\r\n{}\r\n{}\r\n", r.version(), r.headers(), r.body())
+    r.body(parsed)
 }
 
-fn build_response(request: request::Request) -> String {
-    let mut headers_map: HashMap<String, String> = HashMap::new();
-    headers_map.insert("content-type".to_owned(), "application/json".to_owned());
-
-    let res = ResponseOld {
-        http_version: request.http_version().to_owned(),
-        headers: Some(headers_map),
-        status_code: "200".to_string(),
-        body: "abc".to_string(),
-    };
-
-    let http_version = res.http_version;
-    let mut headers = "".to_owned();
-
-    for (k, v) in res.headers.unwrap().into_iter() {
-        headers.push_str(&k);
-        headers.push_str(": ");
-        headers.push_str(&v);
-    }
-
-    let body = BodyResponse {
-        name: "New user",
-        message: "This is my message"
-    };
-
-    let parsed = serde_json::to_string(&body).unwrap();
-
-    format!("{http_version} 200 OK\r\n{headers}\r\n\r\n{parsed}\r\n")
+fn send_response(mut stream: TcpStream, response: Response) -> std::io::Result<()> {
+    let s = format!(
+        "{ver} {status} OK\r\n{head}\r\n{body}\r\n",
+        ver = response.version(),
+        status = response.status(),
+        head = response.headers(),
+        body = response.body()
+    );
+    stream.write_all(s.as_bytes())?;
+    Ok(())
 }
 
-fn send_response(res: String) {
-    let r = String::from(res);
-}
-
-fn process_stream(mut stream: TcpStream) -> std::io::Result<()> {
+fn process_stream(stream: TcpStream) -> std::io::Result<()> {
     // creates independently owned handle which references the same stream
     let mut buffered_stream = BufReader::new(stream.try_clone().unwrap());
 
@@ -160,9 +134,8 @@ fn process_stream(mut stream: TcpStream) -> std::io::Result<()> {
     let body_string_slice = std::str::from_utf8(&body_data);
     let deserialised_request: Body = serde_json::from_str(body_string_slice.unwrap()).unwrap();
 
-    // let response = build_response(request.body());
-    let response = build_response2(request.body());
-    stream.write_all(response.as_bytes()).unwrap();
+    let response = build_response(request.body());
+    send_response(stream, response)?;
 
     Ok(())
 }
