@@ -1,9 +1,6 @@
 use std::{net::{TcpListener, TcpStream}, io::Error};
 use std::io::{BufReader, BufRead, Write, Read};
-use std::collections::HashMap;
-use std::fmt;
 use serde::{Serialize, Deserialize};
-use serde_json::Value;
 
 mod request;
 mod response;
@@ -12,30 +9,9 @@ use crate::request::{Request};
 use crate::response::{Response};
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Body {
-    #[serde(flatten)]
-    fields: HashMap<String, Value>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ResponseOld {
-    http_version: String,
-    status_code: String,
-    headers: Option<HashMap<String, String>>,
-    body: String
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 struct BodyResponse<'a> {
     name: &'a str,
     message: &'a str
-}
-
-impl fmt::Display for ResponseOld {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Use `self.number` to refer to each positional data point.
-        write!(f, "({}, {})", self.http_version, self.status_code)
-    }
 }
 
 // method, uri, version
@@ -54,21 +30,18 @@ fn process_header(header: String) -> (String, String) {
 
 fn build_response(request: Request) -> Response {
     let body = BodyResponse {
-        name: "New user",
-        message: "This is my message"
+        name: "Some name",
+        message: "Some message"
     };
     let parsed = serde_json::to_string(&body).unwrap();
-    let content_length = parsed.len() + 2; // end of line UTF8 is 2 more bytes
-    let mut r = Response::builder();
-    r
+    Response::builder()
         .header(("content-type".into(), "application/json".into()))
-        .header(("content-length".to_string(), content_length.to_string()))
+        .header(("content-length".to_string(), (parsed.len() + 2).to_string()))
         .header(("connection".to_string(), "close".to_string()))
         .method(request.method())
         .status(&"200".to_string())
-        .version(request.http_version());
-
-    r.body(parsed)
+        .version(request.http_version())
+        .body(parsed)
 }
 
 fn send_response(mut stream: TcpStream, response: Response) -> Result<(), Error> {
