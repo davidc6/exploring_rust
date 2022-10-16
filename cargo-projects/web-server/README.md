@@ -1,4 +1,6 @@
-# 
+# Building a Web Server (Rust book extended version)
+
+An extended version of the Rust book program web server project.
 
 ### Notes
 
