@@ -1,4 +1,4 @@
-use std::{net::{TcpListener, TcpStream}};
+use std::{net::{TcpListener, TcpStream}, io::Error};
 use std::io::{BufReader, BufRead, Write, Read};
 use std::collections::HashMap;
 use std::fmt;
@@ -63,6 +63,7 @@ fn build_response(request: Request) -> Response {
     r
         .header(("content-type".into(), "application/json".into()))
         .header(("content-length".to_string(), content_length.to_string()))
+        .header(("connection".to_string(), "close".to_string()))
         .method(request.method())
         .status(&"200".to_string())
         .version(request.http_version());
@@ -70,7 +71,7 @@ fn build_response(request: Request) -> Response {
     r.body(parsed)
 }
 
-fn send_response(mut stream: TcpStream, response: Response) -> std::io::Result<()> {
+fn send_response(mut stream: TcpStream, response: Response) -> Result<(), Error> {
     let s = format!(
         "{ver} {status} OK\r\n{head}\r\n{body}\r\n",
         ver = response.version(),
@@ -91,9 +92,10 @@ fn process_stream(stream: TcpStream) -> std::io::Result<()> {
 
     loop {
         let mut line = String::new();
+        // read message line
         let bytes_read = buffered_stream.read_line(&mut line)?;
 
-        // same as new empty line (\r\n) which is 2 bytes  
+        // same as new empty line (\r\n) which is 2 bytes, empty line means that the line contains the body
         if bytes_read == 2 {
             // big enough buffer size should allow to store body
             const BUFFER_SIZE: usize = 4096;
@@ -123,7 +125,7 @@ fn process_stream(stream: TcpStream) -> std::io::Result<()> {
             continue;
         }
 
-        // first / request line of the HTTP message - e.g. POST / HTTP/1.1
+        // first / request line of the HTTP message - e.g. "POST / HTTP/1.1"
         let (method, uri, http_version) = process_request_line(line);
         request
             .method(method)
@@ -131,22 +133,21 @@ fn process_stream(stream: TcpStream) -> std::io::Result<()> {
             .version(http_version);
     }
 
-    let body_string_slice = std::str::from_utf8(&body_data);
-    let deserialised_request: Body = serde_json::from_str(body_string_slice.unwrap()).unwrap();
-
     let response = build_response(request.body());
     send_response(stream, response)?;
 
     Ok(())
 }
 
-fn main() {
+fn main() -> Result<(), Error> {
     // bind (connect) socket to the address and port
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
     // iterator over streams (open client / server connection)
     for stream in listener.incoming() {
         let stream = stream.unwrap();
-        process_stream(stream);
+        process_stream(stream)?;
     }
+
+    Ok(())
 }

@@ -23,7 +23,7 @@ pub struct RequestBuilder {
 
 // This builder enables to construct a response object
 // which can be quite complicated
-impl<'a> RequestBuilder {
+impl RequestBuilder {
     // Returns default values for RequestBuilder type
     pub fn new() -> RequestBuilder {
         RequestBuilder::default()
