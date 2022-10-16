@@ -29,15 +29,23 @@ fn process_header(header: String) -> (String, String) {
 }
 
 fn build_response(request: Request) -> Response {
-    let body = BodyResponse {
-        name: "Some name",
-        message: "Some message"
+    // Assuming it's a POST request here
+    let body = if request.uri() == &String::from("/") { 
+        BodyResponse {
+            name: "Some name",
+            message: "Some message"
+        }
+    } else {
+        BodyResponse {
+            name: "Some name 2",
+            message: "Some message 2"
+        }
     };
     let parsed = serde_json::to_string(&body).unwrap();
     Response::builder()
-        .header(("content-type".into(), "application/json".into()))
-        .header(("content-length".to_string(), (parsed.len() + 2).to_string()))
-        .header(("connection".to_string(), "close".to_string()))
+        .header(("Content-Type".into(), "application/json".into())) // 
+        .header(("Content-Length".to_string(), (parsed.len() + 2).to_string()))
+        .header(("Connection".to_string(), "close".to_string()))
         .method(request.method())
         .status(&"200".to_string())
         .version(request.http_version())
@@ -113,12 +121,18 @@ fn process_stream(stream: TcpStream) -> std::io::Result<()> {
 }
 
 fn main() -> Result<(), Error> {
-    // bind (connect) socket to the address and port
+    // bind (connect) socket to address and port
+    // it is now listening to the incoming streams
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
-    // iterator over streams (open client / server connection)
+    // a single stream represents an open connection in which a client 
+    // connects to a server and the server responds and closes the connection.
+    // first a stream is read and then a response is writtenback to the stream
+    // iterator over TcpStream type streams (open client / server connection)
+    // these are actually connection attempts as a connection attempt might fail
+    // due to some OS specific limitations such as for instance a limit of open connections
     for stream in listener.incoming() {
-        let stream = stream.unwrap();
+        let stream = stream?;
         process_stream(stream)?;
     }
 
