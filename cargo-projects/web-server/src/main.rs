@@ -2,11 +2,14 @@ use std::{net::{TcpListener, TcpStream}, io::Error, time::Duration};
 use std::io::{BufReader, BufRead, Write, Read};
 use serde::{Serialize, Deserialize};
 
+
 mod request;
 mod response;
+mod pool;
 
 use crate::request::{Request};
 use crate::response::{Response};
+use crate::pool::{ThreadPool};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct BodyResponse<'a> {
@@ -122,6 +125,9 @@ fn process_stream(stream: TcpStream) -> std::io::Result<()> {
 }
 
 fn main() -> Result<(), Error> {
+    // TODO - to implement
+    let pool = ThreadPool::new(4);
+
     // bind (connect) socket to address and port
     // it is now listening to the incoming streams
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
@@ -135,9 +141,13 @@ fn main() -> Result<(), Error> {
     for stream in listener.incoming() {
         let stream = stream?;
         // spin up a new thread for each connection
-        std::thread::spawn(|| {
-            process_stream(stream)
-        });
+        // std::thread::spawn(|| {
+        //     process_stream(stream)
+        // });
+
+        pool.execute(|| {
+            process_stream(stream);
+        })
     }
 
     Ok(())
