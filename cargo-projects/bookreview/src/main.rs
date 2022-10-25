@@ -1,6 +1,4 @@
-// use std::sync::Mutex;
-
-use std::{ops::DerefMut, sync::Mutex};
+use std::sync::Mutex;
 
 use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpRequest, HttpResponse};
 use serde::{Serialize, Deserialize};
@@ -15,59 +13,19 @@ struct Book {
 }
 
 #[get("/books")]
-async fn get_books(data: web::Data<AppStateMutable>) -> Result<impl Responder> {
-    // let a = *req.app_data::<usize>().unwrap();
-    // println!("{:?}", a);
-    
-    let mut data = data.data.lock().unwrap();
-    data.push(Book {
+async fn get_books(data: web::Data<AppStateMutable>) -> Result<impl Responder> {    
+    let mut books = data.data.lock().unwrap();
+    books.push(Book {
         id: "3".to_owned(),
         title: "Title 3".to_owned(),
         author: "Author 3".to_owned()
     });
-    data.push(Book {
+    books.push(Book {
         id: "4".to_owned(),
         title: "Title 4".to_owned(),
         author: "Author 4".to_owned()
     });
-
-    // data.data.push(Book {
-    //     id: "3".to_owned(),
-    //     title: "Title 3".to_owned(),
-    //     author: "Author 3".to_owned()
-    // });
-    
-    // let app = &data.data;
-    // println!("{:?}", data);
-
-    // let books: Vec<Book> = vec![
-    //     Book {
-    //         id: "1".to_owned(),
-    //         title: "Title 1".to_owned(),
-    //         author: "Author 1".to_owned()
-    //     },
-    //     Book {
-    //         id: "2".to_owned(),
-    //         title: "Title 2".to_owned(),
-    //         author: "Author 2".to_owned()
-    //     }
-    // ];
-    // let s = serde_json::to_string(&data).unwrap();
-
-    // let b = data.downcast_ref()
-
-    // let s = format!("{:?}", data);
-    // let b: String = serde_json::from_str(&s).unwrap();
-    // Ok(web::Json(s))
-    // let w = data
-
-        // println!("{:?}", data);
-
-    // let b = serde_json::
-
-    Ok(HttpResponse::Ok().json(&**data))
-
-    // Ok(web::Json(data))
+    Ok(HttpResponse::Ok().json(&**books))
 }
 
 #[post("/books")]
@@ -76,8 +34,6 @@ async fn post_books(req: HttpRequest, counter: web::Data<AppState>) -> impl Resp
     // let a = *req.app_data::<AppStateWithCounter>().unwrap();
     // println!("{:?}", a);
     // counter.counter.set(counter.counter.get());
-
-
 
     "POST Books endpoint"
 }
