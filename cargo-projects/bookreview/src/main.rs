@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Mutex};
 
 use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpRequest, HttpResponse};
 use serde::{Serialize, Deserialize};
@@ -25,7 +25,7 @@ async fn get_books(data: web::Data<AppStateMutable>) -> Result<impl Responder> {
         title: "Title 4".to_owned(),
         author: "Author 4".to_owned()
     });
-    Ok(HttpResponse::Ok().json(&**books))
+    Ok(HttpResponse::Ok().json(&*books))
 }
 
 #[post("/books")]
@@ -51,7 +51,6 @@ async fn ping() -> Result<impl Responder> {
     Ok(web::Json(health))
 }
 
-// #[derive(Debug, Clone, Copy)]
 struct AppState {
     str: String
 }
