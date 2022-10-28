@@ -43,6 +43,7 @@ impl ThreadPool {
         // preallocate space in vector
         let mut workers = Vec::with_capacity(size);
 
+        // we create a range from 0 to whatever the size of the threadpool is
         for id in 0..size {
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
