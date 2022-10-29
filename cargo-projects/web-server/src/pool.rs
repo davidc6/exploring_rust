@@ -7,6 +7,7 @@ struct Worker {
 
 impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+        // JoinHandle - enables associated thread blocking
         let thread = thread::spawn(|| {
             receiver;
         });
@@ -23,14 +24,6 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
-    // pub fn new(size: usize) -> Result<ThreadPool, PoolCreationError> {
-    //     if size < 1 {
-    //         PoolCreationError
-    //     }
-
-    //     Ok(ThreadPool)
-    // }
-
     pub fn new(size: usize) -> ThreadPool {
         // number of threads should be positive
         assert!(size > 0 && size < 11);
