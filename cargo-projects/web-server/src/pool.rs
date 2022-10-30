@@ -8,20 +8,27 @@ struct Worker {
 impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
         // JoinHandle - enables associated thread blocking
-        let thread = thread::spawn(|| {
-            receiver;
+        let thread = thread::spawn(move || loop {
+            // acquire mutex and block current thread, wait for value on the receiver and panix if any errors
+            // acquiring a lock might fail if mutex is in a poised state i.e. other thread paniced while holding the lock
+            let job = receiver.lock().unwrap().recv().unwrap();
+
+            println!("Worker {id} got a job; executing ...");
+
+            job();
         });
 
         Worker { id, thread }
     }
 }
 
-struct Job;
+type Job = Box<dyn FnOnce() + Send + 'static>;
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: mpsc::Sender<Job>
 }
+
 
 impl ThreadPool {
     pub fn new(size: usize) -> ThreadPool {
@@ -56,7 +63,10 @@ impl ThreadPool {
     where
         F: FnOnce() + Send + 'static,
     {
-        println!("inside execute");
+        // creating a job instance
+        let job = Box::new(f);
+        // send it down the channel
+        self.sender.send(job).unwrap();
     }
 
     // implement the build function
