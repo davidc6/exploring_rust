@@ -34,7 +34,7 @@ fn process_header(header: String) -> (String, String) {
 fn build_response(request: Request) -> Response {
     // Assuming it's a POST request here
     let body = if request.uri() == &String::from("/") {
-        std::thread::sleep(Duration::from_secs(5));
+        std::thread::sleep(Duration::from_secs(1));
         BodyResponse {
             name: "Some name",
             message: "Some message"
