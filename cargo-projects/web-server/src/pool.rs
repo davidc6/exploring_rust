@@ -33,7 +33,7 @@ impl ThreadPool {
 
     pub fn new(size: usize) -> ThreadPool {
         // number of threads should be positive
-        assert!(size > 0);
+        assert!(size > 0 && size < 11);
 
         // using message passing to transfer data between threads
         let (sender, receiver) = mpsc::channel();
@@ -62,7 +62,9 @@ impl ThreadPool {
     pub fn execute<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
-    {}
+    {
+        println!("inside execute");
+    }
 
     // implement the build function
     // pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError> {}
