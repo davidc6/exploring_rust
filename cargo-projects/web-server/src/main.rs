@@ -2,7 +2,6 @@ use std::{net::{TcpListener, TcpStream}, io::Error, time::Duration};
 use std::io::{BufReader, BufRead, Write, Read};
 use serde::{Serialize, Deserialize};
 
-
 mod request;
 mod response;
 mod pool;
@@ -34,7 +33,9 @@ fn process_header(header: String) -> (String, String) {
 fn build_response(request: Request) -> Response {
     // Assuming it's a POST request here
     let body = if request.uri() == &String::from("/") {
-        std::thread::sleep(Duration::from_secs(1));
+        // artificially delay the response
+        std::thread::sleep(Duration::from_secs(3));
+
         BodyResponse {
             name: "Some name",
             message: "Some message"
@@ -138,7 +139,7 @@ fn main() -> Result<(), Error> {
     // iterator over TcpStream type streams (open client / server connection)
     // these are actually connection attempts as a connection attempt might fail
     // due to some OS specific limitations such as for instance a limit of open connections
-    for stream in listener.incoming() {
+    for stream in listener.incoming().take(2) {
         let stream = stream?;
         // spin up a new thread for each connection
         // std::thread::spawn(|| {
@@ -150,5 +151,6 @@ fn main() -> Result<(), Error> {
         })
     }
 
+    println!("Shutting down");
     Ok(())
 }
