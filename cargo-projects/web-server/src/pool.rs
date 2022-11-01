@@ -2,7 +2,7 @@ use std::{thread, sync::{mpsc, Arc, Mutex}};
 
 struct Worker {
     id: usize,
-    thread: thread::JoinHandle<()>
+    thread: Option<thread::JoinHandle<()>>
 }
 
 impl Worker {
@@ -11,14 +11,21 @@ impl Worker {
         let thread = thread::spawn(move || loop {
             // acquire mutex and block current thread, wait for value on the receiver and panix if any errors
             // acquiring a lock might fail if mutex is in a poised state i.e. other thread paniced while holding the lock
-            let job = receiver.lock().unwrap().recv().unwrap();
+            match receiver.lock().unwrap().recv() {
+                // we successfully acquired the lock
+                Ok(job) => {
+                    println!("Worker {id} got a job, executing.");
+                    job();
+                }
+                Err(_) => {
+                    println!("Worker {id} disconnected; shutting down.");
+                    break;
+                }
+            }
 
-            println!("Worker {id} got a job; executing ...");
-
-            job();
         });
 
-        Worker { id, thread }
+        Worker { id, thread: Some(thread) }
     }
 }
 
@@ -26,9 +33,8 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
-    sender: mpsc::Sender<Job>
+    sender: Option<mpsc::Sender<Job>>
 }
-
 
 impl ThreadPool {
     pub fn new(size: usize) -> ThreadPool {
@@ -48,7 +54,7 @@ impl ThreadPool {
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
 
-        ThreadPool { workers, sender }
+        ThreadPool { workers, sender: Some(sender) }
     }
 
     // F - generic type which is bound by FnOnce(), Send and lifetime 'static
@@ -66,9 +72,26 @@ impl ThreadPool {
         // creating a job instance
         let job = Box::new(f);
         // send it down the channel
-        self.sender.send(job).unwrap();
+        self.sender.as_ref().unwrap().send(job).unwrap();
     }
 
     // implement the build function
     // pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError> {}
+}
+
+// implements drop trait
+impl Drop for ThreadPool {
+    // when the threadpool goes out of scope each thread joins
+    fn drop(&mut self) {
+        // drops the sender before thread finishes
+        drop(self.sender.take());
+
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+
+            if let Some(thread) = worker.thread.take() {
+                thread.join().unwrap();
+            }
+        }
+    }
 }
