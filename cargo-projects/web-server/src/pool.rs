@@ -70,13 +70,14 @@ impl ThreadPool {
         F: FnOnce() + Send + 'static,
     {
         // creating a job instance
+        // putting it on the heap
         let job = Box::new(f);
-        // send it down the channel
+        // since sender is an Option that owns its content (some job)
+        // as_ref() converts the option to not owning its content
+        // i.e. &Option<Sender<..>> to Option<&Sender<..>>
+        // then send it down the channel
         self.sender.as_ref().unwrap().send(job).unwrap();
     }
-
-    // implement the build function
-    // pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError> {}
 }
 
 // implements drop trait
