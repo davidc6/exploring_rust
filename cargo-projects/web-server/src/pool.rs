@@ -75,6 +75,7 @@ impl ThreadPool {
         // since sender is an Option that owns its content (some job)
         // as_ref() converts the option to not owning its content
         // i.e. &Option<Sender<..>> to Option<&Sender<..>>
+        // in other words, as_ref() does not consume the data but borrows it (Sender)
         // then send it down the channel
         self.sender.as_ref().unwrap().send(job).unwrap();
     }
@@ -94,5 +95,28 @@ impl Drop for ThreadPool {
                 thread.join().unwrap();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ThreadPool};
+
+    #[test]
+    fn threadpool_instantiates_with_4_threads() {
+        let tp = ThreadPool::new(4);
+        assert_eq!(4, tp.workers.len());
+    }
+
+    #[test]
+    #[should_panic]
+    fn threadpool_panics_if_zero() {
+        ThreadPool::new(0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn threadpool_panics_if_above_ten() {
+        ThreadPool::new(11);
     }
 }
