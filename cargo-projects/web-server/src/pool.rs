@@ -100,6 +100,7 @@ impl Drop for ThreadPool {
 
 #[cfg(test)]
 mod tests {
+    use std::{io::Error, sync::mpsc::channel};
     use super::{ThreadPool};
 
     #[test]
@@ -118,5 +119,29 @@ mod tests {
     #[should_panic]
     fn threadpool_panics_if_above_ten() {
         ThreadPool::new(11);
+    }
+
+    #[test]
+    fn threadpool_executes() {
+        const THREAD_COUNT: usize = 2;
+        let tp = ThreadPool::new(THREAD_COUNT);
+
+        // trasmitter and receiver tuple returned by channel
+        // get bound to tx and rx
+        let (tx, rx) = channel();
+
+        // iterate THREAD_COUNT times, execute fn by sending data down the channel
+        for _ in 0..THREAD_COUNT {
+            // clone sender/transmitter to send to other threads
+            let tx = tx.clone();
+            // transmit / send value to the channel
+            tp.execute(move || {
+                tx.send(1).unwrap();
+            })
+        }
+
+        // receiver returns an iterator, takes the number of threads and sums the items
+        // i.e. 1 + 1 (if THREAD_COUNT is 2)
+        assert_eq!(rx.iter().take(THREAD_COUNT).sum::<usize>(), THREAD_COUNT);
     }
 }
