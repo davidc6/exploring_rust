@@ -5,18 +5,20 @@ struct Worker {
     thread: Option<thread::JoinHandle<()>>
 }
 
+type Job = Box<dyn FnOnce() + Send + 'static>;
+
 impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
         // JoinHandle - enables associated thread blocking
         let thread = thread::spawn(move || loop {
-            // acquire mutex and block current thread, wait for value on the receiver and panix if any errors
+            // acquire mutex and block current thread, wait for value on the receiver and panic if any errors
             // acquiring a lock might fail if mutex is in a poised state i.e. other thread paniced while holding the lock
             match receiver.lock().unwrap().recv() {
                 // we successfully acquired the lock
                 Ok(job) => {
                     println!("Worker {id} got a job, executing.");
                     job();
-                }
+                },
                 Err(_) => {
                     println!("Worker {id} disconnected; shutting down.");
                     break;
@@ -28,8 +30,6 @@ impl Worker {
         Worker { id, thread: Some(thread) }
     }
 }
-
-type Job = Box<dyn FnOnce() + Send + 'static>;
 
 pub struct ThreadPool {
     workers: Vec<Worker>,
@@ -100,7 +100,7 @@ impl Drop for ThreadPool {
 
 #[cfg(test)]
 mod tests {
-    use std::{io::Error, sync::mpsc::channel};
+    use std::sync::mpsc::channel;
     use super::{ThreadPool};
 
     #[test]
