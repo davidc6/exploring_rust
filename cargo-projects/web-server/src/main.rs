@@ -146,7 +146,6 @@ fn main() {
         
         // a thread per connection
         pool.execute(|| {
-            println!("EXECUTE");
             process_stream(stream);
         })
     }

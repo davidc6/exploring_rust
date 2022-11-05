@@ -57,6 +57,9 @@ impl ThreadPool {
         let mut workers = Vec::with_capacity(size);
 
         // we create a range from 0 to whatever the size of the threadpool is
+        // we share the receiver by cloning its pointer
+        // When Arc (Atomic Reference Counted) gets cloned, a new instance is created and reference count is increased
+        // This gives workers the ability to share ownership of the receiver 
         for id in 0..size {
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
