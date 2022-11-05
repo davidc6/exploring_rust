@@ -34,7 +34,7 @@ fn build_response(request: Request) -> Response {
     // Assuming it's a POST request here
     let body = if request.uri() == &String::from("/") {
         // artificially delay the response
-        std::thread::sleep(Duration::from_secs(3));
+        std::thread::sleep(Duration::from_secs(10));
 
         BodyResponse {
             name: "Some name",
@@ -66,6 +66,7 @@ fn send_response(mut stream: TcpStream, response: Response) -> Result<(), Error>
         body = response.body()
     );
     stream.write_all(s.as_bytes())?;
+    stream.flush().unwrap();
     Ok(())
 }
 
@@ -125,7 +126,7 @@ fn process_stream(stream: TcpStream) -> std::io::Result<()> {
     Ok(())
 }
 
-fn main() -> Result<(), Error> {
+fn main() {
     // TODO - to implement
     let pool = ThreadPool::new(4);
 
@@ -139,18 +140,16 @@ fn main() -> Result<(), Error> {
     // iterator over TcpStream type streams (open client / server connection)
     // these are actually connection attempts as a connection attempt might fail
     // due to some OS specific limitations such as for instance a limit of open connections
-    for stream in listener.incoming().take(2) {
-        let stream = stream?;
-        // spin up a new thread for each connection
-        // std::thread::spawn(|| {
-        //     process_stream(stream)
-        // });
-
+    // add take(2) to incoming() to gracefully shut the service down
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+        
+        // a thread per connection
         pool.execute(|| {
+            println!("EXECUTE");
             process_stream(stream);
         })
     }
 
     println!("Shutting down");
-    Ok(())
 }

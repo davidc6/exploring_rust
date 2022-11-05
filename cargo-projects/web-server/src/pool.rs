@@ -1,5 +1,8 @@
 use std::{thread, sync::{mpsc, Arc, Mutex}};
 
+// Worker struct is used to manage behaviour between
+// the thread and Threadpool
+// It picks up the code that needs to be run in the threads and runs it
 struct Worker {
     id: usize,
     thread: Option<thread::JoinHandle<()>>
@@ -10,10 +13,15 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
         // JoinHandle - enables associated thread blocking
+        // move enables closure to own variables it uses
         let thread = thread::spawn(move || loop {
+            // any temp values (in our case the lock) on the right hand side are dropped when let statement ends
+            // if expression is used directly after match, it is not dropped until the end of the assosiated block
+            // meaning that the lock will be held for the duration of the call to job()
+            let message = receiver.lock().unwrap().recv();
             // acquire mutex and block current thread, wait for value on the receiver and panic if any errors
             // acquiring a lock might fail if mutex is in a poised state i.e. other thread paniced while holding the lock
-            match receiver.lock().unwrap().recv() {
+            match message {
                 // we successfully acquired the lock
                 Ok(job) => {
                     println!("Worker {id} got a job, executing.");
@@ -24,7 +32,6 @@ impl Worker {
                     break;
                 }
             }
-
         });
 
         Worker { id, thread: Some(thread) }
@@ -54,6 +61,10 @@ impl ThreadPool {
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
 
+        // Threadpool creates a channel, holds on to the sender and each worker to the receiver
+        // each worker will hold closures we want to send down the channel
+        // worker's execute method will send the job through the sender
+        // worker will loop over it's receiver and execute the closures
         ThreadPool { workers, sender: Some(sender) }
     }
 
