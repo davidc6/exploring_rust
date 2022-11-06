@@ -30,11 +30,9 @@ fn count(s: String, threads: usize) -> char {
                     continue;
                 }
 
-                let val = chars_map.get(&char.to_string()).cloned();
-
                 match chars_map.entry(char.to_string()) {
                     Occupied(mut e) => {
-                        e.insert(val.unwrap() + 1);
+                        e.insert(e.get() + 1);
                     },
                     Vacant(e) => {
                         e.insert(1);
@@ -47,9 +45,20 @@ fn count(s: String, threads: usize) -> char {
         t.join();
     }
 
-    // TODO
     if last_split_len != chars_per_thread {
         let last = &s[s.len() - (last_split_len - chars_per_thread)..s.len()];
+        let mut chars_map = char_freq.lock().unwrap();
+
+        for char in last.chars() {
+            match chars_map.entry(char.to_string()) {
+                Occupied(mut e) => {
+                    e.insert(e.get() + 1);
+                },
+                Vacant(e) => {
+                    e.insert(1);
+                }
+            }
+        }
     }
 
     let chars = char_freq.lock().unwrap();
