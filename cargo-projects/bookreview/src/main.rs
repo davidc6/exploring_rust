@@ -1,9 +1,6 @@
-use std::sync::{Mutex};
-
+use std::sync::Mutex;
 use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpRequest, HttpResponse};
 use serde::{Serialize, Deserialize};
-
-// use serde_json::{Result, Value};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Book {
