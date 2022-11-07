@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpRequest, HttpResponse};
 use serde::{Serialize, Deserialize};
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Book {
@@ -9,8 +10,38 @@ struct Book {
     author: String
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct Intro {
+    title: String,
+    author: String
+}
+
+#[derive(Serialize)]
+struct Health {
+    status: String,
+}
+
+#[derive(Debug, Serialize)]
+struct AppStateNew {
+    data: Vec<Book>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct AppStateMutable {
+    data: Mutex<Vec<Book>>
+}
+
+struct AppState {
+    str: String
+}
+
 #[get("/books")]
 async fn get_books(data: web::Data<AppStateMutable>) -> Result<impl Responder> {    
+    Ok(HttpResponse::Ok().json(data))
+}
+
+#[post("/books")]
+async fn post_books(data: web::Data<AppStateMutable>, body: web::Json<Intro>) -> Result<impl Responder> {
     let mut books = data.data.lock().unwrap();
     books.push(Book {
         id: "3".to_owned(),
@@ -22,22 +53,15 @@ async fn get_books(data: web::Data<AppStateMutable>) -> Result<impl Responder> {
         title: "Title 4".to_owned(),
         author: "Author 4".to_owned()
     });
-    Ok(HttpResponse::Ok().json(&*books))
-}
 
-#[post("/books")]
-async fn post_books(req: HttpRequest, counter: web::Data<AppState>) -> impl Responder {
-    // TODO: unique id for a book
-    // let a = *req.app_data::<AppStateWithCounter>().unwrap();
-    // println!("{:?}", a);
-    // counter.counter.set(counter.counter.get());
+    let id = Uuid::new_v4();
+    books.push(Book {
+        id: id.to_string(),
+        title: body.title.to_owned(),
+        author: body.author.to_owned()
+    });
 
-    "POST Books endpoint"
-}
-
-#[derive(Serialize)]
-struct Health {
-    status: String,
+    Ok(HttpResponse::Ok())
 }
 
 #[get("/ping")]
@@ -46,20 +70,6 @@ async fn ping() -> Result<impl Responder> {
         status: "OK".to_string()
     };
     Ok(web::Json(health))
-}
-
-struct AppState {
-    str: String
-}
-
-#[derive(Debug, Serialize)]
-struct AppStateNew {
-    data: Vec<Book>
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct AppStateMutable {
-    data: Mutex<Vec<Book>>
 }
 
 #[tokio::main]
@@ -79,7 +89,11 @@ async fn main() -> std::io::Result<()> {
         ]),
     });
 
+    // Factory
+    // handles transport level concerns
+    // TLS, TCP socket / Unix domain, etc.
     HttpServer::new(move || {
+        // App is where the logic lives, routing, middlewares etc.
         App::new()
             .app_data(data.clone())
             .service(ping)
