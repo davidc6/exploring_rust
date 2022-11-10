@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 // # Notes
 // 
 // - lifetimes can be elided (omitted) in function item, function pointer, function closure trait signatures 
@@ -42,9 +44,37 @@ impl<'a> Iterator for StrSplit<'a> {
     }
 }
 
-#[cfg(test)]
+fn most_repeated(s: &str) -> char {
+    let v: HashMap<char, usize> = HashMap::new();
+    let mut longest = ' ';
+
+    s.chars().fold(v, |mut acc, x| {
+        acc.entry(x)
+            .and_modify(|e| { *e += 1 })
+            .or_insert(1);
+
+        if longest == ' ' {
+            longest = x;
+        }
+
+        if acc.get(&longest) < acc.get(&x) {
+            longest = x;
+        }
+
+        acc
+    });
+    longest
+}
+
+#[test]
 fn should_work() {
     let haystack = "a b c d e";
     let letters: Vec<_> = StrSplit::new(haystack, " ").collect();
     assert_eq!(letters, vec!["a", "b", "c", "d", "e"]);
+}
+
+#[test]
+fn should_get_most_repeated() {
+    let most_repeated = most_repeated("hello");
+    assert_eq!(most_repeated, 'l');
 }
