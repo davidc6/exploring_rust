@@ -44,7 +44,7 @@ impl<'a> Iterator for StrSplit<'a> {
 
 #[cfg(test)]
 fn should_work() {
-    let haystack = "a b c d e";
+    let haystack = "a b c d e f";
     let letters: Vec<_> = StrSplit::new(haystack, " ").collect();
-    assert_eq!(letters, vec!["a", "b", "c", "d", "e"]);
+    assert_eq!(letters, vec!["a", "b", "c", "d", "e", "f"]);
 }
