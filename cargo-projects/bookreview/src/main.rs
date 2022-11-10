@@ -72,6 +72,9 @@ async fn ping() -> Result<impl Responder> {
     Ok(web::Json(health))
 }
 
+// async runtime is loaded on top of the main fn
+// and used to drive futures (async computations) to completion
+// tokio runtime takes async code in the main fn and runs it
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let data = web::Data::new(AppStateMutable {
