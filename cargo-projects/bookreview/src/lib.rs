@@ -5,6 +5,7 @@ use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpRequest,
 use actix_web::dev::Server;
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
+use std::net::TcpListener;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Book {
@@ -75,7 +76,7 @@ async fn ping() -> Result<impl Responder> {
     Ok(web::Json(health))
 }
 
-pub fn run() -> Result<Server, std::io::Error> {
+pub fn run(listnr: TcpListener) -> Result<Server, std::io::Error> {
     let data = web::Data::new(AppStateMutable {
         data: Mutex::new(vec![
             Book {
@@ -91,6 +92,8 @@ pub fn run() -> Result<Server, std::io::Error> {
         ]),
     });
 
+    let addr = listnr.local_addr().unwrap();
+
     // Factory
     // handles transport level concerns
     // TLS, TCP socket / Unix domain, etc.
@@ -102,8 +105,10 @@ pub fn run() -> Result<Server, std::io::Error> {
             .service(get_books)
             .service(post_books)
     })
-    .bind(("127.0.0.1", 7878))?
+    .listen(listnr)?
     .run();
+
+    println!("Server is running on: http://{}", addr);
 
     Ok(server)
 }

@@ -1,5 +1,7 @@
 //! main.rs
 
+use std::net::TcpListener;
+
 use bookreview::run;
 
 // async runtime is loaded on top of the main fn
@@ -8,5 +10,6 @@ use bookreview::run;
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     // if run errors, the error will bubble up
-    run()?.await
+    let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
+    run(listener)?.await
 }
