@@ -1,6 +1,6 @@
 //! tests/health_check.rs
 
-use std::net::TcpListener;
+use std::{net::TcpListener, fmt::format};
 
 #[tokio::test]
 async fn ping_works() {
@@ -14,7 +14,24 @@ async fn ping_works() {
         .expect("Failed to execute request.");
 
     assert!(response.status().is_success());
-    assert_eq!(Some(2), response.content_length());
+    assert_eq!(Some(15), response.content_length());
+}
+
+#[tokio::test]
+async fn follow_returns_200_when_valid_data() {
+    let addr = spawn_app();
+    let client = reqwest::Client::new();
+
+    let body = "name=john%20doe&email=john.doe%40gmail.com";
+    let res = client
+        .post(format!("{}/follows", addr))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(body)
+        .send()
+        .await
+        .expect("Failed to execute request.");
+
+    assert_eq!(200, res.status().as_u16());
 }
 
 fn spawn_app() -> String {
