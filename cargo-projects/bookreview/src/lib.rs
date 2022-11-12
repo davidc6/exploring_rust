@@ -76,6 +76,17 @@ async fn ping() -> Result<impl Responder> {
     Ok(web::Json(health))
 }
 
+#[derive(serde::Deserialize)]
+struct FormData {
+    name: String,
+    email: String
+}
+
+#[post("/follows")]
+async fn follows(_form: web::Form<FormData>) -> HttpResponse {
+    HttpResponse::Ok().finish()
+}
+
 pub fn run(listnr: TcpListener) -> Result<Server, std::io::Error> {
     let data = web::Data::new(AppStateMutable {
         data: Mutex::new(vec![
@@ -102,6 +113,7 @@ pub fn run(listnr: TcpListener) -> Result<Server, std::io::Error> {
         App::new()
             .app_data(data.clone())
             .service(ping)
+            .service(follows)
             .service(get_books)
             .service(post_books)
     })
