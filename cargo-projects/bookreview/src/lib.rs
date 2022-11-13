@@ -7,14 +7,14 @@ use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 use std::net::TcpListener;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Book {
     id: String,
     title: String,
     author: String
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Intro {
     title: String,
     author: String
@@ -30,7 +30,7 @@ struct AppStateNew {
     data: Vec<Book>
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct AppStateMutable {
     data: Mutex<Vec<Book>>
 }
