@@ -82,12 +82,14 @@ struct FormData {
     email: String
 }
 
+// actix-web extractor is used here
 #[post("/follows")]
 async fn follows(_form: web::Form<FormData>) -> HttpResponse {
     HttpResponse::Ok().finish()
 }
 
 pub fn run(listnr: TcpListener) -> Result<Server, std::io::Error> {
+    // temporary fake data store
     let data = web::Data::new(AppStateMutable {
         data: Mutex::new(vec![
             Book {
