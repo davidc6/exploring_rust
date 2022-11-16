@@ -35,10 +35,6 @@ struct AppStateMutable {
     data: Mutex<Vec<Book>>
 }
 
-struct AppState {
-    str: String
-}
-
 #[get("/books")]
 async fn get_books(data: web::Data<AppStateMutable>) -> Result<impl Responder> {    
     Ok(HttpResponse::Ok().json(data))
