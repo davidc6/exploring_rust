@@ -18,3 +18,20 @@ docker run \
     -p "${DB_PORT}":5432 \
     -d postgres \
     postgres -N 1000 # max connections
+
+export PGPASSWORD="${DB_PASSWORD}"
+
+# ping postgres endpoint until it's ready
+until psql -h "localhost" -U "${DB_USERNAME}" -p "${DB_PORT}" -d "postgres" -c '\q'; do
+    >&2 echo "Postgres is unavailable"
+    sleep 1
+done
+
+# now it's ready
+>&2 echo "Postgres is up and running on port ${DB_PORT}!"
+
+# env variable needed to be a valid postgres connection string
+export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
+
+# create database
+sqlx database create
