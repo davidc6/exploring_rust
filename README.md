@@ -4,3 +4,4 @@ This repo contains a collection of small projects, exercises and notes that I cr
 - Another text search tool - [Litegrep](./cargo-projects/litegrep/)
 - Mandelbrot set plotter - [Mandelbrot set plotter](./cargo-projects/mandelbrot/)
 - Greatest common divisor - [Greatest common divisor](./cargo-projects/greatest-common-divisor/)
+- Book review service - [Bookreview](./cargo-projects/bookreview/)
