@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::net::TcpListener;
 use actix_web::dev::Server;
-use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpRequest, HttpResponse};
+use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpResponse};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
@@ -76,7 +76,6 @@ struct FormData {
 async fn follows(_form: web::Form<FormData>) -> HttpResponse {
     HttpResponse::Ok().finish()
 }
-
 
 pub fn run(listnr: TcpListener) -> Result<Server, std::io::Error> {
     // temporary fake data store

@@ -69,7 +69,7 @@ fn spawn_app() -> String {
     // OS assigned port address
     let port = listener.local_addr().unwrap().port();
 
-    let server = bookreview::run(listener).expect("Failed to bind address");
+    let server = bookreview::startup::run(listener).expect("Failed to bind address");
 
     // Server gets launched as a background task
     // let is non-binding hence no use for it here

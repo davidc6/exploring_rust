@@ -1,7 +1,5 @@
 //! main.rs
-
 use std::net::TcpListener;
-
 use bookreview::startup::run;
 
 // async runtime is loaded on top of the main fn
