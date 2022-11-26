@@ -1,6 +1,7 @@
 //! tests/health_check.rs
-
-use std::{net::TcpListener, fmt::format};
+use std::{net::TcpListener};
+use bookreview::configuration::{configuration};
+use sqlx::{PgConnection, Connection};
 
 #[tokio::test]
 async fn ping_works() {
@@ -20,6 +21,13 @@ async fn ping_works() {
 #[tokio::test]
 async fn follow_returns_200_when_valid_data() {
     let addr = spawn_app();
+    let conf = configuration().expect("Failed to get the config");
+    let conn_str = conf.database.conn_str();
+
+    let conn = PgConnection::connect(&conn_str)
+        .await
+        .expect("Failed to connect to Postgres database");
+
     let client = reqwest::Client::new();
 
     let body = "name=john%20doe&email=john.doe%40gmail.com";

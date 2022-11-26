@@ -1,0 +1,7 @@
+app_port: 8000
+database:
+  host: "172.17.0.3" # since communication between two containers is via docker network we need container's IP
+  port: 5432
+  username: "postgres"
+  password: "password"
+  db_name: "bookreview"
