@@ -3,7 +3,7 @@ use std::net::TcpListener;
 use actix_web::dev::Server;
 use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpResponse};
 use serde::{Serialize, Deserialize};
-use sqlx::{PgConnection, PgPool};
+use sqlx::{PgPool};
 use uuid::Uuid;
 
 use crate::routes::{follows};
@@ -68,8 +68,9 @@ async fn ping() -> Result<impl Responder> {
     Ok(web::Json(health))
 }
 
-pub fn run(listnr: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error> {
-    let conn = web::Data::new(db_pool);
+pub fn run(listnr: TcpListener, conn_pool: PgPool) -> Result<Server, std::io::Error> {
+    let conn = web::Data::new(conn_pool);
+
     // temporary fake data store
     let data = web::Data::new(AppStateMutable {
         data: Mutex::new(vec![
@@ -95,11 +96,11 @@ pub fn run(listnr: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Erro
         // App is where the logic lives, routing, middlewares etc.
         App::new()
             .app_data(data.clone())
-            .app_data(conn.clone())
             .service(ping)
             .service(follows)
             .service(get_books)
             .service(post_books)
+            .app_data(conn.clone())
     })
     .listen(listnr)?
     .run();

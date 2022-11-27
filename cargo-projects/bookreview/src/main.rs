@@ -9,7 +9,8 @@ use sqlx::{PgPool};
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let configuration = configuration().expect("Failed to read configuration.");
-    let connection = PgPool::connect(&configuration.database.conn_str())
+
+    let conn_pool = PgPool::connect(&configuration.database.conn_str())
         .await
         .expect("Failed to connect to Postgres.");
 
@@ -17,5 +18,5 @@ async fn main() -> std::io::Result<()> {
     let addr = format!("127.0.0.1:{}", configuration.app_port);
 
     let listener = TcpListener::bind(addr).expect("Failed to bind random port");
-    run(listener, connection)?.await
+    run(listener, conn_pool)?.await
 }
