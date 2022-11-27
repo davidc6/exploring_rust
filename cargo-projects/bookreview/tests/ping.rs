@@ -1,7 +1,8 @@
 //! tests/health_check.rs
 use std::{net::TcpListener};
-use bookreview::configuration::{configuration};
-use sqlx::{PgConnection, Connection, PgPool};
+use bookreview::configuration::{configuration, DbSettings};
+use sqlx::{PgConnection, Connection, PgPool, Executor};
+use uuid::Uuid;
 
 #[tokio::test]
 async fn ping_works() {
@@ -46,8 +47,8 @@ async fn follow_returns_200_when_valid_data() {
         .await
         .expect("Failed to fetch saved follows.");
 
-    assert_eq!(saved.email, "a@a.com");
-    assert_eq!(saved.name, "a");
+    assert_eq!(saved.email, "john.doe@gmail.com");
+    assert_eq!(saved.name, "john doe");
 }
 
 #[tokio::test]
@@ -95,11 +96,10 @@ async fn spawn_app() -> TestApp {
     // Return application address to the caller
     let addr = format!("http://127.0.0.1:{}", port);
 
-    let conf = configuration().expect("Failed to read the config");
-    let conn_pool = PgPool::connect(&conf.database.conn_str())
-        .await
-        .expect("Failed to connect to PG");
-
+    let mut conf = configuration().expect("Failed to read the config");
+    conf.database.db_name = Uuid::new_v4().to_string(); // generate random DB name
+    let conn_pool = conf_db(&conf.database)
+        .await;
 
     let server = bookreview::startup::run(listener, conn_pool.clone())
         .expect("Failed to bind address");
@@ -113,4 +113,25 @@ async fn spawn_app() -> TestApp {
         db_pool: conn_pool
     }
 
+}
+
+pub async fn conf_db(config: &DbSettings) -> PgPool {
+    let mut conn = PgConnection::connect(&config.conn_str_without_db())
+        .await
+        .expect("Failed to connect to Postgres");
+    conn
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.db_name).as_str())
+        .await
+        .expect("Failed to create database");
+
+    // Migration
+    let conn_pool = PgPool::connect(&config.conn_str())
+        .await
+        .expect("Failed to connect to Postgres");
+    sqlx::migrate!("./migrations")
+        .run(&conn_pool)
+        .await
+        .expect("Failed to migrate");
+
+    conn_pool
 }
