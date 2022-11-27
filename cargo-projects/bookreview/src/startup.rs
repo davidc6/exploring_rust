@@ -3,7 +3,10 @@ use std::net::TcpListener;
 use actix_web::dev::Server;
 use actix_web::{get, post, web, App, HttpServer, Responder, Result, HttpResponse};
 use serde::{Serialize, Deserialize};
+use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
+
+use crate::routes::{follows};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Book {
@@ -65,19 +68,8 @@ async fn ping() -> Result<impl Responder> {
     Ok(web::Json(health))
 }
 
-#[derive(serde::Deserialize)]
-struct FormData {
-    name: String,
-    email: String
-}
-
-// actix-web extractor is used here
-#[post("/follows")]
-async fn follows(_form: web::Form<FormData>) -> HttpResponse {
-    HttpResponse::Ok().finish()
-}
-
-pub fn run(listnr: TcpListener) -> Result<Server, std::io::Error> {
+pub fn run(listnr: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Error> {
+    let conn = web::Data::new(db_pool);
     // temporary fake data store
     let data = web::Data::new(AppStateMutable {
         data: Mutex::new(vec![
@@ -103,6 +95,7 @@ pub fn run(listnr: TcpListener) -> Result<Server, std::io::Error> {
         // App is where the logic lives, routing, middlewares etc.
         App::new()
             .app_data(data.clone())
+            .app_data(conn.clone())
             .service(ping)
             .service(follows)
             .service(get_books)
