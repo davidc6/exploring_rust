@@ -33,7 +33,7 @@ async fn follow_returns_200_when_valid_data() {
 
     let body = "name=john%20doe&email=john.doe%40gmail.com";
     let res = client
-        .post(format!("{}/follows", test_app.addr))
+        .post(format!("{}/follows", &test_app.addr))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
         .send()
@@ -46,6 +46,8 @@ async fn follow_returns_200_when_valid_data() {
         .fetch_one(&mut conn)
         .await
         .expect("Failed to fetch saved follows.");
+
+    test_app.drop_db();
 
     assert_eq!(saved.email, "john.doe@gmail.com");
     assert_eq!(saved.name, "john doe");
@@ -83,8 +85,17 @@ async fn follow_returns_400_when_missing_data() {
 #[derive(Debug)]
 pub struct TestApp {
     pub addr: String,
+    pub db_name: String,
     pub db_pool: PgPool
-} 
+}
+
+impl TestApp {
+    async fn drop_db(&self) {
+        let _ = &self.db_pool.execute(format!(r#"DROP DATABASE "{}";"#, self.db_name).as_str())
+            .await
+            .expect("Failed to drop database");
+    }
+}
 
 async fn spawn_app() -> TestApp {
     let listener = TcpListener::bind("127.0.0.1:0")
@@ -110,6 +121,7 @@ async fn spawn_app() -> TestApp {
 
     TestApp {
         addr,
+        db_name: conf.database.db_name,
         db_pool: conn_pool
     }
 
