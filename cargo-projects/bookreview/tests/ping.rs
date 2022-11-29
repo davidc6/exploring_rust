@@ -1,5 +1,5 @@
 //! tests/health_check.rs
-use std::{net::TcpListener};
+use std::{net::TcpListener, process::Termination};
 use bookreview::configuration::{configuration, DbSettings};
 use sqlx::{PgConnection, Connection, PgPool, Executor};
 use uuid::Uuid;
@@ -19,6 +19,7 @@ async fn ping_works() {
     assert_eq!(Some(15), response.content_length());
 }
 
+#[ignore]
 #[tokio::test]
 async fn follow_returns_200_when_valid_data() {
     let test_app = spawn_app().await;
@@ -47,12 +48,13 @@ async fn follow_returns_200_when_valid_data() {
         .await
         .expect("Failed to fetch saved follows.");
 
-    test_app.drop_db();
+        assert_eq!(saved.email, "john.doe@gmail.com");
+        assert_eq!(saved.name, "john doe");
 
-    assert_eq!(saved.email, "john.doe@gmail.com");
-    assert_eq!(saved.name, "john doe");
+        // test_app.drop_db().await;
 }
 
+#[ignore]
 #[tokio::test]
 async fn follow_returns_400_when_missing_data() {
     let addr = spawn_app().await;
@@ -82,18 +84,117 @@ async fn follow_returns_400_when_missing_data() {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TestApp {
     pub addr: String,
     pub db_name: String,
     pub db_pool: PgPool
 }
 
+// impl TestApp {
+//     async fn drop_db(&self) {
+//         let _ = &self.db_pool
+//             .execute(format!(r#"DROP DATABASE "{}";"#, self.db_name).as_str())
+//             .await
+//             .expect("Failed to drop database");
+//     }
+// }
+
 impl TestApp {
-    async fn drop_db(&self) {
-        let _ = &self.db_pool.execute(format!(r#"DROP DATABASE "{}";"#, self.db_name).as_str())
+    async fn drop_db(&mut self) {
+        self.db_pool.close().await;
+
+        let mut conf = configuration().expect("Failed to read the config");
+        // conf.database.db_name = self.db_name.clone();
+
+        let mut conn = PgConnection::connect(&conf.database.conn_str()).await.expect("Could not connect to DB");
+
+        println!("DB {}",self.db_name);
+
+        let b = conn
+            .execute(
+                format!(
+                    r#"
+                    SELECT pg_terminate_backend(pg_stat_activity.pid)
+                    FROM pg_stat_activity
+                    WHERE pg_stat_activity.datname = '{}'
+                    AND pid <> pg_backend_pid()
+                    "#,
+                    self.db_name
+                )
+                .as_str(),
+            )
             .await
-            .expect("Failed to drop database");
+            .expect("Failed to terminate current connections to test db");
+
+        println!("DB: {:?}", b);
+
+        let a = conn
+            .execute(format!(
+                r#"
+                SELECT * FROM pg_stat_activity WHERE datname = '{}'
+                "#,
+                self.db_name
+            )
+            .as_str(),
+        )
+            .await
+            .expect("Failed to query DB");
+
+        println!("{:?}", a);
+
+        conn
+            .execute(format!(
+                r#"
+                DROP DATABASE "{}";
+                "#,
+                self.db_name)
+                .as_str()
+            )
+            .await
+            .expect("Failed to drop a db");
+    }
+}
+
+impl Drop for TestApp {
+    // async fn drop(&mut self) {
+    //     let _ = &self.db_pool
+    //         .execute(format!(r#"DROP DATABASE "{}";"#, self.db_name).as_str())
+    //         .await
+    //         .expect("Failed to drop database");
+    // }
+
+    fn drop(&mut self) {
+        std::thread::scope(|s| {
+            s.spawn(|| {
+                let runtime = tokio::runtime::Builder::new_multi_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                runtime.block_on(self.drop_db());
+            });
+        });
+
+        // self.db_pool.close().await;
+        // println!("DATABASE NAME: {}", name);
+        // sqlx::query!("SELECT");
+            // .await
+            // .expect("Failed to drop DB");
+
+        // tokio::spawn(async move {
+        //     let res = p
+        //         .execute(command.as_str());
+        //         // .await;
+
+        //     let result = match res.await {
+        //         Ok(x) => x,
+        //         Err(e) => PgQueryResult::default()
+        //     };
+
+        //     println!("Result {:?}", result);
+
+        //     result
+        // });
     }
 }
 
@@ -124,7 +225,6 @@ async fn spawn_app() -> TestApp {
         db_name: conf.database.db_name,
         db_pool: conn_pool
     }
-
 }
 
 pub async fn conf_db(config: &DbSettings) -> PgPool {
