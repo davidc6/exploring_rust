@@ -1,5 +1,6 @@
 //! tests/health_check.rs
-use std::{net::TcpListener, process::Termination};
+//! 
+use std::{net::TcpListener};
 use bookreview::configuration::{configuration, DbSettings};
 use sqlx::{PgConnection, Connection, PgPool, Executor};
 use uuid::Uuid;
@@ -50,8 +51,6 @@ async fn follow_returns_200_when_valid_data() {
 
         assert_eq!(saved.email, "john.doe@gmail.com");
         assert_eq!(saved.name, "john doe");
-
-        // test_app.drop_db().await;
 }
 
 #[ignore]
@@ -90,15 +89,6 @@ pub struct TestApp {
     pub db_name: String,
     pub db_pool: PgPool
 }
-
-// impl TestApp {
-//     async fn drop_db(&self) {
-//         let _ = &self.db_pool
-//             .execute(format!(r#"DROP DATABASE "{}";"#, self.db_name).as_str())
-//             .await
-//             .expect("Failed to drop database");
-//     }
-// }
 
 impl TestApp {
     async fn drop_db(&mut self) {
