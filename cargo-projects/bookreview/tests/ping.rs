@@ -1,5 +1,5 @@
 //! tests/health_check.rs
-//! 
+
 use std::{net::TcpListener};
 use bookreview::configuration::{configuration, DbSettings};
 use sqlx::{PgConnection, Connection, PgPool, Executor};
@@ -20,7 +20,6 @@ async fn ping_works() {
     assert_eq!(Some(15), response.content_length());
 }
 
-#[ignore]
 #[tokio::test]
 async fn follow_returns_200_when_valid_data() {
     let test_app = spawn_app().await;
@@ -53,7 +52,6 @@ async fn follow_returns_200_when_valid_data() {
         assert_eq!(saved.name, "john doe");
 }
 
-#[ignore]
 #[tokio::test]
 async fn follow_returns_400_when_missing_data() {
     let addr = spawn_app().await;
@@ -94,14 +92,12 @@ impl TestApp {
     async fn drop_db(&mut self) {
         self.db_pool.close().await;
 
-        let mut conf = configuration().expect("Failed to read the config");
-        // conf.database.db_name = self.db_name.clone();
+        let conf = configuration().expect("Failed to read the config");
+        let mut conn = PgConnection::connect(&conf.database.conn_str())
+            .await
+            .expect("Could not connect to DB");
 
-        let mut conn = PgConnection::connect(&conf.database.conn_str()).await.expect("Could not connect to DB");
-
-        println!("DB {}",self.db_name);
-
-        let b = conn
+        conn
             .execute(
                 format!(
                     r#"
@@ -116,8 +112,6 @@ impl TestApp {
             )
             .await
             .expect("Failed to terminate current connections to test db");
-
-        println!("DB: {:?}", b);
 
         let a = conn
             .execute(format!(
@@ -147,14 +141,9 @@ impl TestApp {
 }
 
 impl Drop for TestApp {
-    // async fn drop(&mut self) {
-    //     let _ = &self.db_pool
-    //         .execute(format!(r#"DROP DATABASE "{}";"#, self.db_name).as_str())
-    //         .await
-    //         .expect("Failed to drop database");
-    // }
-
     fn drop(&mut self) {
+        // since async traits are not yet supported in Rust,
+        // we spawn a thread to drop a database after each test
         std::thread::scope(|s| {
             s.spawn(|| {
                 let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -164,27 +153,6 @@ impl Drop for TestApp {
                 runtime.block_on(self.drop_db());
             });
         });
-
-        // self.db_pool.close().await;
-        // println!("DATABASE NAME: {}", name);
-        // sqlx::query!("SELECT");
-            // .await
-            // .expect("Failed to drop DB");
-
-        // tokio::spawn(async move {
-        //     let res = p
-        //         .execute(command.as_str());
-        //         // .await;
-
-        //     let result = match res.await {
-        //         Ok(x) => x,
-        //         Err(e) => PgQueryResult::default()
-        //     };
-
-        //     println!("Result {:?}", result);
-
-        //     result
-        // });
     }
 }
 
