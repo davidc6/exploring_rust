@@ -23,12 +23,12 @@ async fn ping_works() {
 #[tokio::test]
 async fn follow_returns_200_when_valid_data() {
     let test_app = spawn_app().await;
-    let conf = configuration().expect("Failed to get the config");
+    let conf = configuration().expect("Failed to get the config.");
     let conn_str = conf.database.conn_str();
 
     let mut conn = PgConnection::connect(&conn_str)
         .await
-        .expect("Failed to connect to Postgres database");
+        .expect("Failed to connect to database.");
 
     let client = reqwest::Client::new();
 
@@ -92,7 +92,7 @@ impl TestApp {
     async fn drop_db(&mut self) {
         self.db_pool.close().await;
 
-        let conf = configuration().expect("Failed to read the config");
+        let conf = configuration().expect("Failed to read the config.");
         let mut conn = PgConnection::connect(&conf.database.conn_str())
             .await
             .expect("Could not connect to DB");
@@ -111,7 +111,7 @@ impl TestApp {
                 .as_str(),
             )
             .await
-            .expect("Failed to terminate current connections to test db");
+            .expect("Failed to terminate current connections to test db.");
 
         let a = conn
             .execute(format!(
@@ -123,7 +123,7 @@ impl TestApp {
             .as_str(),
         )
             .await
-            .expect("Failed to query DB");
+            .expect("Failed to query the database.");
 
         println!("{:?}", a);
 
@@ -136,7 +136,7 @@ impl TestApp {
                 .as_str()
             )
             .await
-            .expect("Failed to drop a db");
+            .expect("Failed to drop a database.");
     }
 }
 
