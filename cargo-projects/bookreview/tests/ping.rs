@@ -26,7 +26,7 @@ async fn follow_returns_200_when_valid_data() {
     let conf = configuration().expect("Failed to get the config.");
     let conn_str = conf.database.conn_str();
 
-    let mut conn = PgConnection::connect(&conn_str)
+    let mut connection = PgConnection::connect(&conn_str)
         .await
         .expect("Failed to connect to database.");
 
@@ -44,7 +44,7 @@ async fn follow_returns_200_when_valid_data() {
     assert_eq!(200, res.status().as_u16());
 
     let saved = sqlx::query!("SELECT email, name FROM follows")
-        .fetch_one(&mut conn)
+        .fetch_one(&mut connection)
         .await
         .expect("Failed to fetch saved follows.");
 
@@ -93,11 +93,11 @@ impl TestApp {
         self.db_pool.close().await;
 
         let conf = configuration().expect("Failed to read the config.");
-        let mut conn = PgConnection::connect(&conf.database.conn_str())
+        let mut connection = PgConnection::connect(&conf.database.conn_str())
             .await
             .expect("Could not connect to DB");
 
-        conn
+        connection
             .execute(
                 format!(
                     r#"
@@ -113,7 +113,7 @@ impl TestApp {
             .await
             .expect("Failed to terminate current connections to test db.");
 
-        let a = conn
+        let a = connection
             .execute(format!(
                 r#"
                 SELECT * FROM pg_stat_activity WHERE datname = '{}'
@@ -127,7 +127,7 @@ impl TestApp {
 
         println!("{:?}", a);
 
-        conn
+        connection
             .execute(format!(
                 r#"
                 DROP DATABASE "{}";
@@ -168,40 +168,40 @@ async fn spawn_app() -> TestApp {
 
     let mut conf = configuration().expect("Failed to read the config");
     conf.database.db_name = Uuid::new_v4().to_string(); // generate random DB name
-    let conn_pool = conf_db(&conf.database)
+    let connection_pool = conf_db(&conf.database)
         .await;
 
-    let server = bookreview::startup::run(listener, conn_pool.clone())
+    let server = bookreview::startup::run(listener, connection_pool.clone())
         .expect("Failed to bind address");
 
     // Server gets launched as a background task
     // let is non-binding hence no use for it here
-    let _ = tokio::spawn(server);
+    tokio::spawn(server);
 
     TestApp {
         addr,
         db_name: conf.database.db_name,
-        db_pool: conn_pool
+        db_pool: connection_pool
     }
 }
 
 pub async fn conf_db(config: &DbSettings) -> PgPool {
-    let mut conn = PgConnection::connect(&config.conn_str_without_db())
+    let mut connection = PgConnection::connect(&config.conn_str_without_db())
         .await
         .expect("Failed to connect to Postgres");
-    conn
+    connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.db_name).as_str())
         .await
         .expect("Failed to create database");
 
     // Migration
-    let conn_pool = PgPool::connect(&config.conn_str())
+    let connection_pool = PgPool::connect(&config.conn_str())
         .await
         .expect("Failed to connect to Postgres");
     sqlx::migrate!("./migrations")
-        .run(&conn_pool)
+        .run(&connection_pool)
         .await
         .expect("Failed to migrate");
 
-    conn_pool
+    connection_pool
 }
