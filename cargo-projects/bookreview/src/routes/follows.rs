@@ -35,6 +35,4 @@ async fn follows(
             HttpResponse::InternalServerError().finish()
         }
     }
-
-    
 }
