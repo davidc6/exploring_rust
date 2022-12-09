@@ -7,6 +7,7 @@ use sqlx::{PgPool};
 use uuid::Uuid;
 
 use crate::routes::{follows};
+use crate::routes::{books};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Book {
@@ -36,29 +37,29 @@ async fn get_books(data: web::Data<AppStateMutable>) -> Result<impl Responder> {
     Ok(HttpResponse::Ok().json(data))
 }
 
-#[post("/books")]
-async fn post_books(data: web::Data<AppStateMutable>, body: web::Json<Intro>) -> Result<impl Responder> {
-    let mut books = data.data.lock().unwrap();
-    books.push(Book {
-        id: "3".to_owned(),
-        title: "Title 3".to_owned(),
-        author: "Author 3".to_owned()
-    });
-    books.push(Book {
-        id: "4".to_owned(),
-        title: "Title 4".to_owned(),
-        author: "Author 4".to_owned()
-    });
+// #[post("/books")]
+// async fn post_books(data: web::Data<AppStateMutable>, body: web::Json<Intro>) -> Result<impl Responder> {
+//     let mut books = data.data.lock().unwrap();
+//     books.push(Book {
+//         id: "3".to_owned(),
+//         title: "Title 3".to_owned(),
+//         author: "Author 3".to_owned()
+//     });
+//     books.push(Book {
+//         id: "4".to_owned(),
+//         title: "Title 4".to_owned(),
+//         author: "Author 4".to_owned()
+//     });
 
-    let id = Uuid::new_v4();
-    books.push(Book {
-        id: id.to_string(),
-        title: body.title.to_owned(),
-        author: body.author.to_owned()
-    });
+//     let id = Uuid::new_v4();
+//     books.push(Book {
+//         id: id.to_string(),
+//         title: body.title.to_owned(),
+//         author: body.author.to_owned()
+//     });
 
-    Ok(HttpResponse::Ok())
-}
+//     Ok(HttpResponse::Ok())
+// }
 
 #[get("/ping")]
 async fn ping() -> Result<impl Responder> {
@@ -98,8 +99,9 @@ pub fn run(listnr: TcpListener, conn_pool: PgPool) -> Result<Server, std::io::Er
             .app_data(data.clone())
             .service(ping)
             .service(follows)
-            .service(get_books)
-            .service(post_books)
+            .service(books)
+            // .service(get_books)
+            // .service(post_books)
             .app_data(conn.clone())
     })
     .listen(listnr)?
