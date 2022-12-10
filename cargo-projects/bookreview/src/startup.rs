@@ -70,7 +70,9 @@ async fn ping() -> Result<impl Responder> {
 }
 
 pub fn run(listnr: TcpListener, conn_pool: PgPool) -> Result<Server, std::io::Error> {
-    let conn = web::Data::new(conn_pool);
+    // wraps connection in Atomic Reference Counted (smart) pointer
+    // which allows each copy of the app get a reference to it (instead of a copy)
+    let connection = web::Data::new(conn_pool);
 
     // temporary fake data store
     let data = web::Data::new(AppStateMutable {
@@ -88,7 +90,7 @@ pub fn run(listnr: TcpListener, conn_pool: PgPool) -> Result<Server, std::io::Er
         ]),
     });
 
-    let addr = listnr.local_addr().unwrap();
+    let address = listnr.local_addr().unwrap();
 
     // Factory
     // handles transport level concerns
@@ -102,12 +104,13 @@ pub fn run(listnr: TcpListener, conn_pool: PgPool) -> Result<Server, std::io::Er
             .service(books)
             // .service(get_books)
             // .service(post_books)
-            .app_data(conn.clone())
+            // get a pointer copy and attach to the application state
+            .app_data(connection.clone())
     })
     .listen(listnr)?
     .run();
 
-    println!("Server is running on: http://{}", addr);
+    println!("Server is running on: http://{}", address);
 
     Ok(server)
 }

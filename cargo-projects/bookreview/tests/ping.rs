@@ -142,8 +142,8 @@ impl TestApp {
 
 impl Drop for TestApp {
     fn drop(&mut self) {
-        // since async traits are not yet supported in Rust,
-        // we spawn a thread to drop a database after each test
+        // since drop cannot be async and we need to await for queries to execute,
+        // we spawn a thread where we can await to drop a database after each test
         std::thread::scope(|s| {
             s.spawn(|| {
                 let runtime = tokio::runtime::Builder::new_multi_thread()
