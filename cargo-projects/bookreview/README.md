@@ -1,6 +1,14 @@
 # Book review service
 
-TODO
+- `main.rs`
+    - bootstraps the application: loads configuration file, connects to Postgres, inits `startup.rs`
+- `startup.rs`
+    - attaches connection to the application state, registeres HTTP services and starts listenint to HTTP connections
+- `libs.rs`
+    - shared code, all modules are declared here
+- `configuration.rs` - creates application configuration
+- `routes/` - all the routes are store in this directory
+- `migrations/` - database migrations
 
 ### Notes
 
