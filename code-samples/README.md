@@ -215,8 +215,8 @@ somewhere (heap) and hold a pointer to that location.
   - no dangling pointers, double frees and pointer invalidation as Rust tracks ownership and lifetimes of values
   - &T is an immuttable shared reference which one can have many of
   - &mut T is a mutable exclusive reference; can read and write value it points to; as long as this this reference lives you cannot have any other references to it; single writer or multiple readers
-- boxes - 
-  - allocate value on the heap
+- boxes -
+  - allocate value on the heap (pointer to the heap is stored on the heap)
     ```rs
         let a = ("Tom", 34);
         // b is Bob<(&str, i32)>
@@ -224,7 +224,10 @@ somewhere (heap) and hold a pointer to that location.
     ```
   - allocated enough memory to contain the tuple on the heap
   - when `b` goes out of scope memory get freed unless moved
-  - moves are essential to thwe way Rust handles heap-allocated values
+  - moves are essential to the way Rust handles heap-allocated values
+  - 
+  - smart pointers (e.g. Box, Rc, Ref) have additional metadata and capabilities
+  - smart pointers implement Deref and Drop
 - unsafe (raw) pointers - 
   - raw pointer types are just like pointers in C/C++
   - `*mut T`, `*const T` - are unsafe
@@ -233,6 +236,22 @@ somewhere (heap) and hold a pointer to that location.
   - raw pointers can only be dereferenced in `unsafe` block
   - `unsafe` block is Rust's way to allow access to advanced features where safety is up to you
   - 
+
+### Smart pointer types
+
+- Pointer - a variable that contains some address in memory, this address points at some data
+- & is a kind of pointer that allows to borrow the value it points to (no extra capabilities, no overhead)
+- Smart pointers have additional capabilities and metadata, they own data they point to
+- Technically String is a smart pointer, as it stores its capacity as metadata and ensures its data will always be valid UTF8
+- Box, Deref, Drop, Rc, Ref, RefCell, RefMut, | thread-safe smart pointers - Mutex, Arc, RwLock 
+
+### Asynchronous Rust
+
+- Each thread has a stack
+  - Default Stack size is 2 MiB (can be manually set to other value when spawning a new thread)
+  - Threads are good for distributing work across processors
+  - Complimentary ways can be used to break down work
+- async_std crate
 
 ### Functional programming (features)
 
