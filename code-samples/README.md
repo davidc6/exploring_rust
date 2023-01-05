@@ -243,7 +243,10 @@ somewhere (heap) and hold a pointer to that location.
 - & is a kind of pointer that allows to borrow the value it points to (no extra capabilities, no overhead)
 - Smart pointers have additional capabilities and metadata, they own data they point to
 - Technically String is a smart pointer, as it stores its capacity as metadata and ensures its data will always be valid UTF8
-- Box, Deref, Drop, Rc, Ref, RefCell, RefMut, | thread-safe smart pointers - Mutex, Arc, RwLock 
+- Box, Deref, Drop, Rc, Ref, RefCell, RefMut, | thread-safe smart pointers - Mutex, Arc, RwLock
+- Rc<T> - reference counted smart pointer, keeps track of borrows. Provides shared ownership of type T. This type prevents T from being removed from memory until every owner is removed. It increments count as references are made and decrements count as references expire.
+- Arc<T> - atomic reference counted smart pointer, keep track of borrow and is thread safe. 
+- Cow<T> - clone on write smart pointer, avoid writes when only read access is used. Reads from its pointer location without needing to copy it first. When an external source provides a buffer it is a handy pointer to use
 
 ### Asynchronous Rust
 
