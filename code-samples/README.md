@@ -124,7 +124,8 @@ to it is stored in the stack
 - Use references where full ownership is not required.
 - Duplicate the value
 - Reduce the number of long-lived objects
-- Data should be wrapped in a type that is designed to assist with movement issues 
+- Data should be wrapped in a type that is designed to assist with movement issues
+- Making good use of Rust involves thinking about ownership. Whether a function should receive a reference to a value or a value itself. 
   
 #### Lifetimes
 
