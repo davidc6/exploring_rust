@@ -35,7 +35,7 @@ mod tests {
 
     #[test]
     fn sets_values() {
-        let mut store: DataStore<String, String> = DataStore::new();
+        let mut store = DataStore::new();
 
         store.set("first_key".to_owned(), "first_value".to_owned());
         store.set("second_key".to_owned(), "second_value".to_owned());
