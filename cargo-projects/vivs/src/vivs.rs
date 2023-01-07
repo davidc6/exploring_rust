@@ -1,10 +1,19 @@
 use std::{collections::HashMap, hash::Hash};
 
-pub struct DataStore<K: PartialEq + Eq + Hash, V> {
+pub trait Key: PartialEq + Eq + Hash {}
+impl<T: PartialEq + Eq + Hash> Key for T {}
+
+pub struct DataStore<K: Key, V> {
     map: HashMap<K, V>
 }
 
-impl<K: PartialEq + Eq + Hash, V> DataStore<K, V> {
+impl<K: Key, V> Default for DataStore<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<K: Key, V> DataStore<K, V> {
     pub fn new() -> DataStore<K, V> {
         DataStore {
             map: HashMap::new()
@@ -26,7 +35,7 @@ mod tests {
 
     #[test]
     fn sets_values() {
-        let mut store = DataStore::new();
+        let mut store: DataStore<String, String> = DataStore::new();
 
         store.set("first_key".to_owned(), "first_value".to_owned());
         store.set("second_key".to_owned(), "second_value".to_owned());
