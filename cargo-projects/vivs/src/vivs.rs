@@ -58,15 +58,15 @@ mod tests {
     fn removes_values() {
         let mut store = DataStore::new();
 
-        store.set("first_key".to_owned(), "first_value".to_owned());
-        store.set("second_key".to_owned(), "second_value".to_owned());
+        store.set(1, "first_value".to_owned());
+        store.set(2, "second_value".to_owned());
 
         assert_eq!(store.count(), Some(2));
 
-        assert_eq!(store.delete("first_key".to_owned()), Some("first_value".to_owned()));
+        assert_eq!(store.delete(1), Some("first_value".to_owned()));
         assert_eq!(store.count(), Some(1));
 
-        assert_eq!(store.delete("second_key".to_owned()), Some("second_value".to_owned()));
-        assert_eq!(store.count(), Some(0));
+        assert_eq!(store.delete(2), Some("second_value".to_owned()));
+        assert_eq!(store.count(), None);
     }
 }
