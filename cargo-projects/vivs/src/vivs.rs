@@ -1,7 +1,7 @@
 use std::{collections::HashMap, hash::Hash};
 
-pub trait Key: PartialEq + Eq + Hash {}
-impl<T: PartialEq + Eq + Hash> Key for T {}
+pub trait Key: PartialEq + Eq + Hash {} // "subtrait" of PartialEq, Eq and Hash traits
+impl<T: PartialEq + Eq + Hash> Key for T {} // blanket implementation
 
 pub struct DataStore<K: Key, V> {
     map: HashMap<K, V>
@@ -27,6 +27,17 @@ impl<K: Key, V> DataStore<K, V> {
     pub fn get(&self, key: K) -> Option<&V> {
         self.map.get(&key)
     }
+
+    pub fn delete(&mut self, key: K) -> Option<V> {
+        self.map.remove(&key)
+    }
+
+    pub fn count(&self) -> Option<usize> {
+        if self.map.is_empty() {
+            return None;
+        }
+        Some(self.map.len())
+    }
 }
 
 #[cfg(test)]
@@ -41,5 +52,21 @@ mod tests {
         store.set("second_key".to_owned(), "second_value".to_owned());
 
         assert_eq!(store.get("first_key".to_owned()), Some(&"first_value".to_owned()));
+    }
+
+    #[test]
+    fn removes_values() {
+        let mut store = DataStore::new();
+
+        store.set("first_key".to_owned(), "first_value".to_owned());
+        store.set("second_key".to_owned(), "second_value".to_owned());
+
+        assert_eq!(store.count(), Some(2));
+
+        assert_eq!(store.delete("first_key".to_owned()), Some("first_value".to_owned()));
+        assert_eq!(store.count(), Some(1));
+
+        assert_eq!(store.delete("second_key".to_owned()), Some("second_value".to_owned()));
+        assert_eq!(store.count(), Some(0));
     }
 }
