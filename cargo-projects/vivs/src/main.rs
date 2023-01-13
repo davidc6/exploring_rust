@@ -34,5 +34,6 @@ mod server;
 async fn main() {
     let addr = "localhost".to_string();
     let port = "6379".to_string();
+
     server::start(addr, port).await;
 }
