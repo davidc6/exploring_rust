@@ -34,9 +34,24 @@ fn parse_bulk_strings(buffer: &[u8]) -> Result<(Vec<&[u8]>, &[u8]), ()> {
     //     }
     // }
 
-    println!("{:?} {:?}", str_size, left);
+    println!("STR {:?} {:?}", str_size, left);
 
-    Ok((Vec::new(), &[2]))
+    let mut vec: Vec<_> = Vec::with_capacity(std::str::from_utf8(str_size).unwrap().parse::<u64>().unwrap() as usize);
+
+    for val in left.iter().enumerate() {
+        let pos = str_size[0] as char;
+        println!("START {}", pos.to_digit(10).unwrap());
+        let res = parse(&left[pos.to_digit(10).unwrap() as usize..]);
+    }
+
+
+    // let mut v = Vec::new();
+    
+    // for item in left {
+    //     v.push(item);
+    // }
+
+    Ok((vec, left))
 }
 
 fn parse_array(buffer: &[u8]) -> Result<(Vec<&[u8]>, &[u8]), ()> {
@@ -45,9 +60,10 @@ fn parse_array(buffer: &[u8]) -> Result<(Vec<&[u8]>, &[u8]), ()> {
     let arr_size = array.as_ref().unwrap().0;
     let left = array.as_ref().unwrap().1;
     
-    println!("ARR {:?}", arr_size);
+    // println!("ARR {:?}", arr_size);
 
     let mut vec: Vec<_> = Vec::with_capacity(std::str::from_utf8(arr_size).unwrap().parse::<u64>().unwrap() as usize);
+
     // vec.push(b"ds");
     for val in left.iter().enumerate() {
         let res = parse(left);
@@ -79,7 +95,7 @@ fn parse_array(buffer: &[u8]) -> Result<(Vec<&[u8]>, &[u8]), ()> {
 }
 
 fn parse(buffer: &[u8]) {
-    print!("Buffer {:?}", buffer);
+    print!("Buffer {:?}\n", buffer);
 
     if let Some(data_type) = buffer.first() {
         let data_type = match data_type {
@@ -87,10 +103,10 @@ fn parse(buffer: &[u8]) {
             b'$' => parse_bulk_strings(&buffer[1..buffer.len()]),
                 // let arr_let = &buffer[0..2];
                 // println!("{:?}", arr_let);
-            _ => todo!()
+            _ => Ok((Vec::with_capacity(1), buffer))
         };
 
-        println!("{:?}", data_type);
+        // println!("{:?}", data_type);
 
         
 
