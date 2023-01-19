@@ -1,11 +1,9 @@
-use tokio::{net::{TcpListener, TcpStream}, io::{BufReader, AsyncReadExt}};
+use tokio::{net::{TcpListener, TcpStream}, io::{BufReader, AsyncReadExt, AsyncBufReadExt}};
 
 #[derive(Debug)]
 enum DataTypes {
     Array
 }
-
-
 
 // carriage return 
 fn parse_until_crlf(stream: &[u8]) -> Result<(&[u8], &[u8]), String> {
@@ -49,8 +47,21 @@ fn parse_array(buffer: &[u8]) -> Result<(Vec<&[u8]>, &[u8]), ()> {
     Ok((vec, left))
 }
 
+struct BufSplit(usize, usize);
+
+enum PartBuf {
+    String(BufSplit),
+    Array(Vec<BufSplit>)
+}
+
+enum ParseError {
+
+}
+
+type ParseResult = Result<Option<(usize, PartBuf)>, ParseError>;
+
 fn parse(buffer: &[u8]) -> Result<(), ()> {
-    print!("Buffer {:?}\n", buffer);
+    println!("Buffer {:?}\n", buffer);
 
     if let Some(data_type) = buffer.first() {
         let data_type = match data_type {
@@ -72,94 +83,17 @@ fn parse(buffer: &[u8]) -> Result<(), ()> {
 
 async fn handle_stream(mut stream: TcpStream, addr: std::net::SocketAddr) -> std::io::Result<()> {
     let (read, write) = stream.split();
-    let mut reader = BufReader::new(read);
+    let reader = BufReader::new(read);
+    let mut lines = reader.lines();
 
-    // let mut buffer: Vec<u8> = vec![];
-    // reader.read_to_end(&mut buffer).await?;
-    let mut buffer = [0; 14];
-    reader.read_exact(&mut buffer).await?;
-
-    let slice = &buffer[0..buffer.len()];
-
-    parse(slice);
-
-    match write.try_write(b"+PONG\r\n") {
-        Ok(val) => {
-            println!("Final read: {:?}", val);
+    loop {
+        if let Ok(line) = lines.next_line().await {
+            parse(line.unwrap().as_bytes());
+            continue;
         }
-        Err(e) => {
+        break;
+    }
 
-        }
-    };
-    // return;
-
-    // if let Some(data_type) = buffer.first() {
-    //     let data_type = match *data_type as char {
-    //         '*' => {
-
-    //             parse_array(&buffer[1..]);
-
-    //             // let arr_let = &buffer[0..2];
-    //             // println!("{:?}", arr_let);
-    //         },
-    //         _ => todo!()
-    //     };
-
-    //     // println!("{:?}", data_type);
-
-        
-
-    // } else {
-    //     panic!("Unexpected");
-    // }
-
-
-
-    // let mut buf = String::new();
-    // let a = reader.read_to_string(&mut buf).await.expect("Err");
-    // println!("{:?}", buf);
-
-
-    // loop {
-    //     let mut buffer = String::new();
-    //     let bytes = reader.read_line(&mut buffer).await.expect("Error");
-    
-
-        
-    //     for (size, char) in buffer.chars().enumerate() {
-    //         println!("{}", char);
-    //     }
-
-
-    
-    //     if bytes == 0 {
-    //         println!("ZERO");
-    //     }
-    // }
-
-
-    // loop {
-    //     let mut buffer = String::new();
-    //     let x = read_buffer.read_line(&mut buffer).await;
-
-    //     match x {
-    //         Ok(val) => {
-    //             match write.try_write(b"+PONG\r\n") {
-    //                 Ok(val) => {
-    //                     println!("{:?}", buffer);
-    //                 }
-    //                 Err(e) => {
-
-    //                 }
-    //             }
-    //         },
-    //         Err(e) => {
-    //             println!("{}", e);
-    //         }
-    //     }
-
-    //     buffer.clear();
-    // }
     Ok(())
 }
 
