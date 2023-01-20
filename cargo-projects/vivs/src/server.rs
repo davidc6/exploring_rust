@@ -47,6 +47,7 @@ fn parse_array(buffer: &[u8]) -> Result<(Vec<&[u8]>, &[u8]), ()> {
     Ok((vec, left))
 }
 
+
 struct BufSplit(usize, usize);
 
 enum PartBuf {
@@ -58,28 +59,74 @@ enum ParseError {
 
 }
 
+// represents parse result
 type ParseResult = Result<Option<(usize, PartBuf)>, ParseError>;
+type Buffer = [u8];
 
-fn parse(buffer: &[u8]) -> Result<(), ()> {
-    println!("Buffer {:?}\n", buffer);
+fn parse_word(buffer: &Buffer, byte_position: usize) -> Option<(usize, BufSplit)> {
+    // tracks end of the word
+    let mut end = byte_position;
 
-    if let Some(data_type) = buffer.first() {
-        let data_type = match data_type {
-            b'*' => parse_array(&buffer[1..buffer.len()]),
-            b'$' => parse_bulk_strings(&buffer[1..buffer.len()]),
-            b'\r' => Ok((Vec::with_capacity(1), buffer)),
-            _ => Ok((Vec::with_capacity(1), buffer))
-        };
+    for val in &buffer[byte_position..] {
+        end += 1;
 
-        return Ok(());
-    } else {
-        // run the command
-        // panic!("Unexpected");
-        return Ok(());
+        if val == &b'\r' {
+            // byte_position + end + 2 is start + end of word + \r\n -> next position
+            // byte_position - start, byte_position + end - end of actual word
+            return Some((byte_position + end + 2, BufSplit(byte_position, byte_position + end)));
+        }
     }
 
-    return Ok(());
+    None
 }
+
+// fn parse_integer(buffer: &Buffer, byte_position: usize) -> ParseResult {
+//     match parse_word(buffer, byte_position) {
+//         Some((position, parsed_word) => {
+//             let string = str::from_utf8(parsed_word.as_slice(buffer))
+//         }
+//         None => Ok(None),
+//     }
+// }
+
+fn parse_array_v2(buffer: &Buffer, byte_position: usize) -> ParseResult {
+    match parse_integer(buffer, byte_position)? {
+
+    }
+
+    return Ok(None);
+}
+
+fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
+    if buffer.is_empty() {
+        return Ok(None);
+    }
+
+    match buffer[byte_position] {
+        b'*' => parse_array_v2(buffer, byte_position + 1),
+    }
+}
+
+// fn parse(buffer: &[u8]) -> Result<(), ()> {
+//     println!("Buffer {:?}\n", buffer);
+
+//     if let Some(data_type) = buffer.first() {
+//         let data_type = match data_type {
+//             b'*' => parse_array(&buffer[1..buffer.len()]),
+//             b'$' => parse_bulk_strings(&buffer[1..buffer.len()]),
+//             b'\r' => Ok((Vec::with_capacity(1), buffer)),
+//             _ => Ok((Vec::with_capacity(1), buffer))
+//         };
+
+//         return Ok(());
+//     } else {
+//         // run the command
+//         // panic!("Unexpected");
+//         return Ok(());
+//     }
+
+//     return Ok(());
+// }
 
 async fn handle_stream(mut stream: TcpStream, addr: std::net::SocketAddr) -> std::io::Result<()> {
     let (read, write) = stream.split();
