@@ -19,21 +19,27 @@ fn parse_until_crlf(stream: &[u8]) -> Result<(&[u8], &[u8]), String> {
     return Err("Err".to_owned());
 }
 
-// 4\r\nPING\r\n
-
+#[derive(Debug)]
 struct BufSplit(usize, usize);
 
 impl BufSplit {
+    // fn as_bytes(&self, ) {
+    //     &buffer[]
+    // }
+
     fn as_slice<'a>(&self, buffer: &'a Buffer) -> &'a[u8] {
         &buffer[self.0..self.1]
     }
 }
 
+#[derive(Debug)]
 enum PartBuf {
     String(BufSplit),
-    Array(Vec<BufSplit>)
+    Array(Vec<PartBuf>),
+    None
 }
 
+#[derive(Debug)]
 enum ParseError {
     Int,
     Unknown
@@ -82,17 +88,26 @@ fn parse_array(buffer: &Buffer, byte_position: usize) -> ParseResult {
     match parse_integer(buffer, byte_position)? {
         None => Ok(None),
 
-        Some((position, number_of_arr_elements)) => {
-            println!("{} {} {}", byte_position, position, number_of_arr_elements);
-            
+        Some((position, number_of_arr_elements)) => {            
             // TODO - very hard-coded value 
             let mut v = Vec::with_capacity(number_of_arr_elements as usize);
-            v.push(BufSplit(byte_position, position));
-            Ok(Some((3, PartBuf::Array(v))))
+            let mut pos = position;
+
+            // v.push(BufSplit(byte_position, position));
+            // Ok(Some((3, PartBuf::Array(v))))
+
+            for _ in 0..number_of_arr_elements {
+                match parse(buffer, position)? {
+                    Some((position, val)) => {
+                        pos = position;
+                        v.push(val);
+                    }
+                    None => return Ok(None),
+                }
+            }
+            Ok(Some((pos, PartBuf::Array(v))))
         }
     }
-
-    // return Ok(None);
 }
 
 fn parse_bulk_str(buffer: &Buffer, byte_position: usize) -> ParseResult {
@@ -109,8 +124,6 @@ fn parse_bulk_str(buffer: &Buffer, byte_position: usize) -> ParseResult {
 
 /// Example stream to parse: *1\r\n$4\r\nPING\r\n
 fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
-    println!("{:?}", buffer);
-
     // we need to check the buffer since the buffer could potentially be empty
     if buffer.is_empty() {
         return Ok(None);
@@ -134,12 +147,31 @@ async fn handle_stream(mut stream: TcpStream, addr: std::net::SocketAddr) -> std
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer).await?;
 
-    // let buffer = reader.read_to_end(read);
     let commands = parse(&buffer, 0);
 
-    // TODO - respond
-    // 4\r\nPING
-    write.try_write(b"+PONG\n");
+    let commands = match commands {
+        Ok(val) => val.unwrap().1,
+        Err(..) => PartBuf::None
+    };
+
+    let comms = match commands {
+        PartBuf::Array(v) => v,
+        _ => vec!()
+    };
+
+    for val in comms {
+        match val {
+            PartBuf::String(v) => {
+                let command = v.as_slice(&buffer);
+
+                match command {
+                    b"PING" => write.try_write(b"+PONG\n"),
+                    _ => write.try_write(b"unrecognised command")
+                };
+            }
+            _ => println!("ERR")
+        }
+    }
 
     Ok(())
 }
