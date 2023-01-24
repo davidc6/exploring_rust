@@ -1,32 +1,10 @@
-use tokio::{net::{TcpListener, TcpStream}, io::{BufReader, AsyncReadExt, AsyncBufReadExt}};
+use tokio::{net::{TcpListener, TcpStream}, io::{BufReader, AsyncReadExt}};
 use std::{str};
-
-#[derive(Debug)]
-enum DataTypes {
-    Array
-}
-
-// carriage return 
-fn parse_until_crlf(stream: &[u8]) -> Result<(&[u8], &[u8]), String> {
-    for (index, val) in stream.iter().enumerate() {
-        if val == &b'\r' && stream[index + 1] == b'\n' {
-            // result and rest
-            return Ok((&stream[..index], &stream[index + 2..stream.len()]));
-        }
-    }
-
-    // error
-    return Err("Err".to_owned());
-}
 
 #[derive(Debug)]
 struct BufSplit(usize, usize);
 
 impl BufSplit {
-    // fn as_bytes(&self, ) {
-    //     &buffer[]
-    // }
-
     fn as_slice<'a>(&self, buffer: &'a Buffer) -> &'a[u8] {
         &buffer[self.0..self.1]
     }
@@ -83,7 +61,6 @@ fn parse_integer(buffer: &Buffer, byte_position: usize) -> Result<Option<(usize,
     }
 }
 
-/// 
 fn parse_array(buffer: &Buffer, byte_position: usize) -> ParseResult {
     match parse_integer(buffer, byte_position)? {
         None => Ok(None),
@@ -131,42 +108,39 @@ fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
 
     // call relevant parser and process a chunk by matching on a data type
     // byte_position + 1 == skips the data type symbol when parsing
-    let i = match buffer[byte_position] {
+    match buffer[byte_position] {
         b'*' => parse_array(buffer, byte_position + 1),
         b'$' => parse_bulk_str(buffer, byte_position + 1),
         _ => Err(ParseError::Unknown)
-    };
-
-    return i;
+    }
 }
 
-async fn handle_stream(mut stream: TcpStream, addr: std::net::SocketAddr) -> std::io::Result<()> {
+async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> std::io::Result<()> {
     let (read, write) = stream.split();
     let mut reader = BufReader::new(read);
 
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer).await?;
 
-    let commands = parse(&buffer, 0);
-
-    let commands = match commands {
+    let commands = match parse(&buffer, 0) {
         Ok(val) => val.unwrap().1,
         Err(..) => PartBuf::None
     };
 
-    let comms = match commands {
+    let commands = match commands {
         PartBuf::Array(v) => v,
         _ => vec!()
     };
 
-    for val in comms {
+    // currently this only works for a single command
+    for val in commands {
         match val {
             PartBuf::String(v) => {
                 let command = v.as_slice(&buffer);
 
                 match command {
-                    b"PING" => write.try_write(b"+PONG\n"),
-                    _ => write.try_write(b"unrecognised command")
+                    b"PING" => write.try_write(b"+PONG\n")?,
+                    _ => write.try_write(b"unrecognised command")?
                 };
             }
             _ => println!("ERR")
@@ -181,10 +155,10 @@ pub async fn start(addr: String, port: String) -> std::io::Result<()> {
     let listener = TcpListener::bind(&location).await?;
 
     loop {
-        let (mut stream, addr) = listener.accept().await?; // TODO - checks?
+        let (stream, addr) = listener.accept().await?;
 
         tokio::spawn(async move {
-            handle_stream(stream, addr).await;
+            handle_stream(stream, addr).await
         });
     }
 }
