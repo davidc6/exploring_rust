@@ -1,5 +1,4 @@
 use tokio::{net::{TcpListener, TcpStream}, io::{BufReader, AsyncReadExt}};
-use core::slice::SlicePattern;
 use std::{str, collections::HashMap};
 
 #[derive(Debug)]
@@ -114,36 +113,47 @@ fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
     }
 }
 
-fn get(message: Option<&PartBuf>) {
-    let hm = HashMap::new();
-    hm.insert("a", "this is a");
+fn get<'a>(buffer: &'a Buffer, key: Option<&PartBuf>) -> &'a [u8] {
+    let mut hm = HashMap::new();
+    hm.insert("a", "this is a\n");
 
-    let val = hm.get("a");
+    println!("{:?}", key);
 
-    match message {
-        PartBuf::String(v) => {
-            // slice of bytes
-            let command = v.as_slice(&buffer);
-
-            match command {
-                b"PING" => write.try_write(b"+PONG\n")?,
-                b"GET" => {
-                    let message = commands.get(2);
-                    get(message)
+    let v = match key {
+        Some(val) => {
+            match val {
+                PartBuf::String(v) => {
+                    v.as_slice(buffer)
                 }
-                _ => {
-                    write.try_write(b"unrecognised command\n")?
-                }    
-            };
+                _ => b"none"
+            }
+        },
+        None => {
+            panic!("unrecognised command\n")
         }
-        _ => println!("ERR")
+    };
 
-    }
+    let b = std::str::from_utf8(&v).unwrap();
+    let value = hm.get(&b);
+
+    value.unwrap().as_bytes()
 }
 
-// fn ping(message: &[u8]) ->  {
-//     message
-// }
+fn ping<'a>(buffer: &'a Buffer, message: Option<&PartBuf>) -> &'a [u8] {
+    match message {
+        Some(val) => {
+            match val {
+                PartBuf::String(buf_split) => {
+                    buf_split.as_slice(buffer)
+                }
+                _ => panic!("Command unrecognised")
+            }
+        },
+        None => {
+            b"PONG\n"
+        }
+    }
+}
 
 async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> std::io::Result<()> {
     let (read, write) = stream.split();
@@ -162,11 +172,8 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
         _ => vec!()
     };
 
-    // 
-
     // currently this only works for a single command
     // [GET, a]
-
 
     if let Some(first_command) = commands.first() {
         match first_command {
@@ -175,13 +182,18 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
                 let command = v.as_slice(&buffer);
 
                 match command {
-                    b"PING" => write.try_write(b"+PONG\n")?,
-                    b"GET" => {
+                    b"PING" =>  {
                         let message = commands.get(2);
-                        get(message)
+                        let a = ping(&buffer, message);
+                        write.try_write(a)?
+                    },
+                    b"GET" => {
+                        let message = commands.get(1);
+                        let a = get(&buffer, message);
+                        write.try_write(a)?
                     }
                     _ => {
-                        write.try_write(b"unrecognised command\n")?
+                        write.try_write(b"unrecognised command at all\n")?
                     }    
                 };
             }
