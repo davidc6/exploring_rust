@@ -114,16 +114,15 @@ fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
 }
 
 fn get<'a>(buffer: &'a Buffer, key: Option<&PartBuf>) -> &'a [u8] {
+    // test hash map
     let mut hm = HashMap::new();
-    hm.insert("a", "this is a\n");
+    hm.insert("a", "example\n");
 
-    println!("{:?}", key);
-
-    let v = match key {
+    let entry = match key {
         Some(val) => {
             match val {
-                PartBuf::String(v) => {
-                    v.as_slice(buffer)
+                PartBuf::String(value) => {
+                    value.as_slice(buffer)
                 }
                 _ => b"none"
             }
@@ -133,8 +132,10 @@ fn get<'a>(buffer: &'a Buffer, key: Option<&PartBuf>) -> &'a [u8] {
         }
     };
 
-    let b = std::str::from_utf8(&v).unwrap();
-    let value = hm.get(&b);
+    let value = match std::str::from_utf8(entry) {
+        Ok(entry) => hm.get(entry),
+        Err(_) => Some(&"nil")
+    };
 
     value.unwrap().as_bytes()
 }
@@ -172,13 +173,9 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
         _ => vec!()
     };
 
-    // currently this only works for a single command
-    // [GET, a]
-
     if let Some(first_command) = commands.first() {
         match first_command {
             PartBuf::String(v) => {
-                // slice of bytes
                 let command = v.as_slice(&buffer);
 
                 match command {
@@ -200,42 +197,6 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
             _ => println!("ERR")
         }
     }
-
-    // match commands.first() {
-    //     PartBuf::String(v) => {
-    //         // slice of bytes
-    //         let command = v.as_slice(&buffer);
-
-    //         match command {
-    //             b"PING" => write.try_write(b"+PONG\n")?,
-    //             // GET also has next val
-    //             _ => {
-    //                 write.try_write(b"unrecognised command\n")?
-    //             }    
-    //         };
-    //     }
-    //     _ => println!("ERR")
-    // }
-
-    // for val in commands {
-    //     println!("{:?}", val);
-
-    //     match val {
-    //         PartBuf::String(v) => {
-    //             // slice of bytes
-    //             let command = v.as_slice(&buffer);
-
-    //             match command {
-    //                 b"PING" => write.try_write(b"+PONG\n")?,
-    //                 // GET also has next val
-    //                 _ => {
-    //                     write.try_write(b"unrecognised command\n")?
-    //                 }    
-    //             };
-    //         }
-    //         _ => println!("ERR")
-    //     }
-    // }
 
     Ok(())
 }
