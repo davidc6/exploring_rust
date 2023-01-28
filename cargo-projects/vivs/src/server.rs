@@ -64,9 +64,8 @@ fn parse_integer(buffer: &Buffer, byte_position: usize) -> Result<Option<(usize,
 fn parse_array(buffer: &Buffer, byte_position: usize) -> ParseResult {
     match parse_integer(buffer, byte_position)? {
         None => Ok(None),
-
-        Some((position, number_of_elements)) => {            
-            // TODO - very hard-coded value 
+        Some((position, number_of_elements)) => {
+            // TODO - very hard-coded value
             let mut v = Vec::with_capacity(number_of_elements as usize);
             let mut pos = position;
 
@@ -113,31 +112,29 @@ fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
     }
 }
 
-fn get<'a>(buffer: &'a Buffer, key: Option<&PartBuf>) -> &'a [u8] {
-    // test hash map
+fn get<'a>(buffer: &'a Buffer, key_in_buffer: Option<&PartBuf>) -> &'a [u8] {
+    // temporary test hash map
     let mut hm = HashMap::new();
     hm.insert("a", "example\n");
 
-    let entry = match key {
-        Some(val) => {
-            match val {
+    // extract key value from PartBuf enum
+    let key_slice = match key_in_buffer {
+        Some(value) => {
+            match value {
                 PartBuf::String(value) => {
                     value.as_slice(buffer)
                 }
-                _ => b"none"
+                _ => panic!("(Error) Key must be a string")
             }
         },
         None => {
-            panic!("unrecognised command\n")
+            panic!("(Error) Wrong number of arguments (given 0, expected 1)\n")
         }
     };
 
-    let value = match std::str::from_utf8(entry) {
-        Ok(entry) => hm.get(entry),
-        Err(_) => Some(&"nil")
-    };
-
-    value.unwrap().as_bytes()
+    // TODO - Is converstion to utf8 needed here?
+    let key = std::str::from_utf8(key_slice).unwrap_or("");
+    hm.get(key).unwrap_or(&"nil\n").as_bytes()
 }
 
 fn ping<'a>(buffer: &'a Buffer, message: Option<&PartBuf>) -> &'a [u8] {
@@ -185,8 +182,8 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
                         write.try_write(a)?
                     },
                     b"GET" => {
-                        let message = commands.get(1);
-                        let a = get(&buffer, message);
+                        let key = commands.get(1);
+                        let a = get(&buffer, key);
                         write.try_write(a)?
                     }
                     _ => {
