@@ -112,10 +112,20 @@ fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
     }
 }
 
-fn get<'a>(buffer: &'a Buffer, key_in_buffer: Option<&PartBuf>) -> &'a [u8] {
+// previous return type was -> &'a [u8] when
+fn get<'a>(buffer: &'a Buffer, key_in_buffer: Option<&PartBuf>) -> std::vec::Vec<u8> {
     // temporary test hash map
     let mut hm = HashMap::new();
-    hm.insert("a", "example\n");
+    // let mut hm: HashMap<&[u8; 1], &[u8]> = HashMap::new();
+    // hm.insert("a", "example\n");
+
+    let some_slice = [104, 101, 108, 108, 111, 50]; // local variable == hello2
+    let key_slices: [u8; 3] = [97, 98, 99]; // local variable == abc
+
+    // hm.insert("a", "example\n");
+    hm.insert(&key_slices[0..1], &some_slice[0..3]);
+    hm.insert(&key_slices[1..2], &some_slice[0..4]);
+    hm.insert(&key_slices[2..3], &some_slice[0..5]);
 
     // extract key value from PartBuf enum
     let key_slice = match key_in_buffer {
@@ -133,8 +143,16 @@ fn get<'a>(buffer: &'a Buffer, key_in_buffer: Option<&PartBuf>) -> &'a [u8] {
     };
 
     // TODO - Is converstion to utf8 needed here?
-    let key = std::str::from_utf8(key_slice).unwrap_or("");
-    hm.get(key).unwrap_or(&"nil\n").as_bytes()
+    // let key = std::str::from_utf8(key_slice).unwrap_or("");
+    // hm.get(key_slice).unwrap_or(&"nil\n").as_bytes()
+    // let res = key_slice
+
+    let b = "nil\n".as_bytes();
+    let value = hm.get(key_slice).unwrap_or(&b);
+    let act = *value;
+    act.to_owned()
+
+    // hm.get(key_slice).unwrap_or(&"nil\n".as_bytes())
 }
 
 fn ping<'a>(buffer: &'a Buffer, message: Option<&PartBuf>) -> &'a [u8] {
@@ -184,7 +202,8 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
                     b"GET" => {
                         let key = commands.get(1);
                         let a = get(&buffer, key);
-                        write.try_write(a)?
+                        write.try_write(&a)?;
+                        write.try_write(b"\n")?
                     }
                     _ => {
                         write.try_write(b"unrecognised command at all\n")?
