@@ -112,6 +112,24 @@ fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
     }
 }
 
+struct DB<'a> {
+    store: HashMap<&'a str, &'a str>
+}
+
+impl <'a>DB<'a> {
+    fn new() -> DB<'a> {
+        DB { store: HashMap::new() }
+    }
+
+    fn get(&self, key: &'a str) -> Option<&&str> {
+        self.store.get(key)
+    }
+
+    fn set(&mut self, key: &'a str, value: &'a str) -> Option<&str> {
+        self.store.insert(key, value)
+    }
+}
+
 // previous return type was -> &'a [u8] when
 fn get<'a>(buffer: &'a Buffer, key_in_buffer: Option<&PartBuf>) -> std::vec::Vec<u8> {
     // temporary test hash map
@@ -171,6 +189,26 @@ fn ping<'a>(buffer: &'a Buffer, message: Option<&PartBuf>) -> &'a [u8] {
     }
 }
 
+fn get_ascii<'a>(key: Option<&PartBuf>, buffer: Vec<u8>) -> String {
+    let key_slice = match key {
+        Some(value) => {
+            match value {
+                PartBuf::String(value) => {
+                    value.as_slice(&buffer)
+                }
+                _ => panic!("(Error) Key must be a string")
+            }
+        },
+        None => {
+            panic!("(Error) Wrong number of arguments (given 0, expected 1)\n")
+        }
+    };
+
+    let key = std::str::from_utf8(key_slice).unwrap_or("");
+
+    String::from(key)
+}
+
 async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> std::io::Result<()> {
     let (read, write) = stream.split();
     let mut reader = BufReader::new(read);
@@ -193,6 +231,9 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
             PartBuf::String(v) => {
                 let command = v.as_slice(&buffer);
 
+                let mut hm = DB::new();
+                hm.set("a", "hello");
+
                 match command {
                     b"PING" =>  {
                         let message = commands.get(2);
@@ -201,9 +242,15 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
                     },
                     b"GET" => {
                         let key = commands.get(1);
-                        let a = get(&buffer, key);
-                        write.try_write(&a)?;
-                        write.try_write(b"\n")?
+                        let key_ascii = get_ascii(key, buffer);
+
+                        if let Some(value) = hm.get(&key_ascii[0..]) {
+                            write.try_write(value.as_bytes())?;
+                            write.try_write(b"\n")?
+                        } else {
+                            write.try_write("".as_bytes())?;
+                            write.try_write(b"\n")?
+                        }
                     }
                     _ => {
                         write.try_write(b"unrecognised command at all\n")?
