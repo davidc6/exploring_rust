@@ -122,10 +122,14 @@ impl <'a>DB<'a> {
     }
 
     fn get(&self, key: &'a str) -> Option<&&str> {
-        self.store.get(key)
+        let a = self.store.get(key);
+        println!("GET {:?}", a);
+        a
     }
 
     fn set(&mut self, key: &'a str, value: &'a str) -> Option<&str> {
+        println!("SET {:?}", key);
+
         self.store.insert(key, value)
     }
 }
@@ -189,12 +193,12 @@ fn ping<'a>(buffer: &'a Buffer, message: Option<&PartBuf>) -> &'a [u8] {
     }
 }
 
-fn get_ascii<'a>(key: Option<&PartBuf>, buffer: Vec<u8>) -> String {
+fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &Vec<u8>) -> String {
     let key_slice = match key {
         Some(value) => {
             match value {
                 PartBuf::String(value) => {
-                    value.as_slice(&buffer)
+                    value.as_slice(buffer)
                 }
                 _ => panic!("(Error) Key must be a string")
             }
@@ -209,7 +213,7 @@ fn get_ascii<'a>(key: Option<&PartBuf>, buffer: Vec<u8>) -> String {
     String::from(key)
 }
 
-async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> std::io::Result<()> {
+async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, mut hm: DB<'_>) -> std::io::Result<()> {
     let (read, write) = stream.split();
     let mut reader = BufReader::new(read);
 
@@ -231,8 +235,6 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
             PartBuf::String(v) => {
                 let command = v.as_slice(&buffer);
 
-                let mut hm = DB::new();
-                hm.set("a", "hello");
 
                 match command {
                     b"PING" =>  {
@@ -242,15 +244,28 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr) -> st
                     },
                     b"GET" => {
                         let key = commands.get(1);
-                        let key_ascii = get_ascii(key, buffer);
+                        let key_ascii = get_ascii(key, &buffer);
 
-                        if let Some(value) = hm.get(&key_ascii[0..]) {
+                        println!("Hello {:?}", key_ascii);
+
+                        if let Some(value) = hm.get(&key_ascii) {
                             write.try_write(value.as_bytes())?;
                             write.try_write(b"\n")?
                         } else {
-                            write.try_write("".as_bytes())?;
+                            write.try_write("nil".as_bytes())?;
                             write.try_write(b"\n")?
                         }
+                    }
+                    b"SET" => {
+                        let key = commands.get(1);
+                        let value = commands.get(2);
+
+                        let key_ascii = get_ascii(key, &buffer);
+                        let value_ascii = get_ascii(value, &buffer);
+
+                        hm.set(&key_ascii, &value_ascii);
+                        write.try_write("OK".as_bytes())?;
+                        write.try_write(b"\n")?
                     }
                     _ => {
                         write.try_write(b"unrecognised command at all\n")?
@@ -268,11 +283,13 @@ pub async fn start(addr: String, port: String) -> std::io::Result<()> {
     let location = format!("{}:{}", addr, port);
     let listener = TcpListener::bind(&location).await?;
 
+    let mut hm = DB::new();
+
     loop {
         let (stream, addr) = listener.accept().await?;
 
         tokio::spawn(async move {
-            handle_stream(stream, addr).await
+            handle_stream(stream, addr, hm).await
         });
     }
 }
