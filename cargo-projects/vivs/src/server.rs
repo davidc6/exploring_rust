@@ -1,5 +1,5 @@
 use tokio::{net::{TcpListener, TcpStream}, io::{BufReader, AsyncReadExt}};
-use std::{str, collections::HashMap};
+use std::{str, collections::HashMap, sync::{Arc, RwLock}};
 
 #[derive(Debug)]
 struct BufSplit(usize, usize);
@@ -112,24 +112,21 @@ fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
     }
 }
 
-struct DB<'a> {
-    store: HashMap<&'a str, &'a str>
+struct DB {
+    store: HashMap<String, String>
 }
 
-impl <'a>DB<'a> {
-    fn new() -> DB<'a> {
+impl DB {
+    fn new() -> DB {
         DB { store: HashMap::new() }
     }
 
-    fn get(&self, key: &'a str) -> Option<&&str> {
+    fn get(&self, key: &str) -> Option<&String> {
         let a = self.store.get(key);
-        println!("GET {:?}", a);
         a
     }
 
-    fn set(&mut self, key: &'a str, value: &'a str) -> Option<&str> {
-        println!("SET {:?}", key);
-
+    fn set(&mut self, key: String, value: String) -> Option<String> {
         self.store.insert(key, value)
     }
 }
@@ -213,7 +210,7 @@ fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &Vec<u8>) -> String {
     String::from(key)
 }
 
-async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, mut hm: DB<'_>) -> std::io::Result<()> {
+async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm_2: Arc<RwLock<DB<>>>) -> std::io::Result<()> {
     let (read, write) = stream.split();
     let mut reader = BufReader::new(read);
 
@@ -229,6 +226,9 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, mut h
         PartBuf::Array(v) => v,
         _ => vec!()
     };
+
+    let mut mapW = hm_2.write().unwrap();
+    let hm = &mut *mapW;
 
     if let Some(first_command) = commands.first() {
         match first_command {
@@ -246,8 +246,6 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, mut h
                         let key = commands.get(1);
                         let key_ascii = get_ascii(key, &buffer);
 
-                        println!("Hello {:?}", key_ascii);
-
                         if let Some(value) = hm.get(&key_ascii) {
                             write.try_write(value.as_bytes())?;
                             write.try_write(b"\n")?
@@ -263,7 +261,7 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, mut h
                         let key_ascii = get_ascii(key, &buffer);
                         let value_ascii = get_ascii(value, &buffer);
 
-                        hm.set(&key_ascii, &value_ascii);
+                        hm.set(key_ascii, value_ascii);
                         write.try_write("OK".as_bytes())?;
                         write.try_write(b"\n")?
                     }
@@ -283,13 +281,15 @@ pub async fn start(addr: String, port: String) -> std::io::Result<()> {
     let location = format!("{}:{}", addr, port);
     let listener = TcpListener::bind(&location).await?;
 
-    let mut hm = DB::new();
-
+    let hm = Arc::new(RwLock::new(DB::new()));
+    
     loop {
         let (stream, addr) = listener.accept().await?;
+        let hm_clone = Arc::clone(&hm);
+
 
         tokio::spawn(async move {
-            handle_stream(stream, addr, hm).await
+            handle_stream(stream, addr, hm_clone).await
         });
     }
 }
