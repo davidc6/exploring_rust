@@ -210,7 +210,7 @@ fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &Vec<u8>) -> String {
     String::from(key)
 }
 
-async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm_2: Arc<RwLock<DB<>>>) -> std::io::Result<()> {
+async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm: Arc<RwLock<DB<>>>) -> std::io::Result<()> {
     let (read, write) = stream.split();
     let mut reader = BufReader::new(read);
 
@@ -227,14 +227,15 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm_2:
         _ => vec!()
     };
 
-    let mut mapW = hm_2.write().unwrap();
-    let hm = &mut *mapW;
+    // thread is blocked with exclusive write access
+    let mut rw_lock_guard = hm.write().unwrap();
+    // get access to mutable DB reference by dereferencing rw lock write guard
+    let hm = &mut *rw_lock_guard;
 
     if let Some(first_command) = commands.first() {
         match first_command {
             PartBuf::String(v) => {
                 let command = v.as_slice(&buffer);
-
 
                 match command {
                     b"PING" =>  {
@@ -247,11 +248,9 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm_2:
                         let key_ascii = get_ascii(key, &buffer);
 
                         if let Some(value) = hm.get(&key_ascii) {
-                            write.try_write(value.as_bytes())?;
-                            write.try_write(b"\n")?
+                            write.try_write(value.as_bytes())?
                         } else {
-                            write.try_write("nil".as_bytes())?;
-                            write.try_write(b"\n")?
+                            write.try_write("nil".as_bytes())?
                         }
                     }
                     b"SET" => {
@@ -262,13 +261,14 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm_2:
                         let value_ascii = get_ascii(value, &buffer);
 
                         hm.set(key_ascii, value_ascii);
-                        write.try_write("OK".as_bytes())?;
-                        write.try_write(b"\n")?
+                        write.try_write("OK".as_bytes())?
                     }
                     _ => {
                         write.try_write(b"unrecognised command at all\n")?
                     }    
                 };
+                // extra newline to format for command line better
+                write.try_write(b"\n")?;
             }
             _ => println!("ERR")
         }
@@ -281,12 +281,14 @@ pub async fn start(addr: String, port: String) -> std::io::Result<()> {
     let location = format!("{}:{}", addr, port);
     let listener = TcpListener::bind(&location).await?;
 
+    // Creates a new read write lock that protects DB instance, wrapped in atomic reference counter
+    // to enable safe sharing
     let hm = Arc::new(RwLock::new(DB::new()));
     
     loop {
         let (stream, addr) = listener.accept().await?;
+        // a clone of the atomic reference counter is created for each thread
         let hm_clone = Arc::clone(&hm);
-
 
         tokio::spawn(async move {
             handle_stream(stream, addr, hm_clone).await
