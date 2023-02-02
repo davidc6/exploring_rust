@@ -230,7 +230,7 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm: A
     // thread is blocked with exclusive write access
     let mut rw_lock_guard = hm.write().unwrap();
     // get access to mutable DB reference by dereferencing rw lock write guard
-    let hm = &mut *rw_lock_guard;
+    let hm = &mut rw_lock_guard;
 
     if let Some(first_command) = commands.first() {
         match first_command {
