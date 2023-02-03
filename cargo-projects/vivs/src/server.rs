@@ -174,6 +174,10 @@ fn get<'a>(buffer: &'a Buffer, key_in_buffer: Option<&PartBuf>) -> std::vec::Vec
     // hm.get(key_slice).unwrap_or(&"nil\n".as_bytes())
 }
 
+fn set(key, value, buffer: &Buffer) {
+
+}
+
 fn ping<'a>(buffer: &'a Buffer, message: Option<&PartBuf>) -> &'a [u8] {
     match message {
         Some(val) => {
@@ -190,7 +194,7 @@ fn ping<'a>(buffer: &'a Buffer, message: Option<&PartBuf>) -> &'a [u8] {
     }
 }
 
-fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &Vec<u8>) -> String {
+fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &Vec<u8>) -> &'a [u8] {
     let key_slice = match key {
         Some(value) => {
             match value {
@@ -207,7 +211,56 @@ fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &Vec<u8>) -> String {
 
     let key = std::str::from_utf8(key_slice).unwrap_or("");
 
-    String::from(key)
+    // String::from(key)
+    key.as_bytes()
+}
+
+fn match_command() {
+    
+}
+
+fn build_response(buffer: Vec<u8>, ds: DB) {
+    let commands = match parse(&buffer, 0) {
+        Ok(val) => val.unwrap().1,
+        Err(..) => PartBuf::None
+    };
+
+    let commands = match commands {
+        PartBuf::Array(v) => v,
+        _ => vec!()
+    };
+
+    if let Some(first_command) = commands.first() {
+        match first_command {
+            PartBuf::String(v) => {
+                let command = v.as_slice(&buffer);
+
+                match command {
+                    b"PING" => ping(&buffer, commands.get(2)),
+                    b"GET" => get_ascii(commands.get(1), &buffer),
+                    b"SET" => {
+                        let key = commands.get(1);
+                        let value = commands.get(2);
+
+                        let key_ascii = get_ascii(key, &buffer);
+                        let value_ascii = get_ascii(value, &buffer);
+
+
+
+                        // hm.set(key_ascii, value_ascii);
+                        // write.try_write("OK".as_bytes())?
+                    }
+                    _ => {
+                        write.try_write(b"unrecognised command at all\n")?
+                    }    
+                };
+                // extra newline to format for command line better
+                write.try_write(b"\n")?;
+            }
+            _ => println!("ERR")
+        }
+    }
+
 }
 
 async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm: Arc<RwLock<DB<>>>) -> std::io::Result<()> {
@@ -263,6 +316,9 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm: A
                         hm.set(key_ascii, value_ascii);
                         write.try_write("OK".as_bytes())?
                     }
+                    b"DEL" => {
+                        // delete key
+                    }
                     _ => {
                         write.try_write(b"unrecognised command at all\n")?
                     }    
@@ -281,10 +337,10 @@ pub async fn start(addr: String, port: String) -> std::io::Result<()> {
     let location = format!("{}:{}", addr, port);
     let listener = TcpListener::bind(&location).await?;
 
-    // Creates a new read write lock that protects DB instance, wrapped in atomic reference counter
-    // to enable safe sharing
+    // Creates a new read write lock that protects DB (data store) instance
+    // wrapped in atomic reference counter (ARC) to enable safe sharing
     let hm = Arc::new(RwLock::new(DB::new()));
-    
+
     loop {
         let (stream, addr) = listener.accept().await?;
         // a clone of the atomic reference counter is created for each thread
