@@ -31,9 +31,13 @@ use std::{io::{self}};
 mod server;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> std::io::Result<()> {
     let addr = "localhost".to_string();
     let port = "6379".to_string();
+    let location = format!("{}:{}", addr, port);
+    let listener = TcpListener::bind(&location).await?;
 
-    server::start(addr, port).await;
+    server::start(listener).await;
+
+    Ok(())
 }
