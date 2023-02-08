@@ -12,31 +12,44 @@ impl File {
         }
     }
 
-    fn new_with_data(name: &str, data: Vec<u8>) -> File {
-        let mut file = File::new(name);
-        file.data = data.clone();
+    fn new_with_data(filename: &str, data: &Vec<u8>) -> File {
+        let mut file = File::new(filename);
+        file.data = data.clone(); // clones pointer to data on the heap
         file
     }
 
-    fn read(self, buf: &mut Vec<u8>) -> usize {
+    fn read(self: &File, buf: &mut Vec<u8>) -> usize {
         let mut temporary = self.data.clone(); // clone data
-        let size = self.data.len(); // get size in order to create new vec
+        let size = temporary.len(); // get size in order to create new vec
 
-        buf.reserve(size); // allocate minimum capacity for additional elements (might more space to avoid reallocations)
+        buf.reserve(size); // allocate minimum capacity for additional elements (might alloc more space to avoid reallocations)
         buf.append(&mut temporary);
 
         size
     }
 }
 
+fn open_file(_file: &mut File) -> bool {
+    true
+}
+
+fn close_file(_file: &mut File) -> bool {
+    true
+}
+
 fn main() {
-    let v = vec![1, 2, 3, 4];
-    let file = File::new_with_data("new-file", v);
+    let v: Vec<u8> = vec![104, 101, 108, 108, 111]; // decimal to character == hello
+    let mut file = File::new_with_data("new-file.txt", &v);
 
-    let mut buf = vec![];
+    let mut buf: Vec<u8> = vec![];
 
-    file.read(&mut buf);
+    open_file(&mut file);
+    let buf_len = file.read(&mut buf);
+    close_file(&mut file);
 
     let s = String::from_utf8_lossy(&buf);
-    println!("{:?}", s);
+
+    println!("{:?}", file);
+    println!("{} is {} bytes long", &file.name, buf_len);
+    println!("{}", s);
 }
