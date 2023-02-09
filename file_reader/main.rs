@@ -29,13 +29,16 @@ impl File {
     }
 }
 
-fn open_file(_file: &mut File) -> bool {
-    true
+fn open_file(file: File) -> Result<File, ()> {
+    Ok(file)
 }
 
-fn close_file(_file: &mut File) -> bool {
-    true
+fn close_file(file: File) -> Result<File, ()> {
+    Ok(file)
 }
+
+// global error
+static mut ERROR: i32 = 0;
 
 fn main() {
     let v: Vec<u8> = vec![104, 101, 108, 108, 111]; // decimal to character == hello
@@ -43,9 +46,9 @@ fn main() {
 
     let mut buf: Vec<u8> = vec![];
 
-    open_file(&mut file);
+    file = open_file(file).unwrap();
     let buf_len = file.read(&mut buf);
-    close_file(&mut file);
+    file = close_file(file).unwrap();
 
     let s = String::from_utf8_lossy(&buf);
 
