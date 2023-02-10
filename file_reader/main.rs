@@ -18,14 +18,14 @@ impl File {
         file
     }
 
-    fn read(self: &File, buf: &mut Vec<u8>) -> usize {
+    fn read(self: &File, buf: &mut Vec<u8>) -> Result<usize, ()> {
         let mut temporary = self.data.clone(); // clone data
         let size = temporary.len(); // get size in order to create new vec
 
         buf.reserve(size); // allocate minimum capacity for additional elements (might alloc more space to avoid reallocations)
         buf.append(&mut temporary);
 
-        size
+        Ok(size)
     }
 }
 
@@ -47,7 +47,7 @@ fn main() {
     let mut buf: Vec<u8> = vec![];
 
     file = open_file(file).unwrap();
-    let buf_len = file.read(&mut buf);
+    let buf_len = file.read(&mut buf).unwrap();
     file = close_file(file).unwrap();
 
     let s = String::from_utf8_lossy(&buf);
