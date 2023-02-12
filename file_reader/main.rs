@@ -1,3 +1,13 @@
+trait Read {
+    fn read(self: &Self, buffer: &mut Vec<u8>) -> Result<usize, String>;
+}
+
+impl Read for File {
+    fn read(self: &Self, buffer: &mut Vec<u8>) -> Result<usize, String> {
+        Ok(0)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 enum FileState {
     Open,
