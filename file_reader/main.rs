@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::{Display};
+
 trait Read {
     fn read(self: &Self, buffer: &mut Vec<u8>) -> Result<usize, String>;
 }
@@ -8,21 +11,30 @@ impl Read for File {
     }
 }
 
+impl Display for FileState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            FileState::Open => write!(f, "OPEN"),
+            FileState::Closed => write!(f, "CLOSED")
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
-enum FileState {
+pub enum FileState {
     Open,
     Closed
 }
 
 #[derive(Debug)]
-struct File {
+pub struct File {
     name: String,
     data: Vec<u8>,
     file_state: FileState
 }
 
 impl File {
-    fn new(name: &str) -> File {
+    pub fn new(name: &str) -> File {
         File {
             name: String::from(name),
             data: Vec::new(),
@@ -48,6 +60,12 @@ impl File {
         buf.append(&mut temporary);
 
         Ok(size)
+    }
+}
+
+impl Display for File {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "File: {} | State: {}", self.name, self.file_state)
     }
 }
 
@@ -96,7 +114,6 @@ fn main() {
 
     let s = String::from_utf8_lossy(&buf);
 
+    println!("{}", f);
     println!("{:?}", f);
-    println!("{} is {} bytes long", &f.name, buf_len);
-    // println!("{}", s);
 }
