@@ -1,3 +1,5 @@
+//! File simulation project
+
 use std::fmt;
 use std::fmt::{Display};
 
@@ -20,12 +22,15 @@ impl Display for FileState {
     }
 }
 
+/// Represents file state open or closed
 #[derive(Debug, PartialEq)]
 pub enum FileState {
     Open,
     Closed
 }
 
+/// This struct represents a file,
+/// somewhere in a file system
 #[derive(Debug)]
 pub struct File {
     name: String,
@@ -34,6 +39,11 @@ pub struct File {
 }
 
 impl File {
+    /// Represents empty file creation
+    /// 
+    /// ```
+    /// let file = File::new("filename.txt")
+    /// ```
     pub fn new(name: &str) -> File {
         File {
             name: String::from(name),
@@ -42,12 +52,14 @@ impl File {
         }
     }
 
+    /// Creates new file with data that gets passed in
     fn new_with_data(filename: &str, data: &Vec<u8>) -> File {
         let mut file = File::new(filename);
         file.data = data.clone(); // clones pointer to data on the heap
         file
     }
 
+    /// Reads a fle into a buffer
     fn read(self: &File, buf: &mut Vec<u8>) -> Result<usize, String> {
         if self.file_state != FileState::Open {
             return Err(String::from("This file should be open for reading"));
