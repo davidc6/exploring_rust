@@ -1,43 +1,11 @@
-use tokio::{net::{TcpListener, TcpStream}, io::BufReader};
-use std::{io::{self}};
-
-// async fn process_socket<T>(stream: TcpStream) {
-//     let mut reader = BufReader::new(stream);
-//     let mut buffer = String::new();
-
-//     loop {
-//         tokio::select! {
-//             // read_result = reader.read_line(&mut buffer) => {
-//                 // chat message received!
-//             // }
-//         }
-//     }
-// }
-
-// #[tokio::main]
-// async fn main() -> io::Result<()> {
-//     let listener = TcpListener::bind("localhost:6379").await?;
-
-//     loop {
-//         let (socket, _) = listener.accept().await?;
-
-//         tokio::spawn(async move {
-//             process_socket(socket).await;
-//         });
-//     }
-
-// }
-
-mod server;
+use vivs::server;
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    let addr = "localhost".to_string();
+pub async fn main() -> vivs::Result<()> {
+    let addr = "127.0.0.1".to_string();
     let port = "6379".to_string();
-    let location = format!("{}:{}", addr, port);
-    let listener = TcpListener::bind(&location).await?;
 
-    server::start(listener).await;
+    server::start(addr, port).await?;
 
     Ok(())
 }
