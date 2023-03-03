@@ -1,11 +1,21 @@
-use tokio::{net::{TcpListener, TcpStream}, io::{BufReader, AsyncReadExt}};
-use std::{str, collections::HashMap, sync::{Arc, RwLock}};
+use std::{
+    collections::HashMap,
+    str,
+    sync::{Arc, RwLock},
+};
+use tokio::{
+    io::{AsyncReadExt, BufReader},
+    net::{TcpListener, TcpStream},
+};
+
+use crate::Command;
+use crate::Listener;
 
 #[derive(Debug)]
 struct BufSplit(usize, usize);
 
 impl BufSplit {
-    fn as_slice<'a>(&self, buffer: &'a Buffer) -> &'a[u8] {
+    fn as_slice<'a>(&self, buffer: &'a Buffer) -> &'a [u8] {
         &buffer[self.0..self.1]
     }
 }
@@ -14,13 +24,13 @@ impl BufSplit {
 enum PartBuf {
     String(BufSplit),
     Array(Vec<PartBuf>),
-    None
+    None,
 }
 
 #[derive(Debug)]
 enum ParseError {
     Int,
-    Unknown
+    Unknown,
 }
 
 // represents parse result
@@ -28,7 +38,7 @@ type ParseResult = Result<Option<(usize, PartBuf)>, ParseError>;
 type Buffer = [u8];
 
 /// Returns everything before the newline
-/// 
+///
 /// For example, the function takes in a buffer which contains 'hello\r\n' and return Option<(8, (1, 5))>
 fn parse_word(buffer: &Buffer, byte_position: usize) -> Option<(usize, BufSplit)> {
     // edge cases?
@@ -37,24 +47,29 @@ fn parse_word(buffer: &Buffer, byte_position: usize) -> Option<(usize, BufSplit)
         if val == &b'\r' {
             // byte_position + end + 2 is start + end of word + \r\n -> next positiparse_wordon
             // byte_position - start, byte_position + end - end of actual word
-            return Some((byte_position + index + 2, BufSplit(byte_position, byte_position + index)));
+            return Some((
+                byte_position + index + 2,
+                BufSplit(byte_position, byte_position + index),
+            ));
         }
     }
-
     None
 }
 
 /// Returns an integer, for example the number of items in an array and new position cursor
-/// 
+///
 /// For example, *2 == returns 2
-fn parse_integer(buffer: &Buffer, byte_position: usize) -> Result<Option<(usize, i64)>, ParseError> {
+fn parse_integer(
+    buffer: &Buffer,
+    byte_position: usize,
+) -> Result<Option<(usize, i64)>, ParseError> {
     match parse_word(buffer, byte_position) {
         Some((position, parsed_word)) => {
-            let string = str::from_utf8(parsed_word.as_slice(buffer)).map_err(|_| ParseError::Int)?;
+            let string =
+                str::from_utf8(parsed_word.as_slice(buffer)).map_err(|_| ParseError::Int)?;
 
             // error does not propogate
             let integer = string.parse::<i64>().map_err(|_| ParseError::Int)?;
-
             Ok(Some((position, integer)))
         }
         None => Ok(None),
@@ -108,17 +123,19 @@ fn parse(buffer: &Buffer, byte_position: usize) -> ParseResult {
     match buffer[byte_position] {
         b'*' => parse_array(buffer, byte_position + 1),
         b'$' => parse_bulk_str(buffer, byte_position + 1),
-        _ => Err(ParseError::Unknown)
+        _ => Err(ParseError::Unknown),
     }
 }
 
 struct DB {
-    store: HashMap<String, String>
+    store: HashMap<String, String>,
 }
 
 impl DB {
     fn new() -> DB {
-        DB { store: HashMap::new() }
+        DB {
+            store: HashMap::new(),
+        }
     }
 
     fn get(&self, key: &str) -> Option<&String> {
@@ -148,13 +165,9 @@ fn get<'a>(buffer: &'a Buffer, key_in_buffer: Option<&PartBuf>) -> std::vec::Vec
 
     // extract key value from PartBuf enum
     let key_slice = match key_in_buffer {
-        Some(value) => {
-            match value {
-                PartBuf::String(value) => {
-                    value.as_slice(buffer)
-                }
-                _ => panic!("(Error) Key must be a string")
-            }
+        Some(value) => match value {
+            PartBuf::String(value) => value.as_slice(buffer),
+            _ => panic!("(Error) Key must be a string"),
         },
         None => {
             panic!("(Error) Wrong number of arguments (given 0, expected 1)\n")
@@ -174,35 +187,26 @@ fn get<'a>(buffer: &'a Buffer, key_in_buffer: Option<&PartBuf>) -> std::vec::Vec
     // hm.get(key_slice).unwrap_or(&"nil\n".as_bytes())
 }
 
-fn set(key, value, buffer: &Buffer) {
+// TODO
+// fn set(key, value, buffer: &Buffer) {
 
-}
+// }
 
 fn ping<'a>(buffer: &'a Buffer, message: Option<&PartBuf>) -> &'a [u8] {
     match message {
-        Some(val) => {
-            match val {
-                PartBuf::String(buf_split) => {
-                    buf_split.as_slice(buffer)
-                }
-                _ => panic!("Command unrecognised")
-            }
+        Some(val) => match val {
+            PartBuf::String(buf_split) => buf_split.as_slice(buffer),
+            _ => panic!("Command unrecognised"),
         },
-        None => {
-            b"PONG\n"
-        }
+        None => b"PONG\n",
     }
 }
 
-fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &Vec<u8>) -> &'a [u8] {
+fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &'a Vec<u8>) -> &'a [u8] {
     let key_slice = match key {
-        Some(value) => {
-            match value {
-                PartBuf::String(value) => {
-                    value.as_slice(buffer)
-                }
-                _ => panic!("(Error) Key must be a string")
-            }
+        Some(value) => match value {
+            PartBuf::String(value) => value.as_slice(buffer),
+            _ => panic!("(Error) Key must be a string"),
         },
         None => {
             panic!("(Error) Wrong number of arguments (given 0, expected 1)\n")
@@ -215,19 +219,17 @@ fn get_ascii<'a>(key: Option<&PartBuf>, buffer: &Vec<u8>) -> &'a [u8] {
     key.as_bytes()
 }
 
-fn match_command() {
-    
-}
+fn match_command() {}
 
 fn build_response(buffer: Vec<u8>, ds: DB) {
     let commands = match parse(&buffer, 0) {
         Ok(val) => val.unwrap().1,
-        Err(..) => PartBuf::None
+        Err(..) => PartBuf::None,
     };
 
     let commands = match commands {
         PartBuf::Array(v) => v,
-        _ => vec!()
+        _ => vec![],
     };
 
     if let Some(first_command) = commands.first() {
@@ -245,39 +247,44 @@ fn build_response(buffer: Vec<u8>, ds: DB) {
                         let key_ascii = get_ascii(key, &buffer);
                         let value_ascii = get_ascii(value, &buffer);
 
-
+                        value_ascii
 
                         // hm.set(key_ascii, value_ascii);
                         // write.try_write("OK".as_bytes())?
                     }
                     _ => {
-                        write.try_write(b"unrecognised command at all\n")?
-                    }    
+                        // write.try_write(b"unrecognised command at all\n")?
+                        command
+                    }
                 };
                 // extra newline to format for command line better
-                write.try_write(b"\n")?;
+                // write.try_write(b"\n")?;
             }
-            _ => println!("ERR")
+            _ => println!("ERR"),
         }
     }
-
 }
 
-async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm: Arc<RwLock<DB<>>>) -> std::io::Result<()> {
+async fn handle_stream(
+    mut stream: TcpStream,
+    _addr: std::net::SocketAddr,
+    hm: Arc<RwLock<DB>>,
+) -> std::io::Result<()> {
     let (read, write) = stream.split();
     let mut reader = BufReader::new(read);
 
     let mut buffer = Vec::new();
+
     reader.read_to_end(&mut buffer).await?;
 
     let commands = match parse(&buffer, 0) {
         Ok(val) => val.unwrap().1,
-        Err(..) => PartBuf::None
+        Err(..) => PartBuf::None,
     };
 
     let commands = match commands {
         PartBuf::Array(v) => v,
-        _ => vec!()
+        _ => vec![],
     };
 
     // thread is blocked with exclusive write access
@@ -291,16 +298,25 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm: A
                 let command = v.as_slice(&buffer);
 
                 match command {
-                    b"PING" =>  {
-                        let message = commands.get(2);
-                        let a = ping(&buffer, message);
-                        write.try_write(a)?
-                    },
+                    b"PING" => {
+                        // let message = commands.get(2);
+                        // let a = ping(&buffer, message);
+                        // write.try_write(a)?
+
+                        // crate::commands::Ping::response(self, conn)
+
+                        let cmd = Command::parse_cmd().unwrap();
+                        // pass db and connection
+                        // cmd.run();
+                        1
+                    }
                     b"GET" => {
                         let key = commands.get(1);
                         let key_ascii = get_ascii(key, &buffer);
 
-                        if let Some(value) = hm.get(&key_ascii) {
+                        let s = std::str::from_utf8(key_ascii).unwrap();
+
+                        if let Some(value) = hm.get(s) {
                             write.try_write(value.as_bytes())?
                         } else {
                             write.try_write("nil".as_bytes())?
@@ -311,43 +327,76 @@ async fn handle_stream(mut stream: TcpStream, _addr: std::net::SocketAddr, hm: A
                         let value = commands.get(2);
 
                         let key_ascii = get_ascii(key, &buffer);
-                        let value_ascii = get_ascii(value, &buffer);
+                        let s1 = std::str::from_utf8(key_ascii).unwrap().to_string();
 
-                        hm.set(key_ascii, value_ascii);
+                        let value_ascii = get_ascii(value, &buffer);
+                        let s2 = std::str::from_utf8(value_ascii).unwrap().to_string();
+
+                        // key to ascii
+                        hm.set(s1, s2);
                         write.try_write("OK".as_bytes())?
                     }
                     b"DEL" => {
                         // delete key
+                        write.try_write("OK".as_bytes())?
                     }
-                    _ => {
-                        write.try_write(b"unrecognised command at all\n")?
-                    }    
+                    _ => write.try_write(b"unrecognised command at all\n")?,
                 };
                 // extra newline to format for command line better
                 write.try_write(b"\n")?;
             }
-            _ => println!("ERR")
+            _ => println!("ERR"),
         }
     }
 
     Ok(())
 }
 
-pub async fn start(addr: String, port: String) -> std::io::Result<()> {
+pub async fn start(addr: String, port: String) -> crate::Result<()> {
     let location = format!("{}:{}", addr, port);
     let listener = TcpListener::bind(&location).await?;
 
-    // Creates a new read write lock that protects DB (data store) instance
-    // wrapped in atomic reference counter (ARC) to enable safe sharing
-    let hm = Arc::new(RwLock::new(DB::new()));
+    println!("Listening on {:?}", location);
+
+    // Creates a new read write lock that protects the DB (data store) instance
+    // wrapped in atomic reference counter (ARC) to enable safe sharing between threads
+    let data_store = Arc::new(RwLock::new(DB::new()));
 
     loop {
         let (stream, addr) = listener.accept().await?;
-        // a clone of the atomic reference counter is created for each thread
-        let hm_clone = Arc::clone(&hm);
+        // each thread gets a clone (increasing the strong reference counter), a pointer to the same location
+        let hm_clone = Arc::clone(&data_store);
 
-        tokio::spawn(async move {
-            handle_stream(stream, addr, hm_clone).await
-        });
+        tokio::spawn(async move { handle_stream(stream, addr, hm_clone).await });
     }
+}
+
+pub async fn run(addr: String, port: String) -> crate::Result<()> {
+    let address = format!("{}:{}", addr, port);
+    let tcp_listener = TcpListener::bind(&address).await?;
+
+    let listener = Listener {
+        listener: tcp_listener,
+        db: crate::DataStoreWrapper::new(),
+    };
+
+    listener.run().await?;
+
+    // println!("Listening on {:?}", location);
+
+    // // Creates a new read write lock that protects the DB (data store) instance
+    // // wrapped in atomic reference counter (ARC) to enable safe sharing between threads
+    // let data_store = Arc::new(RwLock::new(DB::new()));
+
+    // loop {
+    //     let (stream, addr) = listener.accept().await?;
+    //     // each thread gets a clone (increasing the strong reference counter), a pointer to the same location
+    //     let hm_clone = Arc::clone(&data_store);
+
+    //     tokio::spawn(async move {
+    //         handle_stream(stream, addr, hm_clone).await
+    //     });
+    // }
+
+    Ok(())
 }
