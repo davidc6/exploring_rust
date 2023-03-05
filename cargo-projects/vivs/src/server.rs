@@ -352,7 +352,7 @@ async fn handle_stream(
     Ok(())
 }
 
-pub async fn start(addr: String, port: String) -> crate::Result<()> {
+pub async fn run(addr: String, port: String) -> crate::Result<()> {
     let location = format!("{}:{}", addr, port);
     let listener = TcpListener::bind(&location).await?;
 
@@ -371,7 +371,7 @@ pub async fn start(addr: String, port: String) -> crate::Result<()> {
     }
 }
 
-pub async fn run(addr: String, port: String) -> crate::Result<()> {
+pub async fn start(addr: String, port: String) -> crate::Result<()> {
     let address = format!("{}:{}", addr, port);
     let tcp_listener = TcpListener::bind(&address).await?;
 
