@@ -382,21 +382,5 @@ pub async fn start(addr: String, port: String) -> crate::Result<()> {
 
     listener.run().await?;
 
-    // println!("Listening on {:?}", location);
-
-    // // Creates a new read write lock that protects the DB (data store) instance
-    // // wrapped in atomic reference counter (ARC) to enable safe sharing between threads
-    // let data_store = Arc::new(RwLock::new(DB::new()));
-
-    // loop {
-    //     let (stream, addr) = listener.accept().await?;
-    //     // each thread gets a clone (increasing the strong reference counter), a pointer to the same location
-    //     let hm_clone = Arc::clone(&data_store);
-
-    //     tokio::spawn(async move {
-    //         handle_stream(stream, addr, hm_clone).await
-    //     });
-    // }
-
     Ok(())
 }
