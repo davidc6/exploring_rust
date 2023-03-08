@@ -12,16 +12,14 @@ impl Listener {
     }
 
     pub async fn run(self) -> Result<()> {
-        println!("Incoming connection");
+        println!("Listening ...");
 
         loop {
-            // pass read and write instead
-            let (stream, _) = self.listener.accept().await?;
-            // let mut s = stream;
-            // let (read, write) = s.split();
+            let (stream, addr) = self.listener.accept().await?;
+
+            println!("Incoming from {:?}", addr);
 
             let connection = Connection::new(stream);
-            // let connection = Connection::new(read, write);
 
             let handler = Handler {
                 db: self.db.clone().db,
@@ -30,7 +28,5 @@ impl Listener {
 
             tokio::spawn(async move { handler.run().await });
         }
-
-        // Ok(())
     }
 }
