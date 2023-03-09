@@ -9,6 +9,7 @@ use tokio::{
 };
 
 use crate::Command;
+use crate::DataStoreWrapper;
 use crate::Listener;
 
 #[derive(Debug)]
@@ -377,7 +378,7 @@ pub async fn start(addr: String, port: String) -> crate::Result<()> {
 
     let listener = Listener {
         listener: tcp_listener,
-        db: crate::DataStoreWrapper::new(),
+        db: DataStoreWrapper::new(),
     };
 
     listener.run().await?;
