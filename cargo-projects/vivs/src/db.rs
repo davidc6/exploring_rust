@@ -1,15 +1,28 @@
-use std::{collections::HashMap, sync::{Arc, RwLock}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
-struct DataStore {
-    db: HashMap<String, String>
+#[derive(Default)]
+pub struct DataStore {
+    pub db: HashMap<String, String>,
 }
 
+impl DataStore {
+    pub fn new() -> DataStore {
+        DataStore { db: HashMap::new() }
+    }
+}
+
+#[derive(Clone, Default)]
 pub struct DataStoreWrapper {
-    db: std::sync::Arc<std::sync::RwLock<DataStore>>
+    pub db: Arc<RwLock<DataStore>>,
 }
 
 impl DataStoreWrapper {
     pub fn new() -> Self {
-        Self { db: Arc::new(RwLock::new(DataStore { db: HashMap::new() })) }
+        Self {
+            db: Arc::new(RwLock::new(DataStore::new())),
+        }
     }
 }
