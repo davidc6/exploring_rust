@@ -1,13 +1,8 @@
 use crate::{Command, Connection, DataStoreWrapper, Result};
 
-// pub mod handler {
-//     trait Handling {
-//         fn run() -> Result<(), ()>;
-//     }
-
 pub struct Handler {
     pub db: DataStoreWrapper,
-    pub tcp_connection: Connection, // pub stream: TcpStream,
+    pub tcp_connection: Connection,
 }
 
 impl Handler {
@@ -15,12 +10,9 @@ impl Handler {
         println!("Hello");
 
         let cmd = Command::parse_cmd().unwrap();
-        // pass db and connection
+        // TODO pass db
         cmd.run(self.tcp_connection).await?;
-
-        // self.tcp_connection.write_chunk(data)
 
         Ok(())
     }
 }
-// }
