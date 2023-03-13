@@ -22,7 +22,7 @@ impl Listener {
             let connection = Connection::new(stream);
 
             let handler = Handler {
-                db: self.db.clone().db,
+                db: self.db.clone(),
                 tcp_connection: connection,
             };
 
