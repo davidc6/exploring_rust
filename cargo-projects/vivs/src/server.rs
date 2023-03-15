@@ -377,7 +377,7 @@ pub async fn start(addr: String, port: String) -> crate::Result<()> {
     let tcp_listener = TcpListener::bind(&address).await?;
 
     let listener = Listener {
-        listener: tcp_listener,
+        tcp_listener,
         db: DataStoreWrapper::new(),
     };
 
