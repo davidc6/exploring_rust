@@ -2,22 +2,22 @@ use crate::{Connection, DataStoreWrapper, Handler, Result};
 use tokio::net::TcpListener;
 
 pub struct Listener {
-    pub listener: TcpListener,
+    pub tcp_listener: TcpListener,
     pub db: DataStoreWrapper, // should be clonable
 }
 
 impl Listener {
-    pub fn new(listener: TcpListener, db: DataStoreWrapper) -> Self {
-        Listener { listener, db }
+    pub fn new(tcp_listener: TcpListener, db: DataStoreWrapper) -> Self {
+        Listener { tcp_listener, db }
     }
 
     pub async fn run(self) -> Result<()> {
         println!("Listening ...");
 
         loop {
-            let (stream, addr) = self.listener.accept().await?;
+            let (stream, socket_addr) = self.tcp_listener.accept().await?;
 
-            println!("Incoming from {:?}", addr);
+            println!("Incoming request from {:?}", socket_addr);
 
             let connection = Connection::new(stream);
 
