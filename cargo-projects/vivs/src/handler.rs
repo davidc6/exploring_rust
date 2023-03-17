@@ -2,7 +2,7 @@ use crate::{Command, Connection, DataStoreWrapper, Result};
 
 pub struct Handler {
     pub db: DataStoreWrapper,
-    pub tcp_connection: Connection,
+    pub connection: Connection,
 }
 
 impl Handler {
@@ -11,7 +11,7 @@ impl Handler {
 
         let cmd = Command::parse_cmd().unwrap();
         // TODO pass db
-        cmd.run(self.tcp_connection).await?;
+        cmd.run(self.connection).await?;
 
         Ok(())
     }
