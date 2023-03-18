@@ -372,6 +372,7 @@ pub async fn run(addr: String, port: String) -> crate::Result<()> {
     }
 }
 
+// New improved way of handling requests
 pub async fn start(addr: String, port: String) -> crate::Result<()> {
     let address = format!("{}:{}", addr, port);
     let tcp_listener = TcpListener::bind(&address).await?;
