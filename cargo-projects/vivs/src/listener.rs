@@ -15,15 +15,15 @@ impl Listener {
         println!("Listening ...");
 
         loop {
-            let (stream, socket_addr) = self.tcp_listener.accept().await?;
+            let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
 
             println!("Incoming request from {:?}", socket_addr);
 
-            let connection = Connection::new(stream);
+            let connection = Connection::new(tcp_stream);
 
             let handler = Handler {
-                db: self.db.clone(),
-                tcp_connection: connection,
+                db: self.db.clone(), // produces new instance which points to the same allocation as source and increases the reference count
+                connection,
             };
 
             tokio::spawn(async move { handler.run().await });
