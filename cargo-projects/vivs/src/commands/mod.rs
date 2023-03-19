@@ -1,14 +1,15 @@
-mod ping;
-pub use ping::Ping;
-
 use crate::{Connection, Result};
+pub use ping::Ping;
+use std::io::Error;
+
+mod ping;
 
 pub enum Command {
     Ping(Ping),
 }
 
 impl Command {
-    pub fn parse_cmd() -> std::result::Result<Command, ()> {
+    pub fn parse_cmd() -> std::result::Result<Command, Error> {
         Ok(Command::Ping(Ping::new()))
     }
 
