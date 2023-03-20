@@ -26,6 +26,11 @@ impl Connection {
         }
     }
 
+    // TODO: frame reading will happen here
+    pub async fn read_chunk() {
+        todo!()
+    }
+
     // Write chunk of data / frame to the stream
     // Frame is defined as bits of data in this context
     pub async fn write_chunk(mut self, data: &[u8]) -> io::Result<()> {
