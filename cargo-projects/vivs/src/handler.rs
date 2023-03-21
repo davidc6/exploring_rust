@@ -9,9 +9,13 @@ impl Handler {
     pub async fn run(self) -> Result<()> {
         println!("Hello");
 
-        let cmd = Command::parse_cmd().unwrap();
+        // TODO: read a frame, should probably live in connection
+
+        // TODO get the command interator
+        let command = Command::parse_cmd().unwrap();
+
         // TODO pass db
-        cmd.run(self.connection).await?;
+        command.run(self.connection).await?;
 
         Ok(())
     }
