@@ -14,6 +14,8 @@ Vivs is an in-memory data store.
 printf '*1\r\n\x244\r\nPING\r\n\r\n' | nc -C -N 127.0.0.1 6379
 
 # Option 2
+#
+# -e    this flag enables interpretation of backslash escapes
 # -e    echo -e '*1\r\n\x244\r\nPING\r\n\r\n' | nc -C -N 127.0.0.1 6379
 echo -e '*1\r\n\x244\r\nPING\r\n\r\n' | nc -C -N 127.0.0.1 6379
 ```
@@ -47,4 +49,4 @@ printf '*2\r\n\x243\r\n\GET\r\n\x241\r\na\r\n' | nc -C -N 127.0.0.1 6379
 - EOF for TCP connection means the connection has been closed, not just the sender temporarily stopped sending more data.
 - A bytestream is a sequence of bytes that is used to perform input and output operations which essentially is 8 bits composed of 0s and 1s.
 - Parsing combinators - combining more parsers in a single parser.
-- `frame` is a chunk of bits that a client can send
+- `frame` (networking) is a chunk of bits that a client can send
