@@ -1,3 +1,4 @@
+use bytes::{Bytes, BytesMut};
 use std::io::{self};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 
@@ -8,6 +9,7 @@ pub struct Connection {
     // reader: BufReader<ReadHalf>,
     // reader: BufReader<ReadHalf<'a>>,
     stream: TcpStream,
+    buffer: BytesMut,
 }
 
 impl Connection {
@@ -23,6 +25,7 @@ impl Connection {
             // writer: BufWriter::new(write)
             // writer: BufWriter::new(write),
             stream,
+            buffer: BytesMut::with_capacity(1024 * 4),
         }
     }
 
