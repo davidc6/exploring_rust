@@ -25,16 +25,17 @@ impl Connection {
             // writer: BufWriter::new(write)
             // writer: BufWriter::new(write),
             stream,
-            buffer: BytesMut::with_capacity(1024), // 1kb, for now but mostly will need to increase in the future
+            // BytesMut is a unique reference into a continuguos slice of memory
+            // 1kb, for now but mostly will need to increase in the future
+            buffer: BytesMut::with_capacity(1024),
         }
     }
 
     // TODO: frame reading will happen here
     pub async fn read_chunk(&self) {
-        todo!();
-
         // Enables to track location in the buffer by using Cursor which provides seek functionality
         // by wrapping an underlying buffer (in our case BytesMut)
+        // self.buffer is referring to the slice (full range) of the buffer (BytesMut)
         let mut buff = Cursor::new(&self.buffer[..]);
 
         match buff.get_u8() {
@@ -48,6 +49,7 @@ impl Connection {
                     }
                 }
             }
+            _ => unimplemented!(),
         }
     }
 
