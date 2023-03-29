@@ -43,9 +43,13 @@ impl Connection {
                 let current_position = buff.position() as usize; // will be first position
                 let end_position = buff.get_ref().len() - 1; // second to last byte
 
-                for i in current_position..end_position {
-                    if buff.get_ref()[i] == b'\r' && buff.get_ref()[i + 1] == b'\n' {
-                        buff.set_position((i + 2) as u64);
+                for position in current_position..end_position {
+                    // we get the reference to the underlying value in the cursor
+                    // if we find that at some point there's \r followed by \n then we have a line
+                    // we then update position in the buffer to the start of the next line
+                    // *1\r\n\x244\r\nPING\r\n\r\n - [*1\r\n] line 1, [x244\r\n] line 2, [PING\r\n\r\n] line 3
+                    if buff.get_ref()[position] == b'\r' && buff.get_ref()[position + 1] == b'\n' {
+                        buff.set_position((position + 2) as u64);
                     }
                 }
             }
