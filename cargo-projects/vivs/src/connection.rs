@@ -36,9 +36,10 @@ impl Connection {
     }
 
     // TODO: frame reading will happen here
-    pub async fn read_chunk(&mut self) -> Result<u64> {
-        // Pull bytes from the source (self.stream - TcpStream) into the provided buffer
+    pub async fn read_and_process_stream(&mut self) -> Result<u64> {
+        // Pull bytes from the source (self.stream - TcpStream) into the provided buffer (self.buffer)
         self.stream.read_buf(&mut self.buffer).await?;
+
         // Cursor enables to track location in the buffer by providing seek functionality
         // It wraps the underlying buffer (in our case BytesMut)
         // In this case self.buffer refers to the slice (full range) of the buffer (BytesMut)
@@ -61,9 +62,9 @@ impl Connection {
         //     return Err("error".into());
         // }
 
-        // since buffer is [u8], we use get_u8() to get the first byte from it
+        // Since buffer is [u8], we use get_u8() to get the first byte from it
         // this also advances the position by one
-        // the first byte determines the data type
+        // The first byte determines the data type
         // e.g. * is Array
         match cursored_buffer.get_u8() {
             b'*' => {
