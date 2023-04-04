@@ -12,20 +12,24 @@ impl Listener {
     }
 
     pub async fn run(self) -> Result<()> {
-        println!("Listening ...");
+        println!("Listening for requests...");
 
         loop {
             let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
-
             println!("Incoming request from {:?}", socket_addr);
 
-            let connection = Connection::new(tcp_stream);
+            // create a connnection instance
+            let mut connection = Connection::new(tcp_stream);
+            // read bits that host/client can send (frame)
+            let number = connection.read_and_process_stream().await?;
 
             let handler = Handler {
                 db: self.db.clone(), // produces new instance which points to the same allocation as source and increases the reference count
                 connection,
             };
 
+            // spawn a new task which might end up executing on the same or different thread,
+            // depending on the Tokio scheduler
             tokio::spawn(async move { handler.run().await });
         }
     }
