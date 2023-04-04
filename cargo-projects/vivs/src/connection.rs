@@ -5,7 +5,17 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::Result;
+use crate::{Error, Result};
+
+fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Error> {
+    use atoi::atoi;
+
+    let current_position = cursored_buffer.position() as usize;
+    let length = cursored_buffer.get_ref().len();
+    let buffer_slice = &cursored_buffer.get_ref()[current_position..length];
+
+    atoi::<u64>(buffer_slice).ok_or_else(|| "could not parse integer, invalid format".into())
+}
 
 pub struct Connection {
     // writer: BufWriter<TcpStream>
@@ -67,7 +77,13 @@ impl Connection {
         // The first byte determines the data type
         // e.g. * is Array
         match cursored_buffer.get_u8() {
+            // Array data type
             b'*' => {
+                // Get number of elements in the array
+                let number = number_of(&mut cursored_buffer);
+
+                println!("Number of elements in array {:?}", number);
+
                 //     let current_position = cursored_buffer.position() as usize; // will be first position
                 //     let end_position = &cursored_buffer.get_ref().len() - 1; // second to last byte
 
