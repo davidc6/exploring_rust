@@ -7,6 +7,7 @@ use tokio::{
 
 use crate::{Error, Result};
 
+// Gets number of either elements in array or string length
 fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Error> {
     use atoi::atoi;
 
