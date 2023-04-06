@@ -81,7 +81,14 @@ impl Connection {
             // Array data type
             b'*' => {
                 // Get number of elements in the array
-                let number = number_of(&mut cursored_buffer);
+                // let number = number_of(&mut cursored_buffer).unwrap() as usize;
+                let number = number_of(&mut cursored_buffer)?.try_into()?;
+
+                // we now create a vector of a certain capacity
+                // from 0 to number
+                let commands: Vec<usize> = Vec::with_capacity(number);
+
+                for val in 0..number {}
 
                 println!("Number of elements in array {:?}", number);
 
