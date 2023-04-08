@@ -17,14 +17,15 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Er
     atoi::<u64>(buffer_slice).ok_or_else(|| "could not parse integer, invalid format".into())
 }
 
-struct DataChunk {}
+enum DataChunk {
+    Array(Vec<DataChunk>),
+}
 
 impl DataChunk {
-    fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> Result<u64> {
+    fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
         match cursored_buffer.get_u8() {
             b'*' => {
                 let number = number_of(cursored_buffer)?.try_into()?;
-
                 let mut commands = Vec::with_capacity(number);
 
                 // TODO - functional ?
@@ -34,11 +35,13 @@ impl DataChunk {
 
                 for _ in 0..number {
                     // create a vector with parsed command
-                    commands.push(DataChunk::parse(cursored_buffer));
+                    commands.push(DataChunk::parse(cursored_buffer)?);
                 }
 
+                Ok(DataChunk::Array(commands))
+
                 // TODO fix return
-                Ok(number as u64)
+                // Ok(number as u64)
             }
             _ => unimplemented!(),
         }
