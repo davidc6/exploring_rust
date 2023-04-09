@@ -382,7 +382,11 @@ pub async fn start(addr: String, port: String) -> crate::Result<()> {
         db: DataStoreWrapper::new(),
     };
 
+    // this should return a frame / bits of data
+    // that will get parsed into commands
     listener.run().await?;
+
+    // TODO - command to do the work
 
     Ok(())
 }
