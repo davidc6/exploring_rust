@@ -1,14 +1,14 @@
-pub mod db;
-pub use db::DataStore;
-pub use db::DataStoreWrapper;
-
-pub mod server;
-
 // include the code found in src/listener.rs
 pub mod listener;
 // use declarations are private to the containing module
 // hence we use pub keyword to re-export a name
 pub use listener::Listener;
+
+pub mod db;
+pub use db::DataStore;
+pub use db::DataStoreWrapper;
+
+pub mod server;
 
 pub mod handler;
 pub use handler::Handler;
