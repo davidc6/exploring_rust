@@ -28,6 +28,7 @@ impl DataChunk {
             b'*' => {
                 let number = number_of(cursored_buffer)?.try_into()?;
                 let mut commands = Vec::with_capacity(number);
+                commands.resize_with(3, || DataChunk::Array(vec![]));
 
                 commands.iter_mut().for_each(|a| {
                     *a = DataChunk::parse(cursored_buffer)
