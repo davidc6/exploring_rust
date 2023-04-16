@@ -30,10 +30,13 @@ impl DataChunk {
                 let mut commands = Vec::with_capacity(number);
                 commands.resize_with(3, || DataChunk::Array(vec![]));
 
-                commands.iter_mut().for_each(|a| {
-                    *a = DataChunk::parse(cursored_buffer)
-                        .unwrap_or_else(|_| panic!("Could not parse"))
-                });
+                let commands = commands
+                    .iter_mut()
+                    .map(|_| {
+                        DataChunk::parse(cursored_buffer)
+                            .unwrap_or_else(|_| panic!("Could not parse"))
+                    })
+                    .collect::<Vec<DataChunk>>();
 
                 Ok(DataChunk::Array(commands))
             }
