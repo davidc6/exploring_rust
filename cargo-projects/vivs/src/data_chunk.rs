@@ -1,8 +1,6 @@
-use std::io::Cursor;
-
+use crate::Error;
 use bytes::Buf;
-
-use crate::{Error, Result};
+use std::io::Cursor;
 
 // Gets number of either elements in array or string char count
 fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Error> {
@@ -26,12 +24,9 @@ impl DataChunk {
     pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
         match cursored_buffer.get_u8() {
             b'*' => {
-                let number = number_of(cursored_buffer)?.try_into()?;
-                let mut commands = Vec::with_capacity(number);
-                commands.resize_with(3, || DataChunk::Array(vec![]));
-
-                let commands = commands
-                    .iter_mut()
+                // use range expression which implements Iterator trait enables to map over each element
+                // then collect iterator into a vector
+                let commands = (0..number_of(cursored_buffer)?.try_into()?)
                     .map(|_| {
                         DataChunk::parse(cursored_buffer)
                             .unwrap_or_else(|_| panic!("Could not parse"))
