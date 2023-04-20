@@ -14,18 +14,20 @@ impl Listener {
     pub async fn run(self) -> Result<()> {
         println!("Listening for requests...");
 
+        // To accept multiple incoming connections,
+        // loop construct is used here to handle each connection
+        // as a separate task (either on the current or different thread)
         loop {
+            // wait for the new connection to establish
             let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
             println!("Incoming request from {:?}", socket_addr);
 
-            // create a connnection instance
-            let mut connection = Connection::new(tcp_stream);
-            // read bits that host/client can send (frame)
-            let number = connection.read_and_process_stream().await?;
-
+            // Aconnection handler per connection
             let handler = Handler {
-                db: self.db.clone(), // produces new instance which points to the same allocation as source and increases the reference count
-                connection,
+                // produces new instance which points to the same allocation as source and increases the reference count
+                db: self.db.clone(),
+                // connection instance - buffer allocation and frame parsing occurs here
+                connection: Connection::new(tcp_stream),
             };
 
             // spawn a new task which might end up executing on the same or different thread,
