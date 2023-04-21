@@ -22,7 +22,7 @@ impl Listener {
             let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
             println!("Incoming request from {:?}", socket_addr);
 
-            // Aconnection handler per connection
+            // A connection handler per connection
             let handler = Handler {
                 // produces new instance which points to the same allocation as source and increases the reference count
                 db: self.db.clone(),
