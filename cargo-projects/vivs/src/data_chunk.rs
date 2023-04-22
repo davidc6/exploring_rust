@@ -1,8 +1,9 @@
 use crate::Error;
 use bytes::Buf;
-use std::io::Cursor;
+use std::{io::Cursor, os::unix::prelude::PermissionsExt};
 
 // Gets number of either elements in array or string char count
+// TODO - need to stop parsing at the end of the line
 fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Error> {
     use atoi::atoi;
 
@@ -13,9 +14,21 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Er
     // underlying slice
     let buffer_slice = &cursored_buffer.get_ref()[current_position..length];
 
+    cursored_buffer.set_position(length as u64 - current_position as u64);
+
     atoi::<u64>(buffer_slice).ok_or_else(|| "could not parse integer from a slice".into())
 }
 
+fn line(cursored_buffer: &mut Cursor<&[u8]>) {
+    // *2\r\n$5\r\nhello\r\n$3\r\nabc\r\n
+    // get current position and total length
+    let current_position = cursored_buffer.position() as usize;
+    let length = cursored_buffer.get_ref().len();
+    println!("TESTING {} {}", current_position, length);
+    for position in current_position..length {
+        println!("{:?}", position);
+    }
+}
 pub enum DataChunk {
     Array(Vec<DataChunk>),
 }
@@ -23,8 +36,10 @@ pub enum DataChunk {
 impl DataChunk {
     pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
         match cursored_buffer.get_u8() {
+            // e.g. *4
             b'*' => {
-                // use range expression which implements Iterator trait enables to map over each element
+                println!("Here");
+                // Using range expression ( .. ) which implements Iterator trait enables to map over each element
                 // then collect iterator into a vector
                 let commands = (0..number_of(cursored_buffer)?.try_into()?)
                     .map(|_| {
@@ -35,7 +50,15 @@ impl DataChunk {
 
                 Ok(DataChunk::Array(commands))
             }
-            _ => unimplemented!(),
+            b'$' => {
+                println!("Number");
+                Ok(DataChunk::Array(vec![]))
+            }
+            _ => {
+                println!("LINE: {:?}", line(cursored_buffer));
+                println!("U8: {:?}", cursored_buffer.get_u8());
+                unimplemented!();
+            }
         }
     }
 }
