@@ -1,6 +1,11 @@
-use crate::Error;
 use bytes::Buf;
 use std::{io::Cursor, os::unix::prelude::PermissionsExt};
+
+#[derive(Debug)]
+pub enum Error {
+    Insufficient,
+    Uknown(String),
+}
 
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
@@ -8,26 +13,35 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Er
     use atoi::atoi;
 
     // current cursor position
-    let current_position = cursored_buffer.position() as usize;
+    // let current_position = cursored_buffer.position() as usize;
     // number of overall elements in the underlying value
-    let length = cursored_buffer.get_ref().len();
+    // let length = cursored_buffer.get_ref().len();
     // underlying slice
-    let buffer_slice = &cursored_buffer.get_ref()[current_position..length];
+    // let buffer_slice = &cursored_buffer.get_ref()[current_position..length];
 
-    cursored_buffer.set_position(length as u64 - current_position as u64);
+    // cursored_buffer.set_position(length as u64 - current_position as u64);
 
-    atoi::<u64>(buffer_slice).ok_or_else(|| "could not parse integer from a slice".into())
+    let slice = line(cursored_buffer)?;
+
+    atoi::<u64>(slice).ok_or_else(|| "could not parse integer from a slice".into())
 }
 
-fn line(cursored_buffer: &mut Cursor<&[u8]>) {
+fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
     // *2\r\n$5\r\nhello\r\n$3\r\nabc\r\n
     // get current position and total length
     let current_position = cursored_buffer.position() as usize;
     let length = cursored_buffer.get_ref().len();
     println!("TESTING {} {}", current_position, length);
-    for position in current_position..length {
-        println!("{:?}", position);
+    for position in current_position..length + 1 {
+        if cursored_buffer.get_ref()[position - 1] == b'\r'
+            && cursored_buffer.get_ref()[position] == b'\n'
+        {
+            println!("End of line duuu");
+            cursored_buffer.set_position((position + 1) as u64);
+            return Ok(&cursored_buffer.get_ref()[current_position..position]);
+        }
     }
+    Err(Error::Insufficient)
 }
 pub enum DataChunk {
     Array(Vec<DataChunk>),
@@ -39,9 +53,10 @@ impl DataChunk {
             // e.g. *4
             b'*' => {
                 println!("Here");
+
                 // Using range expression ( .. ) which implements Iterator trait enables to map over each element
                 // then collect iterator into a vector
-                let commands = (0..number_of(cursored_buffer)?.try_into()?)
+                let commands = (0..number_of(cursored_buffer)?)
                     .map(|_| {
                         DataChunk::parse(cursored_buffer)
                             .unwrap_or_else(|_| panic!("Could not parse"))
@@ -60,5 +75,17 @@ impl DataChunk {
                 unimplemented!();
             }
         }
+    }
+}
+
+impl From<String> for Error {
+    fn from(value: String) -> Self {
+        Error::Uknown(value.into())
+    }
+}
+
+impl From<&str> for Error {
+    fn from(value: &str) -> Error {
+        value.to_string().into()
     }
 }
