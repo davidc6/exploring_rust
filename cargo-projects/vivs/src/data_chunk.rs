@@ -27,7 +27,6 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Er
 }
 
 fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
-    // *2\r\n$5\r\nhello\r\n$3\r\nabc\r\n
     // get current position and total length
     let current_position = cursored_buffer.position() as usize;
     let length = cursored_buffer.get_ref().len();
