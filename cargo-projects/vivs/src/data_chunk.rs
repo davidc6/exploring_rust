@@ -1,5 +1,5 @@
 use bytes::Buf;
-use std::{io::Cursor, os::unix::prelude::PermissionsExt};
+use std::io::Cursor;
 
 #[derive(Debug)]
 pub enum Error {
