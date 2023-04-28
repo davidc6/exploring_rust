@@ -51,8 +51,6 @@ impl DataChunk {
         match cursored_buffer.get_u8() {
             // e.g. *4
             b'*' => {
-                println!("Here");
-
                 // Using range expression ( .. ) which implements Iterator trait enables to map over each element
                 // then collect iterator into a vector
                 let commands = (0..number_of(cursored_buffer)?)
