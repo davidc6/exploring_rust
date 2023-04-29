@@ -30,7 +30,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
     // get current position and total length
     let current_position = cursored_buffer.position() as usize;
     let length = cursored_buffer.get_ref().len();
-    println!("TESTING {} {}", current_position, length);
+
     for position in current_position..length + 1 {
         if cursored_buffer.get_ref()[position - 1] == b'\r'
             && cursored_buffer.get_ref()[position] == b'\n'
@@ -40,6 +40,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
             return Ok(&cursored_buffer.get_ref()[current_position..position]);
         }
     }
+
     Err(Error::Insufficient)
 }
 pub enum DataChunk {
