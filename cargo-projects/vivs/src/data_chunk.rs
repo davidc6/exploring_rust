@@ -35,7 +35,6 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
         if cursored_buffer.get_ref()[position - 1] == b'\r'
             && cursored_buffer.get_ref()[position] == b'\n'
         {
-            println!("End of line duuu");
             cursored_buffer.set_position((position + 1) as u64);
             return Ok(&cursored_buffer.get_ref()[current_position..position]);
         }
