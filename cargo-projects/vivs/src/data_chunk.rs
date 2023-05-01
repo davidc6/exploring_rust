@@ -26,6 +26,10 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Er
     atoi::<u64>(slice).ok_or_else(|| "could not parse integer from a slice".into())
 }
 
+/// Tries to find EOL (\r\n - carriage return(CR) and line feed (LF)),
+/// return everything before EOL and advance Cursor to the next position
+/// which is after EOL. The return value is a slice of bytes if parsed
+/// correctly or Err otherwise.
 fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
     // get current position and total length
     let current_position = cursored_buffer.position() as usize;
@@ -42,6 +46,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
 
     Err(Error::Insufficient)
 }
+
 pub enum DataChunk {
     Array(Vec<DataChunk>),
 }
