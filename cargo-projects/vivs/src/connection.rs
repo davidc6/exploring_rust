@@ -74,7 +74,8 @@ impl Connection {
         // }
 
         // New implementation
-        DataChunk::parse(&mut cursored_buffer);
+        let data_chunk = DataChunk::parse(&mut cursored_buffer);
+        dbg!(data_chunk.unwrap());
 
         // Since buffer is [u8], we use get_u8() to get the first byte from it
         // this also advances the position by one
