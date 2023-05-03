@@ -27,7 +27,7 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Er
 }
 
 /// Tries to find EOL (\r\n - carriage return(CR) and line feed (LF)),
-/// return everything before EOL and advance Cursor to the next position
+/// return everything before EOL and advance (by incrementing by 2) Cursor to the next position
 /// which is after EOL. The return value is a slice of bytes if parsed
 /// correctly or Err otherwise.
 fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
@@ -36,10 +36,10 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
     let length = cursored_buffer.get_ref().len();
 
     for position in current_position..length + 1 {
-        if cursored_buffer.get_ref()[position - 1] == b'\r'
-            && cursored_buffer.get_ref()[position] == b'\n'
+        if cursored_buffer.get_ref()[position] == b'\r'
+            && cursored_buffer.get_ref()[position + 1] == b'\n'
         {
-            cursored_buffer.set_position((position + 1) as u64);
+            cursored_buffer.set_position((position + 2) as u64);
             return Ok(&cursored_buffer.get_ref()[current_position..position]);
         }
     }
@@ -47,6 +47,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
     Err(Error::Insufficient)
 }
 
+#[derive(Debug)]
 pub enum DataChunk {
     Array(Vec<DataChunk>),
 }
@@ -54,11 +55,12 @@ pub enum DataChunk {
 impl DataChunk {
     pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
         match cursored_buffer.get_u8() {
-            // e.g. *4
+            // e.g. *1
             b'*' => {
                 // Using range expression ( .. ) which implements Iterator trait enables to map over each element
                 // then collect iterator into a vector
-                let commands = (0..number_of(cursored_buffer)?)
+                let number = number_of(cursored_buffer)?;
+                let commands = (0..number)
                     .map(|_| {
                         DataChunk::parse(cursored_buffer)
                             .unwrap_or_else(|_| panic!("Could not parse"))
@@ -67,8 +69,13 @@ impl DataChunk {
 
                 Ok(DataChunk::Array(commands))
             }
+            // e.g. $4
             b'$' => {
                 println!("Number");
+                // get line and push into array
+                let result = line(cursored_buffer);
+                println!("{:?}", result);
+
                 Ok(DataChunk::Array(vec![]))
             }
             _ => {
