@@ -47,7 +47,7 @@ impl Connection {
     }
 
     // TODO: frame reading will happen here
-    pub async fn read_and_process_stream(&mut self) -> Result<u64> {
+    pub async fn read_and_process_stream(&mut self) -> Result<DataChunk> {
         // Pull bytes from the source (self.stream - TcpStream) into the provided buffer (self.buffer)
         self.stream.read_buf(&mut self.buffer).await?;
 
@@ -74,8 +74,8 @@ impl Connection {
         // }
 
         // New implementation
-        let data_chunk = DataChunk::parse(&mut cursored_buffer);
-        dbg!(data_chunk.unwrap());
+        let data_chunk = DataChunk::parse(&mut cursored_buffer).unwrap();
+        // dbg!(data_chunk);
 
         // Since buffer is [u8], we use get_u8() to get the first byte from it
         // this also advances the position by one
@@ -130,7 +130,7 @@ impl Connection {
         //     _ => unimplemented!(),
         // }
 
-        Ok(1)
+        Ok(data_chunk)
     }
 
     // Write chunk of data / frame to the stream
