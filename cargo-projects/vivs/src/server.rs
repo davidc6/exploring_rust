@@ -306,7 +306,7 @@ async fn handle_stream(
 
                         // crate::commands::Ping::response(self, conn)
 
-                        let cmd = Command::parse_cmd().unwrap();
+                        // let cmd = Command::parse_cmd().unwrap();
                         // pass db and connection
                         // cmd.run();
                         1
