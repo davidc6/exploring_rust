@@ -1,5 +1,5 @@
-use bytes::Buf;
-use std::io::Cursor;
+use bytes::{Buf, Bytes};
+use std::{io::Cursor, num::TryFromIntError};
 
 #[derive(Debug)]
 pub enum Error {
@@ -50,6 +50,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
 #[derive(Debug)]
 pub enum DataChunk {
     Array(Vec<DataChunk>),
+    Bulk(Bytes),
 }
 
 impl DataChunk {
@@ -71,12 +72,19 @@ impl DataChunk {
             }
             // e.g. $4
             b'$' => {
-                println!("Number");
-                // get line and push into array
-                let result = line(cursored_buffer);
-                println!("{:?}", result);
+                // Not parsing the line here, just getting length of string and returning a copy
 
-                Ok(DataChunk::Array(vec![]))
+                // get length of the bulk string + 2 (i.e. \n\r)
+                let str_len = number_of(cursored_buffer)?.try_into()?;
+
+                // TODO: do we need to handle the case where we haven't received CR and LF
+
+                let bulk_str_data = Bytes::copy_from_slice(&cursored_buffer.chunk()[..str_len]);
+
+                // advance the interval position as we've now gotten the needed bulk string
+                cursored_buffer.advance(str_len);
+
+                Ok(DataChunk::Bulk(bulk_str_data))
             }
             _ => {
                 println!("LINE: {:?}", line(cursored_buffer));
@@ -96,5 +104,11 @@ impl From<String> for Error {
 impl From<&str> for Error {
     fn from(value: &str) -> Error {
         value.to_string().into()
+    }
+}
+
+impl From<TryFromIntError> for Error {
+    fn from(_src: TryFromIntError) -> Error {
+        "invalid data chunk".into()
     }
 }
