@@ -24,8 +24,8 @@ impl Command {
     // this method should parse a network frame/data unit instead of returning the hard-coded command
     // the frame essential is a redis command and for now this library will only support an array type
     // ref: https://redis.io/docs/reference/protocol-spec/#resp-arrays
-    pub fn parse_cmd(frame: DataChunk) -> NativeResult<Command, ParseError> {
-        let commands = if let DataChunk::Array(arr) = frame {
+    pub fn parse_cmd(data_chunk: DataChunk) -> NativeResult<Command, ParseError> {
+        let commands = if let DataChunk::Array(arr) = data_chunk {
             match arr.into_iter().next().unwrap() {
                 DataChunk::Bulk(data) => data,
                 _ => return Err("error".into()),
@@ -37,15 +37,12 @@ impl Command {
         // To figure out which command needs to be processed,
         // we have to convert slice of bytes to a string slice
         let command = std::str::from_utf8(&commands).unwrap().to_lowercase();
+        let command = match &command[..] {
+            "ping" => Command::Ping(Ping::new()),
+            _ => Command::Unknown,
+        };
 
-        match &command[..] {
-            "ping" => Ok(Command::Ping(Ping::new())),
-            _ => Ok(Command::Unknown),
-        }
-
-        // match frame. into_iter()
-        // TODO: remove hardcoded value here since we want to be able to process multiple commands (e.g. get, set, delete)
-        // Ok(Command::Ping(Ping::new()))
+        Ok(command)
     }
 
     // pub fn parse_command_from_frame() -> NativeResult<Command, Error> {}
