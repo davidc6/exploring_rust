@@ -5,7 +5,10 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::{data_chunk::DataChunk, Error, Result};
+use crate::{
+    data_chunk::{self, DataChunk, DataChunkFrame},
+    Error, Result,
+};
 
 // Gets number of either elements in array or string length
 fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Error> {
@@ -47,7 +50,7 @@ impl Connection {
     }
 
     // TODO: frame reading will happen here
-    pub async fn read_and_process_stream(&mut self) -> Result<DataChunk> {
+    pub async fn read_and_process_stream(&mut self) -> Result<DataChunkFrame> {
         // Pull bytes from the source (self.stream - TcpStream) into the provided buffer (self.buffer)
         self.stream.read_buf(&mut self.buffer).await?;
 
@@ -74,7 +77,8 @@ impl Connection {
         // }
 
         // New implementation
-        let data_chunk = DataChunk::parse(&mut cursored_buffer).unwrap();
+        // let data_chunk = DataChunk::parse(&mut cursored_buffer).unwrap();
+        let data_chunk_parsed = DataChunk::new(&mut cursored_buffer);
         // dbg!(data_chunk);
 
         // Since buffer is [u8], we use get_u8() to get the first byte from it
@@ -130,7 +134,8 @@ impl Connection {
         //     _ => unimplemented!(),
         // }
 
-        Ok(data_chunk)
+        // Ok(data_chunk)
+        Ok(data_chunk_parsed.unwrap())
     }
 
     // Write chunk of data / frame to the stream
