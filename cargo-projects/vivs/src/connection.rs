@@ -49,9 +49,8 @@ impl Connection {
         }
     }
 
-    // TODO: frame reading will happen here
     pub async fn read_and_process_stream(&mut self) -> Result<DataChunkFrame> {
-        // Pull bytes from the source (self.stream - TcpStream) into the provided buffer (self.buffer)
+        // Pull bytes from the source (self.stream: TcpStream) into the provided buffer (self.buffer)
         self.stream.read_buf(&mut self.buffer).await?;
 
         // Cursor enables to track location in the buffer by providing seek functionality
@@ -59,38 +58,7 @@ impl Connection {
         // In this case self.buffer refers to the slice (full range) of the buffer (BytesMut)
         let mut cursored_buffer = Cursor::new(&self.buffer[..]);
 
-        // cursored_buffer.get_u8();
-        // println!("{:?}", &self.buffer[..]);
-
-        // we need to scan the cursored_buffer and find end of line
-        // get end of buffer / hard-coded for now
-        // last index in the array
-        // let end = (cursored_buffer.get_ref().len() - 1) as u64;
-
-        // // end of line
-        // cursored_buffer.set_position(end + 2);
-
-        // println!("{:?}", cursored_buffer.remaining());
-
-        // if !cursored_buffer.has_remaining() {
-        //     return Err("error".into());
-        // }
-
-        // New implementation
-        // let data_chunk = DataChunk::parse(&mut cursored_buffer).unwrap();
         let data_chunk_parsed = DataChunk::new(&mut cursored_buffer);
-        // dbg!(data_chunk);
-
-        // Since buffer is [u8], we use get_u8() to get the first byte from it
-        // this also advances the position by one
-        // The first byte determines the data type
-        // e.g. * is Array
-        // match cursored_buffer.get_u8() {
-        //     // Array data type
-        //     b'*' => {
-        // Get number of elements in the array
-        // let number = number_of(&mut cursored_buffer).unwrap() as usize;
-        // let number = number_of(&mut cursored_buffer)?.try_into()?;
 
         // we now create a vector of a certain capacity
         // from 0 to number
