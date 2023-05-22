@@ -60,21 +60,6 @@ impl Connection {
 
         let data_chunk_parsed = DataChunk::new(&mut cursored_buffer);
 
-        // we now create a vector of a certain capacity
-        // from 0 to number
-        // let commands: Vec<usize> = Vec::with_capacity(number);
-
-        // for val in 0..number {
-        //     commands.push()
-        // }
-
-        // println!("Number of elements in array {:?}", number);
-
-        //     let current_position = cursored_buffer.position() as usize; // will be first position
-        //     let end_position = &cursored_buffer.get_ref().len() - 1; // second to last byte
-
-        //     let mut command_length: u64 = 0;
-
         //     // iterate over the buffer and identify a end of a line
         //     // then return the line
         //     for position in current_position..end_position {
