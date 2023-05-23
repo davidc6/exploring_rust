@@ -10,17 +10,6 @@ use crate::{
     Error, Result,
 };
 
-// Gets number of either elements in array or string length
-fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Error> {
-    use atoi::atoi;
-
-    let current_position = cursored_buffer.position() as usize;
-    let length = cursored_buffer.get_ref().len();
-    let buffer_slice = &cursored_buffer.get_ref()[current_position..length];
-
-    atoi::<u64>(buffer_slice).ok_or_else(|| "could not parse integer, invalid format".into())
-}
-
 pub struct Connection {
     // writer: BufWriter<TcpStream>
     // writer: BufWriter<WriteHalf<'a>>,
