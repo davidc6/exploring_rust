@@ -6,8 +6,8 @@ use tokio::{
 };
 
 use crate::{
-    data_chunk::{self, DataChunk, DataChunkFrame},
-    Error, Result,
+    data_chunk::{DataChunk, DataChunkFrame},
+    Result,
 };
 
 pub struct Connection {
