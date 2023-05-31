@@ -94,6 +94,40 @@ call_replace_iter(&["str", String::from("String")]),
 
 We cannot create a vector/array/slice of heterogeneous (mixed/diverse) type.
 
+Let's 
+
 ```rs
 let collection: Vec<Box<dyn Process>>;
+```
+
+```rs
+struct Payment {
+    fn execute(&self);
+}
+
+struct Payout<T: Payment>{
+    payments: Vec<T>
+}
+
+impl<T> Payout<T>
+where
+    T: Payment,
+{
+    pub fn process(&self) {
+        for payment in self.payments.iter() {
+            payment.execute();
+        }
+    }
+}
+
+struct PayPal {
+    pub email: String
+}
+
+impl Payment for PayPal {
+    fn execute(&self) {
+        // logic to execute this payment
+        println!("Executing payment via PayPal")
+    }
+}
 ```
