@@ -101,19 +101,41 @@ let collection: Vec<Box<dyn Process>>;
 ```
 
 ```rs
-struct Payment {
+trait Payment {
     fn execute(&self);
 }
 
-struct Payout<T: Payment>{
-    payments: Vec<T>
+struct Payout {
+    payments: Vec<Box<dyn Payment>>
 }
 
+/*
+// Generic struct with generic type parameter
+// which can only be of a one type
+// In case of homogeneous collections this works fine since 
+// definitions will be monomorphised to the concrete type(s)
+// 
+// However for heterogeneous collections this won't work
+// since we would want to have different data types
+struct Payout<T: Payment> {
+    payments: Ve<T>
+}
+
+// The struct also has trait bounds
 impl<T> Payout<T>
 where
     T: Payment,
 {
     pub fn process(&self) {
+        for payment in self.payments.iter() {
+            payment.execute();
+        }
+    }
+}
+*/
+
+impl Payout {
+    fn run(&self) {
         for payment in self.payments.iter() {
             payment.execute();
         }
@@ -127,7 +149,7 @@ struct PayPal {
 impl Payment for PayPal {
     fn execute(&self) {
         // logic to execute this payment
-        println!("Executing payment via PayPal")
+        println!("Executing payout via PayPal")
     }
 }
 ```
