@@ -101,14 +101,6 @@ let collection: Vec<Box<dyn Process>>;
 ```
 
 ```rs
-trait Payment {
-    fn execute(&self);
-}
-
-struct Payout {
-    payments: Vec<Box<dyn Payment>>
-}
-
 /*
 // Generic struct with generic type parameter
 // which can only be of a one type
@@ -134,6 +126,13 @@ where
 }
 */
 
+// Box<dyn Payment> is a trait object
+// It is a substitue for any type inside that implements Payment trait
+struct Payout {
+    payments: Vec<Box<dyn Payment>>
+}
+
+// call .execute() method on each payment
 impl Payout {
     fn run(&self) {
         for payment in self.payments.iter() {
@@ -144,6 +143,10 @@ impl Payout {
 
 struct PayPal {
     pub email: String
+}
+
+trait Payment {
+    fn execute(&self);
 }
 
 impl Payment for PayPal {
