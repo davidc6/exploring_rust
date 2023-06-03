@@ -46,7 +46,7 @@ fn call_replace(data: impl Process) {
 }
 ```
 
-This is just syntactic sugar and is the same as
+This is just syntactic sugar and is the same as:
 
 ```rs
 // read as: call_replace function is generic over T which is bound by Process trait
@@ -60,7 +60,7 @@ Somehow the compiler needs to generate code and call `.process()`. It does not k
 This is known as monomorphisation. The compiler will then generate code for each type that is called in the code 
 since it knows what type actually calls it.
 
-Let's take `str` as an example.
+Let's take `str` as an example:
 
 ```rs
 // concrete implementation
@@ -126,6 +126,10 @@ where
 }
 */
 
+trait Payment {
+    fn execute(&self);
+}
+
 // Box<dyn Payment> is a trait object
 // It is a substitue for any type inside that implements Payment trait
 struct Payout {
@@ -141,12 +145,9 @@ impl Payout {
     }
 }
 
+// PayPal struct is one type of payment that implements Payment trait
 struct PayPal {
     pub email: String
-}
-
-trait Payment {
-    fn execute(&self);
 }
 
 impl Payment for PayPal {
