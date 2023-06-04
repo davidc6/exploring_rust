@@ -92,13 +92,16 @@ fn call_replace_iter<T: Process>(collection: &[T]) {
 call_replace_iter(&["str", String::from("String")]),
 ```
 
-We cannot create a vector/array/slice of heterogeneous (mixed/diverse) type.
-
-Let's 
+We cannot create a vector/array/slice of heterogeneous (mixed/diverse) type. We can however
+use trait objects.
 
 ```rs
 let collection: Vec<Box<dyn Process>>;
 ```
+
+Let's look at another example.
+
+## Dynamic dispatch
 
 ```rs
 /*
