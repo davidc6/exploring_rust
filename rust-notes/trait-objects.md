@@ -160,3 +160,17 @@ impl Payment for PayPal {
     }
 }
 ```
+
+Let's create another payment method
+
+```rs
+struct ApplePay {
+    pub device_account_number: String
+}
+
+impl Payment for ApplePay {
+    fn execute(&self) {
+        println!("Executing payout via ApplePay")
+    }
+}
+```
