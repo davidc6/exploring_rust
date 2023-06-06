@@ -117,8 +117,8 @@ impl DataChunk {
                 Ok(DataChunk::Bulk(bulk_str_data))
             }
             _ => {
-                println!("U8: {:?}", cursored_buffer.get_u8());
-                println!("LINE: {:?}", line(cursored_buffer));
+                println!("Usigned 8 bit integer: {:?}", cursored_buffer.get_u8());
+                println!("Line: {:?}", line(cursored_buffer));
                 unimplemented!();
             }
         }
