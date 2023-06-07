@@ -4,13 +4,13 @@
 # - $4 - data type, number of chars in string
 # - PING - string which is the actual command
 
-DATA_TYPE='\r\n\x244\r\n'
+data_type='\r\n\x244\r\n'
 
 # For now, any argument can be passed into the script to trigger this conditional
 if [ -z $1 ]; then 
-  COMMAND="*1${DATA_TYPE}PING\r\n"
+  COMMAND="*1${data_type}PING\r\n"
 else 
-  COMMAND="*2${DATA_TYPE}PING\r\n\x243\r\nYES\r\n"
+  COMMAND="*2${data_type}PING\r\n\x243\r\nYES\r\n"
 fi
 
 # This is for debugging purposes, to see what we are sending to the server
