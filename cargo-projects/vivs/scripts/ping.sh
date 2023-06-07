@@ -8,14 +8,14 @@ data_type='\r\n\x244\r\n'
 
 # For now, any argument can be passed into the script to trigger this conditional
 if [ -z $1 ]; then 
-  COMMAND="*1${data_type}PING\r\n"
+  command="*1${data_type}PING\r\n"
 else 
-  COMMAND="*2${data_type}PING\r\n\x243\r\nYES\r\n"
+  command="*2${data_type}PING\r\n\x243\r\nYES\r\n"
 fi
 
 # This is for debugging purposes, to see what we are sending to the server
 # use -e flag to process \r\n
-echo $COMMAND
+echo $command
 
-printf $COMMAND | nc -C -N 127.0.0.1 6379
+printf $command | nc -C -N 127.0.0.1 6379
 
