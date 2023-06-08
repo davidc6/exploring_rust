@@ -18,4 +18,3 @@ fi
 echo $command
 
 printf $command | nc -C -N 127.0.0.1 6379
-
