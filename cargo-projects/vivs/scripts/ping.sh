@@ -10,7 +10,8 @@ data_type='\r\n\x244\r\n'
 if [ -z $1 ]; then 
   command="*1${data_type}PING\r\n"
 else 
-  command="*2${data_type}PING\r\n\x243\r\nYES\r\n"
+  message_length="${#1}"
+  command="*2${data_type}PING\r\n\x24${message_length}\r\n${1}\r\n"
 fi
 
 # This is for debugging purposes, to see what we are sending to the server
