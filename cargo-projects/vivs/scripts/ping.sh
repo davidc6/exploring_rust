@@ -7,6 +7,7 @@
 data_type='\r\n\x244\r\n'
 
 # For now, any argument can be passed into the script to trigger this conditional
+# -z checks if the string is NULL, zero length
 if [ -z $1 ]; then 
   command="*1${data_type}PING\r\n"
 else 
