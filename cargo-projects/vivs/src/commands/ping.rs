@@ -1,11 +1,8 @@
-use bytes::{Buf, Bytes};
-
 use crate::{
-    data_chunk::{DataChunk, DataChunkFrame, Error},
+    data_chunk::{DataChunk, DataChunkFrame},
     Connection, Result,
 };
-
-use super::ParseError;
+use bytes::Buf;
 
 #[derive(Debug, Default)]
 pub struct Ping {
@@ -35,12 +32,11 @@ impl Ping {
                 _ => conn.write_chunk(resp_val.as_bytes()).await?,
             }
 
-            return Ok(());
-            // conn.write_chunk(message..as_bytes()).await?;
+            Ok(())
+        } else {
+            conn.write_chunk(resp_val.as_bytes()).await?;
+
+            Ok(())
         }
-
-        conn.write_chunk(resp_val.as_bytes()).await?;
-
-        Ok(())
     }
 }
