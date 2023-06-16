@@ -63,4 +63,5 @@ printf '*2\r\n\x243\r\n\GET\r\n\x241\r\na\r\n' | nc -C -N 127.0.0.1 6379
 - Intro to Redis DS - https://scalegrid.io/blog/introduction-to-redis-data-structures-hashes/
 - Memory optimization - https://redis.io/docs/management/optimization/memory-optimization/
 - Redis Data Structures - https://redis.com/redis-enterprise/data-structures/
+- A collection of Redis internals links - https://abgoswam.wordpress.com/2016/11/22/redis-internals/
 
