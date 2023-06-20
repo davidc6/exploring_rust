@@ -1,20 +1,20 @@
 mod wrapper;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Person {
     first_name: String,
-    last_name: String
-} 
+    last_name: String,
+}
 
 pub enum Error {
-    Failed
+    Failed,
 }
 
 impl Person {
     pub fn new(first_name: &str, last_name: &str) -> Result<Person, Error> {
         Ok(Person {
             first_name: String::from(first_name),
-            last_name: String::from(last_name)
+            last_name: String::from(last_name),
         })
     }
 
