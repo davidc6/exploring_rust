@@ -1,0 +1,14 @@
+# Rust in C
+
+
+### Project notes
+
+- In order to statically link our Rust library, we need to tell `rustc` to emit a static library. This is done by setting a flag in `Cargo.toml` - `crate-type = ["staticlib"]`.
+- `#[no_mangle]` - disable symbol mangling which will enables native code linkers to interpret Rust code correctly.
+- `#[repr(C)]` - guarantee C layout and ABI
+
+### Files/modules definitions
+
+- `rust-code/src/wrapper.rs` - a wrapper code from which a C header file gets generated
+- `rust-code/src/lib.rs` - Rust code that implements a "Person" and some simple functionality
+- `rust-code/include/bindings.h` - 
