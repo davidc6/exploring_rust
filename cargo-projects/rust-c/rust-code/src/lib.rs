@@ -1,10 +1,16 @@
 mod wrapper;
 
 #[derive(Clone, Debug)]
+// #[repr(C)]
 pub struct Person {
     first_name: String,
     last_name: String,
 }
+
+// pub struct Person {
+//     first_name: CString,
+//     last_name: CString,
+// }
 
 pub enum Error {
     Failed,
