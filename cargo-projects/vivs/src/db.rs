@@ -19,10 +19,11 @@ pub struct DataStoreWrapper {
     pub db: Arc<RwLock<DataStore>>,
 }
 
-// Enables wrapping of a hashmap in a RwLock which is a lock that enables multiple readers and one writer at a time,
-// which in turn gets wrapped in an Arc - a thread-safe reference counting pointer
 impl DataStoreWrapper {
     pub fn new() -> Self {
+        // wrap a HashMap in a RwLock lock which enables multiple readers but a single writer
+        // then wrap the lock in Arc which is a thread-safe reference counting pointer
+        // to enable shared ownership between threads
         Self {
             db: Arc::new(RwLock::new(DataStore::new())),
         }
