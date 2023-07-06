@@ -22,11 +22,12 @@ impl Listener {
             let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
             println!("Incoming request from {:?}", socket_addr);
 
-            // A connection handler per connection
+            // Each connection gets a handler
             let handler = Handler {
-                // produces new instance which points to the same allocation as source and increases the reference count
+                // As the db is wrapped in an Arc, we use .clone() here to produce a new instance
+                // which points to the same allocation as source and increases the reference count
                 db: self.db.clone(),
-                // connection instance - buffer allocation and frame parsing occurs here
+                // Connection instance - buffer allocation and frame (network data) parsing occurs here
                 connection: Connection::new(tcp_stream),
             };
 
