@@ -1,16 +1,19 @@
 use crate::data_chunk::{DataChunk, DataChunkFrame};
-use crate::{Connection, Result};
+use crate::{Connection, DataStoreWrapper, Result};
 // pub use ping::Ping;
+use get::Get;
 use ping::Ping;
 use std::result::Result as NativeResult;
 
 // mod ping;
 
+pub mod get;
 pub mod ping;
 
 // pub mod command {
 pub enum Command {
     Ping(Ping),
+    Get(Get),
     Unknown,
 }
 
@@ -35,6 +38,7 @@ impl Command {
         let command = std::str::from_utf8(&command).unwrap().to_lowercase();
         let command = match &command[..] {
             "ping" => Command::Ping(Ping::parse(data_chunk).unwrap()),
+            "get" => Command::Get(Get::parse(data_chunk).unwrap()),
             _ => Command::Unknown,
         };
 
@@ -43,9 +47,10 @@ impl Command {
 
     // pub fn parse_command_from_frame() -> NativeResult<Command, Error> {}
 
-    pub async fn run(self, conn: Connection) -> Result<()> {
+    pub async fn run(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
         match self {
             Command::Ping(command) => command.respond(conn).await,
+            Command::Get(command) => command.respond(conn, db).await,
             Command::Unknown => Ok(()),
         }
     }
