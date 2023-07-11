@@ -17,6 +17,11 @@ pub enum Command {
     Unknown,
 }
 
+pub enum DataType {
+    SimpleString,
+    Null,
+}
+
 #[derive(Debug)]
 pub enum ParseError {
     Other(crate::Error),
