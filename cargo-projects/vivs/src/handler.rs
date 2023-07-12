@@ -17,7 +17,7 @@ impl Handler {
         let command = Command::parse_cmd(payload).unwrap();
 
         // TODO pass db
-        command.run(self.connection).await?;
+        command.run(self.connection, self.db).await?;
 
         Ok(())
     }
