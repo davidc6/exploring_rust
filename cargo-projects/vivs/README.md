@@ -49,6 +49,16 @@ printf '*2\r\n\x243\r\n\GET\r\n\x241\r\na\r\n' | nc -C -N 127.0.0.1 6379
 - Server parses the payload by splitting it into "chunks"
 - Example `*1$4PING` get split into `*1`, `$4`, `PING`
 
+## TODOs
+
+- [ ] Logging
+- [x] PING
+- [ ] SET
+- [ ] GET
+- [ ] DELETE
+- [ ] HELLO
+- [ ] TTL
+
 ### Notes
 
 - `netcat` has to be installed in the container, in order to install login as root (`docker exec -it bash`)
