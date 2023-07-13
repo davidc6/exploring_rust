@@ -6,6 +6,7 @@ use tokio::{
 };
 
 use crate::{
+    commands::DataType,
     data_chunk::{DataChunk, DataChunkFrame},
     Result,
 };
@@ -53,10 +54,20 @@ impl Connection {
 
     // Write chunk of data / frame to the stream
     // Frame is defined as bits of data in this context
-    pub async fn write_chunk(mut self, data: &[u8]) -> io::Result<()> {
-        self.stream.write_u8(b'+').await?;
-        self.stream.write_all(data).await?;
+    pub async fn write_chunk(mut self, data_type: DataType, data: Option<&[u8]>) -> io::Result<()> {
+        let data_type = match data_type {
+            DataType::SimpleString => b'+',
+            DataType::Null => b'_',
+        };
+
+        self.stream.write_u8(data_type).await?;
+
+        if data.is_some() {
+            self.stream.write_all(data.unwrap()).await?;
+        }
+
         self.stream.write_all(b"\r\n").await?;
+
         Ok(())
     }
 }
