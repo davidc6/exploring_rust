@@ -5,8 +5,6 @@ use get::Get;
 use ping::Ping;
 use std::result::Result as NativeResult;
 
-// mod ping;
-
 pub mod get;
 pub mod ping;
 
@@ -20,6 +18,7 @@ pub enum Command {
 pub enum DataType {
     SimpleString,
     Null,
+    SimpleError,
 }
 
 #[derive(Debug)]
@@ -50,8 +49,6 @@ impl Command {
         Ok(command)
     }
 
-    // pub fn parse_command_from_frame() -> NativeResult<Command, Error> {}
-
     pub async fn run(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
         match self {
             Command::Ping(command) => command.respond(conn).await,
@@ -60,7 +57,6 @@ impl Command {
         }
     }
 }
-// }
 
 impl From<String> for ParseError {
     fn from(src: String) -> ParseError {
