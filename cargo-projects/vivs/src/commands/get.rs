@@ -14,11 +14,18 @@ impl Get {
     }
 
     pub async fn respond(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
-        let result = db.db.read().unwrap();
-        let b = result.db.get("helo");
+        let data_store_guard = db.db.read().await;
 
-        println!("RESPONSE {:?}", b);
+        if let Some(value) = data_store_guard.db.get("helo") {
+            conn.write_chunk(super::DataType::Null, Some(value.as_bytes()))
+                .await?;
+            Ok(())
+        } else {
+            let null = b"_";
+            conn.write_chunk(super::DataType::Null, None).await?;
+            Ok(())
+        }
 
-        Ok(())
+        //   Ok(())
     }
 }
