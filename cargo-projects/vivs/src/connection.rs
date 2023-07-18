@@ -58,6 +58,7 @@ impl Connection {
         let data_type = match data_type {
             DataType::SimpleString => b'+',
             DataType::Null => b'_',
+            DataType::SimpleError => b'-',
         };
 
         self.stream.write_u8(data_type).await?;
