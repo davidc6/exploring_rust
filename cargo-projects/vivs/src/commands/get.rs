@@ -28,6 +28,7 @@ impl Get {
                 let key = key.unwrap();
 
                 if key.is_empty() {
+                    // TODO: extract various error prefix types
                     let error = "ERROR wrong number of arguments".to_owned();
                     conn.write_chunk(super::DataType::SimpleError, Some(error.as_bytes()))
                         .await?;
@@ -36,6 +37,7 @@ impl Get {
 
                 let data_store_guard = db.db.read().await;
 
+                // TODO: once TTL is figured out, check for expiration here
                 if let Some(value) = data_store_guard.db.get(key) {
                     conn.write_chunk(super::DataType::Null, Some(value.as_bytes()))
                         .await?
