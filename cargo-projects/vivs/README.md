@@ -57,7 +57,7 @@ printf '*2\r\n\x243\r\n\GET\r\n\x241\r\na\r\n' | nc -C -N 127.0.0.1 6379
 - [ ] GET
 - [ ] DELETE
 - [ ] HELLO
-- [ ] TTL
+- [ ] TTL (semi-active i.e. check ttl when key is being accessed AND/OR active i.e. sort keys by expiration in radix tree)
 
 ### Notes
 
