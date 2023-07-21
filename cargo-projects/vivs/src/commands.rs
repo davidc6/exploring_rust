@@ -1,6 +1,5 @@
 use crate::data_chunk::{DataChunk, DataChunkFrame};
 use crate::{Connection, DataStoreWrapper, Result};
-// pub use ping::Ping;
 use get::Get;
 use ping::Ping;
 use std::result::Result as NativeResult;
@@ -8,7 +7,6 @@ use std::result::Result as NativeResult;
 pub mod get;
 pub mod ping;
 
-// pub mod command {
 pub enum Command {
     Ping(Ping),
     Get(Get),

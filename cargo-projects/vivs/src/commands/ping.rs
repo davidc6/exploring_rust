@@ -19,7 +19,6 @@ impl Ping {
         match data.next() {
             Ok(data) => Ok(Ping::new(Some(data))),
             Err(_) => Ok(Ping::default()),
-            // Err(e) => Err(e.into()),
         }
     }
 

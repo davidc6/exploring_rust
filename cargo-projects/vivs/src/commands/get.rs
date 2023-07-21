@@ -12,7 +12,7 @@ impl Get {
         // TODO: peek instead of next so that we can
         match data.next() {
             Ok(data) => Ok(Get { key: Some(data) }),
-            Err(e) => Err(e.into()), // Err(e) => Err(e.into()),
+            Err(e) => Err(e.into()), 
         }
     }
 
