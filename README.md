@@ -6,3 +6,7 @@ This repo contains a collection of small projects, exercises and notes that I cr
 - Greatest common divisor - [Greatest common divisor](./cargo-projects/greatest-common-divisor/)
 - Book review service - [Bookreview](./cargo-projects/bookreview/)
 - KV store - [Bookreview](./cargo-projects/vivs/)
+
+### Interesting reads
+
+- The Rust Programming Language (in HFTs) - https://markrbest.github.io/hft-and-rust/
