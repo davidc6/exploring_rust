@@ -2,14 +2,17 @@ use crate::data_chunk::{DataChunk, DataChunkFrame};
 use crate::{Connection, DataStoreWrapper, Result};
 use get::Get;
 use ping::Ping;
+use set::Set;
 use std::result::Result as NativeResult;
 
 pub mod get;
 pub mod ping;
+pub mod set;
 
 pub enum Command {
     Ping(Ping),
     Get(Get),
+    Set(Set),
     Unknown,
 }
 
@@ -41,6 +44,7 @@ impl Command {
         let command = match &command[..] {
             "ping" => Command::Ping(Ping::parse(data_chunk).unwrap()),
             "get" => Command::Get(Get::parse(data_chunk).unwrap()),
+            "set" => Command::Set(Set::parse(data_chunk).unwrap()),
             _ => Command::Unknown,
         };
 
@@ -51,6 +55,7 @@ impl Command {
         match self {
             Command::Ping(command) => command.respond(conn).await,
             Command::Get(command) => command.respond(conn, db).await,
+            Command::Set(command) => command.respond(conn, db).await,
             Command::Unknown => Ok(()),
         }
     }
