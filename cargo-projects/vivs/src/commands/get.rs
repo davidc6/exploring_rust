@@ -40,10 +40,8 @@ impl Get {
             DataChunk::Bulk(key) => {
                 let key = std::str::from_utf8(key.chunk())?;
                 if key.is_empty() {
-                    // TODO: extract various error prefix types
-                    let error = "ERROR wrong number of arguments".to_owned();
-                    conn.write_chunk(super::DataType::SimpleError, Some(error.as_bytes()))
-                        .await?;
+                    let error = "wrong number of arguments";
+                    conn.write_error(error.as_bytes()).await?;
                     return Ok(());
                 }
 
