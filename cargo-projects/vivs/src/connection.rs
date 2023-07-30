@@ -72,4 +72,18 @@ impl Connection {
 
         Ok(())
     }
+
+    pub async fn write_error(mut self, err_msg_bytes: &[u8]) -> io::Result<()> {
+        // "-" - first byte denotes error data type
+        // "ERR" - generic error type
+        // TODO: as a future improvement we could differentiate between error types
+        self.stream.write_all(b"-ERR").await?;
+        self.stream.write_all(err_msg_bytes).await?;
+        Ok(())
+    }
+
+    pub async fn write_null(mut self) -> io::Result<()> {
+        // "_" - first byte denotes null which represents non-existent values
+        self.stream.write_u8(b'_').await
+    }
 }
