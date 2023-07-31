@@ -21,6 +21,10 @@ pub struct Get {
     key: Option<DataChunk>,
 }
 
+pub struct GetNew {
+    key: String,
+}
+
 impl Get {
     pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
         // TODO: peek instead of next so that we can
@@ -31,6 +35,23 @@ impl Get {
         }
     }
 
+    // TODO: potential improvement
+    // pub fn parse_to_str(mut data: DataChunkFrame) -> Result<GetNew> {
+    //     match data.next() {
+    //         Ok(data) => match data {
+    //             DataChunk::Bulk(value) => {
+    //                 let s = value.slice(..);
+    //                 let str = std::str::from_utf8(&s)?;
+    //                 Ok(GetNew {
+    //                     key: str.to_owned(),
+    //                 })
+    //             }
+    //             _ => unimplemented!(),
+    //         },
+    //         Err(e) => Err(e.into()),
+    //     }
+    // }
+
     pub async fn respond(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key else {
             return Err(Box::new(GetError::NoKey));
@@ -40,8 +61,8 @@ impl Get {
             DataChunk::Bulk(key) => {
                 let key = std::str::from_utf8(key.chunk())?;
                 if key.is_empty() {
-                    let error = "wrong number of arguments";
-                    conn.write_error(error.as_bytes()).await?;
+                    conn.write_error("wrong number of arguments".as_bytes())
+                        .await?;
                     return Ok(());
                 }
 
@@ -52,7 +73,7 @@ impl Get {
                     conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
                         .await?
                 } else {
-                    conn.write_chunk(super::DataType::Null, None).await?
+                    conn.write_null().await?
                 }
             }
             _ => {
