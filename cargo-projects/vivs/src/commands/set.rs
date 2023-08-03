@@ -1,7 +1,5 @@
 use std::fmt::Display;
-
 use bytes::Buf;
-
 use crate::{
     data_chunk::{DataChunk, DataChunkFrame},
     Connection, DataStoreWrapper, Error, Result,
