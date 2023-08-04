@@ -32,6 +32,7 @@ impl Command {
     // the frame essential is a redis command and for now this library will only support an array type
     // ref: https://redis.io/docs/reference/protocol-spec/#resp-arrays
     pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseError> {
+        // The iterator should contain all the necessary commands and values i.e. [SET, key, value]
         // Next chunk should be of Bulk string type which should be the command we need to process
         let command = match data_chunk.next() {
             Ok(DataChunk::Bulk(data)) => data,
