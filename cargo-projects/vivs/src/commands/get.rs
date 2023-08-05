@@ -21,9 +21,9 @@ pub struct Get {
     key: Option<DataChunk>,
 }
 
-pub struct GetNew {
-    key: String,
-}
+// pub struct GetNew {
+//     key: String,
+// }
 
 impl Get {
     pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
@@ -76,10 +76,7 @@ impl Get {
                     conn.write_null().await?
                 }
             }
-            _ => {
-                // TODO - to rethink
-                panic!("Error")
-            }
+            _ => unreachable!(),
         }
 
         Ok(())
