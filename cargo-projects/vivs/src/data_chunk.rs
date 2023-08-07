@@ -10,6 +10,8 @@ pub enum Error {
     ParseError,
 }
 
+impl std::error::Error for Error {}
+
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
 fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Error> {
@@ -53,11 +55,36 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
 pub struct DataChunkFrame {
     // data_chunks: DataChunk,
     segments: IntoIter<DataChunk>,
+    pub len: usize,
 }
 
 impl DataChunkFrame {
     pub fn next(&mut self) -> Result<DataChunk, Error> {
         self.segments.next().ok_or(Error::ParseError)
+    }
+
+    pub fn next_as_str(&mut self) -> Result<String, Error> {
+        let Some(segment) = self.segments.next() else {
+            return Err(Error::ParseError);
+        };
+
+        match segment {
+            DataChunk::Bulk(value) => {
+                let s = std::str::from_utf8(value.chunk());
+
+                if let Ok(str) = s {
+                    Ok(str.to_owned())
+                } else {
+                    // TODO: fix error handling
+                    Ok(String::from("aha"))
+                }
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn enumerate(self) -> std::iter::Enumerate<IntoIter<DataChunk>> {
+        self.segments.enumerate()
     }
 }
 
@@ -78,9 +105,13 @@ impl DataChunk {
             _ => return Err("some error".into()),
         };
 
+        let segments = array.into_iter();
+        let segments_length = segments.len();
+
         Ok(DataChunkFrame {
             // data_chunks: commands.unwrap(),
-            segments: array.into_iter(),
+            segments,
+            len: segments_length,
         })
     }
 
@@ -159,4 +190,4 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+// impl std::error::Error for Error {}
