@@ -38,3 +38,15 @@ pub type Error = Box<dyn std::error::Error + Send + Sync>;
 // we use type alias here to to aviod having to repeat the Error type
 // For example, Result<bool> is interpreted as Result<bool, Error>
 pub type Result<T> = std::result::Result<T, Error>;
+
+// impl Error {
+//     fn new(m: &str) -> Error {
+//         Error()
+//     }
+// }
+
+// impl From<CommandErrors> for Error {
+//     fn from(err: CommandErrors) -> Self {
+//         Error::new(err.description())
+//     }
+// }
