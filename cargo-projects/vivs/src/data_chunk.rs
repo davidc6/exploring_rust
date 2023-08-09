@@ -1,7 +1,6 @@
+use crate::Result as CustomResult;
 use bytes::{Buf, Bytes};
 use std::{fmt, io::Cursor, num::TryFromIntError, vec::IntoIter};
-
-use crate::Result as CustomResult;
 
 #[derive(Debug)]
 pub enum Error {
@@ -59,10 +58,13 @@ pub struct DataChunkFrame {
 }
 
 impl DataChunkFrame {
+    #![allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<DataChunk, Error> {
         self.segments.next().ok_or(Error::ParseError)
     }
 
+    /// Tries to return next element in the collection
+    /// as a String type or Error
     pub fn next_as_str(&mut self) -> Result<String, Error> {
         let Some(segment) = self.segments.next() else {
             return Err(Error::ParseError);
@@ -95,17 +97,17 @@ pub enum DataChunk {
 }
 
 impl DataChunk {
+    #![allow(clippy::new_ret_no_self)]
     pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> CustomResult<DataChunkFrame> {
-        // 1. parse
-        // 2. create DataChunk that has iterator also else error
+        // parse commands from byte slice
         let commands = DataChunk::parse(cursored_buffer);
 
-        let array = match commands {
+        let data_chunks_vec = match commands {
             Ok(DataChunk::Array(val)) => val,
             _ => return Err("some error".into()),
         };
 
-        let segments = array.into_iter();
+        let segments = data_chunks_vec.into_iter();
         let segments_length = segments.len();
 
         Ok(DataChunkFrame {
