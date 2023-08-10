@@ -1,19 +1,20 @@
-use crate::{
-    data_chunk::{DataChunk, DataChunkFrame},
-    Connection, DataStoreWrapper, Error, Result,
-};
-use bytes::Buf;
+use crate::{data_chunk::DataChunkFrame, Connection, DataStoreWrapper, Result};
 use std::fmt::Display;
-
-pub struct Set {
-    key: Option<String>,
-    value: Option<String>,
-}
 
 #[derive(Debug)]
 pub enum CommandError {
     NonParsableCommand,
     UnknownCommand,
+}
+impl std::error::Error for CommandError {}
+
+impl Display for CommandError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            CommandError::NonParsableCommand => write!(f, "This command cannot be parsed"),
+            CommandError::UnknownCommand => write!(f, "This command is unknown"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -23,17 +24,19 @@ pub enum SetError {
 }
 
 impl std::error::Error for SetError {}
-impl std::error::Error for CommandError {}
 
-impl Display for CommandError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Command error")
-    }
-}
 impl Display for SetError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Set error")
+        match self {
+            SetError::NoKey => write!(f, "No key was passed to SET command"),
+            SetError::NoValue => write!(f, "No value was passed to SET command"),
+        }
     }
+}
+
+pub struct Set {
+    key: Option<String>,
+    value: Option<String>,
 }
 
 impl Set {
