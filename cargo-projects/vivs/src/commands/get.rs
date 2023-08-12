@@ -36,7 +36,7 @@ impl Get {
             Some(key) => {
                 let data_store_guard = db.db.read().await;
 
-                // TODO: once TTL is figured out, check for expiration here
+                // TODO: once TTL is figured out, it needs to be accounted for
                 if let Some(value) = data_store_guard.db.get(&key) {
                     conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
                         .await?
