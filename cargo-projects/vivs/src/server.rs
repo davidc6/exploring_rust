@@ -1,3 +1,5 @@
+use crate::DataStoreWrapper;
+use crate::Listener;
 use std::{
     collections::HashMap,
     str,
@@ -7,10 +9,6 @@ use tokio::{
     io::{AsyncReadExt, BufReader},
     net::{TcpListener, TcpStream},
 };
-
-use crate::Command;
-use crate::DataStoreWrapper;
-use crate::Listener;
 
 #[derive(Debug)]
 struct BufSplit(usize, usize);
