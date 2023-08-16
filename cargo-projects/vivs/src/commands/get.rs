@@ -32,20 +32,20 @@ impl Get {
     }
 
     pub async fn respond(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
-        match self.key.clone() {
-            Some(key) => {
-                let data_store_guard = db.db.read().await;
+        let Some(key) = self.key.as_ref() else {
+            return Err(Box::new(GetError::NoKey));
+        };
 
-                // TODO: once TTL is figured out, it needs to be accounted for
-                if let Some(value) = data_store_guard.db.get(&key) {
-                    conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
-                        .await?
-                } else {
-                    conn.write_null().await?
-                }
-                Ok(())
-            }
-            None => Err(Box::new(GetError::NoKey)),
+        let data_store_guard = db.db.read().await;
+
+        // TODO: once TTL is figured out, it needs to be accounted for
+        if let Some(value) = data_store_guard.db.get(key) {
+            conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                .await?
+        } else {
+            conn.write_null().await?
         }
+
+        Ok(())
     }
 }
