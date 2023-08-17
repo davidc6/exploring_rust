@@ -22,12 +22,8 @@ impl Ping {
             conn.write_chunk(super::DataType::SimpleString, Some(message.as_bytes()))
                 .await?
         } else {
-            let default_response = "PONG";
-            conn.write_chunk(
-                super::DataType::SimpleString,
-                Some(default_response.as_bytes()),
-            )
-            .await?
+            conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
+                .await?
         }
         Ok(())
     }
