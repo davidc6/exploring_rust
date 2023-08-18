@@ -54,27 +54,28 @@ impl Set {
     }
 
     pub async fn respond(&self, connection: Connection, db: DataStoreWrapper) -> Result<()> {
-        match self.key.clone() {
-            Some(key) => {
-                let mut data_store_guard = db.db.write().await;
+        let Some(key) = self.key.as_ref() else {
+            return Err(Box::new(SetError::NoKey));
+        };
 
-                if data_store_guard
-                    .db
-                    .insert(key, self.value.clone().unwrap())
-                    .is_none()
-                {
-                    connection
-                        .write_chunk(
-                            super::DataType::SimpleString,
-                            Some(self.value.clone().unwrap().as_bytes()),
-                        )
-                        .await?
-                } else {
-                    connection.write_chunk(super::DataType::Null, None).await?
-                }
-            }
-            _ => unreachable!(),
+        let Some(value) = self.value.as_ref() else {
+            return Err(Box::new(SetError::NoValue));
+        };
+
+        let mut data_store_guard = db.db.write().await;
+
+        if data_store_guard
+            .db
+            .insert(key.to_owned(), value.to_owned())
+            .is_none()
+        {
+            connection
+                .write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                .await?
+        } else {
+            connection.write_chunk(super::DataType::Null, None).await?
         }
+
         Ok(())
     }
 }
