@@ -10,7 +10,7 @@ pub mod ping;
 pub mod set;
 
 pub enum Command {
-    Ping(Ping),
+    Ping(Result<Ping>),
     Get(Get),
     Set(Set),
     Unknown,
@@ -43,7 +43,7 @@ impl Command {
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = std::str::from_utf8(&command).unwrap().to_lowercase();
         let command = match &command[..] {
-            "ping" => Command::Ping(Ping::parse(data_chunk).unwrap()),
+            "ping" => Command::Ping(Ping::parse(data_chunk)),
             "get" => Command::Get(Get::parse(data_chunk).unwrap()),
             "set" => Command::Set(Set::parse(data_chunk).unwrap()),
             _ => Command::Unknown,
@@ -54,7 +54,10 @@ impl Command {
 
     pub async fn run(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
         match self {
-            Command::Ping(command) => command.respond(conn).await,
+            Command::Ping(command) => match command {
+                Ok(command) => Ok(command.respond(conn).await?),
+                Err(e) => Err(e),
+            },
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,
             Command::Unknown => Ok(()),
