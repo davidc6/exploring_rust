@@ -1,5 +1,5 @@
 use crate::data_chunk::{DataChunk, DataChunkFrame};
-use crate::{Connection, DataStoreWrapper, Result};
+use crate::{Connection, DataStoreWrapper, Error, Result};
 use get::Get;
 use ping::Ping;
 use set::Set;
@@ -10,7 +10,7 @@ pub mod ping;
 pub mod set;
 
 pub enum Command {
-    Ping(Result<Ping>),
+    Ping(Ping),
     Get(Get),
     Set(Set),
     Unknown,
@@ -25,6 +25,12 @@ pub enum DataType {
 #[derive(Debug)]
 pub enum ParseError {
     Other(crate::Error),
+}
+
+impl From<Error> for ParseError {
+    fn from(error: Error) -> Self {
+        ParseError::Other(error)
+    }
 }
 
 impl Command {
@@ -43,7 +49,7 @@ impl Command {
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = std::str::from_utf8(&command).unwrap().to_lowercase();
         let command = match &command[..] {
-            "ping" => Command::Ping(Ping::parse(data_chunk)),
+            "ping" => Command::Ping(Ping::parse(data_chunk)?),
             "get" => Command::Get(Get::parse(data_chunk).unwrap()),
             "set" => Command::Set(Set::parse(data_chunk).unwrap()),
             _ => Command::Unknown,
@@ -54,10 +60,7 @@ impl Command {
 
     pub async fn run(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
         match self {
-            Command::Ping(command) => match command {
-                Ok(command) => Ok(command.respond(conn).await?),
-                Err(e) => Err(e),
-            },
+            Command::Ping(command) => command.respond(conn).await,
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,
             Command::Unknown => Ok(()),
