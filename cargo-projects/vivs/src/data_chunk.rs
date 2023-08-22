@@ -176,12 +176,6 @@ impl From<TryFromIntError> for Error {
     }
 }
 
-// impl From<std::error::Error> for Error {
-//     fn from(_src: Error) -> Error {
-//         "Invalid".into()
-//     }
-// }
-
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -191,5 +185,3 @@ impl fmt::Display for Error {
         }
     }
 }
-
-// impl std::error::Error for Error {}
