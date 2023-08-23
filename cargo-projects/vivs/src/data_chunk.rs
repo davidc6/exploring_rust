@@ -142,6 +142,13 @@ impl DataChunk {
 
                 // TODO: do we need to handle the case where we haven't received CR and LF
 
+                // Compare if speficied and actual lengths are the same
+                // The specified length of the buffer elements cannot be more that the length of the buffer itself
+                if str_len > cursored_buffer.chunk().len() {
+                    return Err(Error::Insufficient);
+                }
+
+                // cursored_buffer.chunk().len() - the length of the whole buffer
                 let bulk_str_data = Bytes::copy_from_slice(&cursored_buffer.chunk()[..str_len]);
 
                 // advance the interval position (+2 \r and \n) as we've now gotten the needed bulk string
