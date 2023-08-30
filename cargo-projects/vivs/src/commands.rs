@@ -1,10 +1,10 @@
 use crate::data_chunk::{DataChunkFrame, Error as DataChunkError};
 use crate::{Connection, DataStoreWrapper, Error, Result};
+use delete::Delete;
 use get::Get;
 use ping::Ping;
 use set::Set;
 use std::result::Result as NativeResult;
-use self::delete::Delete;
 
 pub mod delete;
 pub mod get;
@@ -23,6 +23,7 @@ pub enum DataType {
     SimpleString,
     Null,
     SimpleError,
+    Integer,
 }
 
 #[derive(Debug)]
