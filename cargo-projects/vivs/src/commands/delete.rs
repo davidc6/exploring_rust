@@ -39,11 +39,11 @@ impl Delete {
         let mut data_store_guard = db.db.write().await;
 
         // TODO: once TTL is figured out, it needs to be accounted for
-        if let Some(value) = data_store_guard.db.remove(key) {
-            conn.write_chunk(super::DataType::SimpleString, Some("1".as_bytes()))
+        if let Some(_value) = data_store_guard.db.remove(key) {
+            conn.write_chunk(super::DataType::Integer, Some("1".as_bytes()))
                 .await?
         } else {
-            conn.write_chunk(super::DataType::SimpleString, Some("0".as_bytes()))
+            conn.write_chunk(super::DataType::Integer, Some("0".as_bytes()))
                 .await?
         }
 
