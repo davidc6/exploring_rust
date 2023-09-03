@@ -54,7 +54,6 @@ impl Command {
 
         // To figure out which command needs to be processed,
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
-        // let command = std::str::from_utf8(&command).unwrap().to_lowercase();
         let command = match &command[..] {
             "ping" => Command::Ping(Ping::parse(data_chunk)?),
             "get" => Command::Get(Get::parse(data_chunk).unwrap()),

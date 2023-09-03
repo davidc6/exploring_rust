@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # {#1} - number of characters in in the first command line argument (e.g. hello is 5)
