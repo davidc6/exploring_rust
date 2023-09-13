@@ -6,7 +6,7 @@ pub struct Handler {
 }
 
 impl Handler {
-    pub async fn run(mut self) -> Result<()> {
+    pub async fn run(&mut self) -> Result<()> {
         // TODO: read a frame, should probably live in connection
         // read bits that host/client can send (frame)
         // this should return array of commands which will later parse
@@ -17,7 +17,7 @@ impl Handler {
         let command = Command::parse_cmd(payload).unwrap();
 
         // TODO pass db
-        command.run(self.connection, self.db).await?;
+        command.run(&mut self.connection, &self.db).await?;
 
         Ok(())
     }
