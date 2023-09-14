@@ -11,11 +11,12 @@ use crate::{
     Result,
 };
 
+// #[derive(Clone)]
 pub struct Connection {
     // writer: BufWriter<WriteHalf<'a>>,
     // reader: BufReader<ReadHalf>,
     // reader: BufReader<ReadHalf<'a>>,
-    stream: BufWriter<TcpStream>,
+    pub stream: BufWriter<TcpStream>,
     buffer: BytesMut,
 }
 
@@ -53,7 +54,11 @@ impl Connection {
     // Write chunk of data / frame to the stream
     // Frame is defined as bits of data in this context
     // Since data is buffered in BufWriter no excessive sys calls to write will occur here
-    pub async fn write_chunk(mut self, data_type: DataType, data: Option<&[u8]>) -> io::Result<()> {
+    pub async fn write_chunk(
+        &mut self,
+        data_type: DataType,
+        data: Option<&[u8]>,
+    ) -> io::Result<()> {
         let data_type = match data_type {
             DataType::SimpleString => b'+',
             DataType::Null => b'_',
@@ -69,7 +74,8 @@ impl Connection {
         }
 
         self.stream.write_all(b"\r\n").await?;
-        self.stream.flush().await
+        self.stream.flush().await?;
+        Ok(())
     }
 
     pub async fn write_error(mut self, err_msg_bytes: &[u8]) -> io::Result<()> {
@@ -81,7 +87,7 @@ impl Connection {
         self.stream.flush().await
     }
 
-    pub async fn write_null(mut self) -> io::Result<()> {
+    pub async fn write_null(&mut self) -> io::Result<()> {
         // "_" - first byte denotes null which represents non-existent values
         self.stream.write_all(b"_\r\n").await?;
         self.stream.flush().await
