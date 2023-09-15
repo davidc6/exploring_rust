@@ -1,3 +1,8 @@
+use crate::{
+    commands::DataType,
+    data_chunk::{DataChunk, DataChunkFrame},
+    Result,
+};
 use bytes::BytesMut;
 use std::io::{self, Cursor};
 use tokio::{
@@ -5,13 +10,6 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::{
-    commands::DataType,
-    data_chunk::{DataChunk, DataChunkFrame},
-    Result,
-};
-
-// #[derive(Clone)]
 pub struct Connection {
     // writer: BufWriter<WriteHalf<'a>>,
     // reader: BufReader<ReadHalf>,
