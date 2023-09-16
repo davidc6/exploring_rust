@@ -17,10 +17,10 @@ impl Ping {
         }
     }
 
-    pub async fn respond(self, conn: Connection) -> Result<()> {
+    pub async fn respond(self, conn: &mut Connection) -> Result<()> {
         if let Some(message) = self.message {
             conn.write_chunk(super::DataType::SimpleString, Some(message.as_bytes()))
-                .await?
+                .await?;
         } else {
             conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
                 .await?
