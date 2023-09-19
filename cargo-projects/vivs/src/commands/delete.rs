@@ -31,7 +31,7 @@ impl Delete {
         Ok(Self { key: Some(key) })
     }
 
-    pub async fn respond(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
+    pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
             return Err(Box::new(DeleteError::NoKey));
         };
