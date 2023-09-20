@@ -14,7 +14,7 @@ pub struct Connection {
     // writer: BufWriter<WriteHalf<'a>>,
     // reader: BufReader<ReadHalf>,
     // reader: BufReader<ReadHalf<'a>>,
-    pub stream: BufWriter<TcpStream>,
+    stream: BufWriter<TcpStream>,
     buffer: BytesMut,
 }
 
