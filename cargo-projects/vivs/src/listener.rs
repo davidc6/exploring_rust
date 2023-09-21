@@ -12,7 +12,11 @@ impl Listener {
     }
 
     pub async fn run(self) -> Result<()> {
-        println!("Listening for requests...");
+        // TODO: logging here
+        println!(
+            "Listening on {:?} for the incoming connections ...",
+            self.tcp_listener.local_addr()?
+        );
 
         // To accept multiple incoming connections,
         // loop construct is used here to handle each connection.
@@ -32,8 +36,10 @@ impl Listener {
 
             // spawn a new task, by passing an async block to it a green thread is created
             tokio::spawn(async move {
-                // wait for me data from already connected sockets,
-                // by looping here the connection does not close
+                // Wait for me data from already connected sockets,
+                // by looping here the connection does not close.
+                // If we don't loop and when a client tries to send data continuously on the socket,
+                // we'll get the "brokne pipe" error message.
                 loop {
                     match handler.run().await {
                         Ok(_) => (),
