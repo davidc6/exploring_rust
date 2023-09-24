@@ -72,8 +72,7 @@ impl Connection {
         }
 
         self.stream.write_all(b"\r\n").await?;
-        self.stream.flush().await?;
-        Ok(())
+        self.stream.flush().await
     }
 
     pub async fn write_error(mut self, err_msg_bytes: &[u8]) -> io::Result<()> {
