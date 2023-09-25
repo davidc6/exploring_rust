@@ -66,7 +66,7 @@ impl Connection {
 
         self.stream.write_u8(data_type).await?;
 
-        // Failed command error description
+        // Write data to the socket
         if data.is_some() {
             self.stream.write_all(data.unwrap()).await?;
         }
