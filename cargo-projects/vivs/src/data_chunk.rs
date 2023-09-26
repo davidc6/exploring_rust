@@ -51,6 +51,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
     Err(Error::Insufficient)
 }
 
+#[derive(Debug, Default)]
 pub struct DataChunkFrame {
     // data_chunks: DataChunk,
     segments: IntoIter<DataChunk>,
@@ -58,7 +59,7 @@ pub struct DataChunkFrame {
 }
 
 impl DataChunkFrame {
-    #![allow(clippy::should_implement_trait)]
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<DataChunk, Error> {
         self.segments.next().ok_or(Error::ParseError)
     }
@@ -87,6 +88,16 @@ impl DataChunkFrame {
 
     pub fn enumerate(self) -> std::iter::Enumerate<IntoIter<DataChunk>> {
         self.segments.enumerate()
+    }
+
+    pub fn push_bulk_str(mut self, b: Bytes) -> Self {
+        // Hack (for now): convert iterator to vector
+        // in order to push data chunks into it.
+        // This functionality is part of the so called "client encoder"
+        let mut v: Vec<DataChunk> = self.segments.collect();
+        v.push(DataChunk::Bulk(b));
+        self.segments = v.into_iter();
+        self
     }
 }
 
