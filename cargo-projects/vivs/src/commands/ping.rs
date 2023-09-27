@@ -1,4 +1,5 @@
 use crate::{data_chunk::DataChunkFrame, Connection, Result};
+use bytes::Bytes;
 
 #[derive(Debug, Default)]
 pub struct Ping {
@@ -26,5 +27,16 @@ impl Ping {
                 .await?
         }
         Ok(())
+    }
+
+    pub fn into_chunk(self) -> DataChunkFrame {
+        let data_chunk_frame =
+            DataChunkFrame::default().push_bulk_str(Bytes::from("ping".as_bytes()));
+
+        if let Some(msg) = self.message {
+            return data_chunk_frame.push_bulk_str(Bytes::from(msg.as_bytes().to_owned()));
+        }
+
+        data_chunk_frame
     }
 }
