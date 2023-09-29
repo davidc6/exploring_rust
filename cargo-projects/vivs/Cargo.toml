@@ -3,6 +3,14 @@ name = "vivs"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "vivs"
+path = "src/main.rs"
+
+[[bin]]
+name = "vivs-client"
+path = "src/client/main.rs"
+
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 bytes = "1.4.0"
