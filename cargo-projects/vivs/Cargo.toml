@@ -9,7 +9,7 @@ path = "src/main.rs"
 
 [[bin]]
 name = "vivs-client"
-path = "src/client/main.rs"
+path = "src/client/repl.rs"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
