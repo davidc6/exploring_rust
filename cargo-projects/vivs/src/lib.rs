@@ -39,6 +39,7 @@ pub type Error = Box<dyn std::error::Error + Send + Sync>;
 // For example, Result<bool> is interpreted as Result<bool, Error>
 pub type Result<T> = std::result::Result<T, Error>;
 
+// TODO: investigate and remove
 // impl Error {
 //     fn new(m: &str) -> Error {
 //         Error()
