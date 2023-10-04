@@ -29,7 +29,7 @@ enum PartBuf {
 }
 
 #[derive(Debug)]
-enum ParseError {
+pub enum ParseError {
     Int,
     Unknown,
 }

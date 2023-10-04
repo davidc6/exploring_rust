@@ -13,6 +13,7 @@ impl Handler {
         let payload = self.connection.read_and_process_stream().await?;
 
         // TODO get the command interator
+        // This will enable Command to get necessary data from the iterator by calling .next()
         let command = Command::parse_cmd(payload).unwrap();
 
         // TODO pass db

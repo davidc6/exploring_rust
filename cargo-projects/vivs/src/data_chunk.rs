@@ -1,10 +1,13 @@
 use bytes::{Buf, Bytes};
-use std::{io::Cursor, num::TryFromIntError};
+use std::{fmt, io::Cursor, num::TryFromIntError, vec::IntoIter};
+
+use crate::Result as CustomResult;
 
 #[derive(Debug)]
 pub enum Error {
     Insufficient,
     Uknown(String),
+    ParseError,
 }
 
 // Gets number of either elements in array or string char count
@@ -47,6 +50,17 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
     Err(Error::Insufficient)
 }
 
+pub struct DataChunkFrame {
+    // data_chunks: DataChunk,
+    segments: IntoIter<DataChunk>,
+}
+
+impl DataChunkFrame {
+    pub fn next(&mut self) -> Result<DataChunk, Error> {
+        self.segments.next().ok_or(Error::ParseError)
+    }
+}
+
 #[derive(Debug)]
 pub enum DataChunk {
     Array(Vec<DataChunk>),
@@ -54,6 +68,22 @@ pub enum DataChunk {
 }
 
 impl DataChunk {
+    pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> CustomResult<DataChunkFrame> {
+        // 1. parse
+        // 2. create DataChunk that has iterator also else error
+        let commands = DataChunk::parse(cursored_buffer);
+
+        let array = match commands {
+            Ok(DataChunk::Array(val)) => val,
+            _ => return Err("some error".into()),
+        };
+
+        Ok(DataChunkFrame {
+            // data_chunks: commands.unwrap(),
+            segments: array.into_iter(),
+        })
+    }
+
     pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
         match cursored_buffer.get_u8() {
             // e.g. *1
@@ -81,14 +111,14 @@ impl DataChunk {
 
                 let bulk_str_data = Bytes::copy_from_slice(&cursored_buffer.chunk()[..str_len]);
 
-                // advance the interval position as we've now gotten the needed bulk string
-                cursored_buffer.advance(str_len);
+                // advance the interval position (+2 \r and \n) as we've now gotten the needed bulk string
+                cursored_buffer.advance(str_len + 2);
 
                 Ok(DataChunk::Bulk(bulk_str_data))
             }
             _ => {
-                println!("LINE: {:?}", line(cursored_buffer));
-                println!("U8: {:?}", cursored_buffer.get_u8());
+                println!("Usigned 8 bit integer: {:?}", cursored_buffer.get_u8());
+                println!("Line: {:?}", line(cursored_buffer));
                 unimplemented!();
             }
         }
@@ -97,7 +127,7 @@ impl DataChunk {
 
 impl From<String> for Error {
     fn from(value: String) -> Self {
-        Error::Uknown(value.into())
+        Error::Uknown(value)
     }
 }
 
@@ -112,3 +142,21 @@ impl From<TryFromIntError> for Error {
         "invalid data chunk".into()
     }
 }
+
+// impl From<std::error::Error> for Error {
+//     fn from(_src: Error) -> Error {
+//         "Invalid".into()
+//     }
+// }
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::ParseError => "protocol error; unexpected end of stream".fmt(f),
+            Error::Uknown(err) => err.fmt(f),
+            Error::Insufficient => "error".fmt(f),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
