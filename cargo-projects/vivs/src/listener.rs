@@ -45,7 +45,7 @@ impl Listener {
                         Ok(_) => (),
                         Err(e) => {
                             // TODO: log error
-                            println!("ERROR {:?}", e);
+                            println!("{:?}", e);
                             break;
                         }
                     };
