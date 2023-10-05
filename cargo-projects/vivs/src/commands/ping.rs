@@ -30,11 +30,12 @@ impl Ping {
     }
 
     pub fn into_chunk(self) -> DataChunkFrame {
-        let data_chunk_frame =
-            DataChunkFrame::default().push_bulk_str(Bytes::from("ping".as_bytes()));
+        let data_chunk_frame = DataChunkFrame::default();
+        let mut data_chunk_frame =
+            data_chunk_frame.push_bulk_str(Bytes::from("PING\r\n".as_bytes()));
 
         if let Some(msg) = self.message {
-            return data_chunk_frame.push_bulk_str(Bytes::from(msg.as_bytes().to_owned()));
+            data_chunk_frame = data_chunk_frame.push_bulk_str(format!("{:?}\r\n", msg).into());
         }
 
         data_chunk_frame
