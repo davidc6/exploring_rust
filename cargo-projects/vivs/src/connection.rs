@@ -124,8 +124,8 @@ impl Connection {
             .await?; // 1
         self.stream.write_all(b"\r\n").await?; // \r\n
 
-        for a in data.iter() {
-            match a {
+        for chunk in data.iter() {
+            match chunk {
                 DataChunk::Bulk(str) => {
                     // string length minus "\r\n"
                     let len_byte = (str.len() - 2).to_string();
