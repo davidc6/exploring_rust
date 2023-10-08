@@ -1,50 +1,91 @@
-use std::{
-    io::{stdin, stdout, Write},
-    net::TcpStream,
-};
+use std::fmt::Display;
+use std::io::{stdin, stdout, Write};
+use tokio::net::TcpStream;
+use vivs::Result;
+use vivs::{commands::ping::Ping, Connection};
 
-use std::io::Read;
+#[derive(Debug)]
+pub enum CliError {
+    MissingCommand,
+}
 
-fn main() -> std::io::Result<()> {
-    let mut stream = TcpStream::connect("127.0.0.1:6379")?;
+impl std::error::Error for CliError {}
+
+impl Display for CliError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            CliError::MissingCommand => write!(f, "TCP connection closed"),
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let stream = TcpStream::connect("127.0.0.1:6379").await?;
+    let mut connection = Connection::new(stream);
 
     // REPL
     loop {
+        // let (reader, writer) = stream.into_split();
         // write to stdout
         write!(stdout(), "> ")?;
         // flush everything, ensuring all content reach destination (stdout)
         stdout().flush()?;
 
+        // buffer for stdin's line of input
         let mut buffer = String::new();
         // Read a line of input and append to the buffer.
         // stdin() is a handle in this case to the standard input of the current process
         // which gets locked and waits for newline or the "Enter" key (or 0xA byte) to be pressed.
         stdin().read_line(&mut buffer)?;
 
-        let command = buffer.trim_end().to_lowercase().to_owned();
+        let command = buffer.trim().to_owned();
+        let mut line: std::str::Split<'_, char> = command.split(' ');
 
-        let buffer = match command.as_ref() {
-            "ping" => format!(
-                "{}\r\n{}{}\r\n{}\r\n",
-                "*1",                         // number of elements
-                "\x24",                       // $
-                command.len(),                // <number_of_chars>
-                buffer.trim_end().to_owned(), // command (e.g. PING)
-            ),
-            &_ => unimplemented!(),
+        let Some(cmd) = line.next() else {
+            continue;
+        };
+        if cmd.is_empty() {
+            continue;
+        }
+
+        // TODO: implement command parser
+        let data_chunk = match cmd.to_lowercase().as_ref() {
+            "ping" => Ping::new(line.next().map(|val| val.to_owned())).into_chunk(),
+            _ => todo!(),
         };
 
-        stream.write_all(buffer.as_bytes())?;
-        stream.flush()?;
+        // convert to the byte stream
+        // i.e. [Bulk("PING"), Bulk("Message")]
+        // *1\r\n$4\r\nPING\r\n
 
-        let mut buffer = [0; 32];
-        let read_amount = stream.read(&mut buffer)?;
+        connection.write_chunk_frame(data_chunk).await?;
+
+        let bytes_read = connection.read_chunk_frame().await?;
+        stdout().write_all(&bytes_read)?;
+
+        // let buffer = match command.as_ref() {
+        //     "ping" => format!(
+        //         "{}\r\n{}{}\r\n{}\r\n",
+        //         "*1",                         // number of elements
+        //         "\x24",                       // $
+        //         command.len(),                // <number_of_chars>
+        //         buffer.trim_end().to_owned(), // command (e.g. PING)
+        //     ),
+        //     &_ => unimplemented!(),
+        // };
+
+        // stream.write_all(buffer.as_bytes())?;
+        // stream.flush()?;
+
+        // let mut buffer = [0; 32];
+        // let read_amount = stream.read(&mut buffer).await?;
 
         // if read is 0 then socket is most probably closed
         // first we write the response and then the \n newline character
-        stdout().write_all(
-            format!("{:?}", std::str::from_utf8(&buffer[..read_amount]).unwrap()).as_bytes(),
-        )?;
+        // stdout().write_all(
+        //     format!("{:?}", std::str::from_utf8(&buffer[..read_amount]).unwrap()).as_bytes(),
+        // )?;
         stdout().write_all(b"\n")?;
         stdout().flush()?;
     }
