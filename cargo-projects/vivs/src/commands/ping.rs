@@ -19,7 +19,6 @@ impl Ping {
         match data.next() {
             Ok(data) => Ok(Ping::new(Some(data))),
             Err(_) => Ok(Ping::default()),
-            // Err(e) => Err(e.into()),
         }
     }
 
@@ -29,13 +28,26 @@ impl Ping {
         // write message that was "pinged" or "pong" back if no message was found
         if let Some(message) = self.message {
             match message {
-                DataChunk::Bulk(message) => conn.write_chunk(message.chunk()).await?,
-                _ => conn.write_chunk(default_response.as_bytes()).await?,
+                DataChunk::Bulk(message) => {
+                    conn.write_chunk(super::DataType::SimpleString, Some(message.chunk()))
+                        .await?
+                }
+                _ => {
+                    conn.write_chunk(
+                        super::DataType::SimpleString,
+                        Some(default_response.as_bytes()),
+                    )
+                    .await?
+                }
             }
 
             Ok(())
         } else {
-            conn.write_chunk(default_response.as_bytes()).await?;
+            conn.write_chunk(
+                super::DataType::SimpleString,
+                Some(default_response.as_bytes()),
+            )
+            .await?;
 
             Ok(())
         }

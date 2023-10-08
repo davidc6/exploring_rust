@@ -1,9 +1,8 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::{collections::HashMap, sync::Arc};
 
-#[derive(Default)]
+use tokio::sync::RwLock;
+
+#[derive(Default, Clone)]
 pub struct DataStore {
     pub db: HashMap<String, String>,
 }
