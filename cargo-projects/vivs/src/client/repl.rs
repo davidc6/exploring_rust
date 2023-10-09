@@ -56,11 +56,13 @@ async fn main() -> Result<()> {
         };
 
         // convert to the byte stream
-        // i.e. [Bulk("PING"), Bulk("Message")]
-        // *1\r\n$4\r\nPING\r\n
+        // i.e. [Bulk("PING"), Bulk("Mary")]
+        // *1\r\n$4\r\nPING\r\n$4\r\nMary\r\n
 
+        // writes some bytes to server socket
         connection.write_chunk_frame(data_chunk).await?;
 
+        // reads some bytes from the socket
         let bytes_read = connection.read_chunk_frame().await?;
         stdout().write_all(&bytes_read)?;
 
@@ -75,17 +77,6 @@ async fn main() -> Result<()> {
         //     &_ => unimplemented!(),
         // };
 
-        // stream.write_all(buffer.as_bytes())?;
-        // stream.flush()?;
-
-        // let mut buffer = [0; 32];
-        // let read_amount = stream.read(&mut buffer).await?;
-
-        // if read is 0 then socket is most probably closed
-        // first we write the response and then the \n newline character
-        // stdout().write_all(
-        //     format!("{:?}", std::str::from_utf8(&buffer[..read_amount]).unwrap()).as_bytes(),
-        // )?;
         stdout().write_all(b"\n")?;
         stdout().flush()?;
     }
