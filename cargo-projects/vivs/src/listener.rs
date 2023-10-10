@@ -21,6 +21,7 @@ impl Listener {
         // To accept multiple incoming connections,
         // loop construct is used here to handle each connection.
         // as a separate task (either on the current or different thread)
+        // Then a loop inside each thread is used to handle incoming data from client socket
         loop {
             // wait to accept a new connection from the tcp listener
             let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
