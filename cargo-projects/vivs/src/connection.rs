@@ -23,7 +23,9 @@ impl std::error::Error for ConnectionError {}
 impl Display for ConnectionError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ConnectionError::TcpClosed => write!(f, "TCP connection closed"),
+            ConnectionError::TcpClosed => {
+                write!(f, "TCP connection closed")
+            }
         }
     }
 }
