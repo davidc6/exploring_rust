@@ -51,7 +51,16 @@ async fn main() -> Result<()> {
 
         // TODO: implement command parser
         let data_chunk = match cmd.to_lowercase().as_ref() {
-            "ping" => Ping::new(line.next().map(|val| val.to_owned())).into_chunk(),
+            "ping" => Ping::new(line.next().map(|val| {
+                // since val without quotes will also be written back without quotes
+                // and it is not desirable
+                if val.starts_with('\"') {
+                    val.to_owned()
+                } else {
+                    format!("{:?}", val)
+                }
+            }))
+            .into_chunk(),
             _ => todo!(),
         };
 
@@ -64,7 +73,6 @@ async fn main() -> Result<()> {
 
         // reads some bytes from the socket
         let bytes_read = connection.read_chunk_frame().await?;
-        stdout().write_all(&bytes_read)?;
 
         // let buffer = match command.as_ref() {
         //     "ping" => format!(
@@ -77,6 +85,7 @@ async fn main() -> Result<()> {
         //     &_ => unimplemented!(),
         // };
 
+        stdout().write_all(&bytes_read)?;
         stdout().write_all(b"\n")?;
         stdout().flush()?;
     }
