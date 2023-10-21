@@ -40,11 +40,6 @@ pub struct Connection {
 
 impl Connection {
     pub fn new(stream: TcpStream) -> Connection {
-        // pub fn new(read: ReadHalf<'a>, write: WriteHalf<'a>) -> Connection<'a> {
-        // by passing read and write, we need to di
-        // let mut s = Box::new(socket);
-        // let (read, write) = stream.split();
-
         Connection {
             // writer: BufWriter::new(write),
             // reader: BufReader::new(read),
