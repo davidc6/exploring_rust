@@ -90,6 +90,14 @@ impl DataChunkFrame {
         self.segments.enumerate()
     }
 
+    pub fn iter(self) -> IntoIter<DataChunk> {
+        self.segments
+    }
+
+    pub fn size(&self) -> usize {
+        self.segments.len()
+    }
+
     pub fn push_bulk_str(mut self, b: Bytes) -> Self {
         // Hack (for now): convert iterator to vector
         // in order to push data chunks into it.
@@ -115,6 +123,7 @@ impl DataChunk {
 
         let data_chunks_vec = match commands {
             Ok(DataChunk::Array(val)) => val,
+            Ok(DataChunk::Bulk(value)) => vec![DataChunk::Bulk(value)],
             _ => return Err("some error".into()),
         };
 
@@ -129,7 +138,10 @@ impl DataChunk {
     }
 
     pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
-        match cursored_buffer.get_u8() {
+        // cursored_buffer.has_remaining()
+        let n = cursored_buffer.get_u8();
+
+        match n {
             // e.g. *1
             b'*' => {
                 // Using range expression ( .. ) which implements Iterator trait enables to map over each element
@@ -167,8 +179,16 @@ impl DataChunk {
 
                 Ok(DataChunk::Bulk(bulk_str_data))
             }
+            // e.g. +PING
+            b'+' => {
+                // up to \r\n
+                let str_line = line(cursored_buffer);
+                let len = str_line.as_ref().unwrap().len();
+                let bulk_str_data = Bytes::copy_from_slice(&str_line.unwrap().chunk()[..len]);
+                Ok(DataChunk::Bulk(bulk_str_data))
+            }
             _ => {
-                println!("Usigned 8 bit integer: {:?}", cursored_buffer.get_u8());
+                println!("Usigned 8 bit integer: {:?}", n);
                 println!("Line: {:?}", line(cursored_buffer));
                 unimplemented!();
             }
