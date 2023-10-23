@@ -40,7 +40,7 @@ impl Ping {
         let mut data_chunk_frame = data_chunk_frame.push_bulk_str(Bytes::from(cmd));
 
         if let Some(msg) = self.message {
-            data_chunk_frame = data_chunk_frame.push_bulk_str(format!("{:?}\r\n", msg).into());
+            data_chunk_frame = data_chunk_frame.push_bulk_str(format!("{}\r\n", msg).into());
         }
 
         data_chunk_frame
