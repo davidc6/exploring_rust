@@ -1,5 +1,5 @@
 use crate::{Connection, DataStoreWrapper, Handler, Result};
-use log::info;
+use log::{error, info};
 use tokio::net::TcpListener;
 
 pub struct Listener {
@@ -36,7 +36,7 @@ impl Listener {
 
             // spawn a new task, by passing an async block to it a green thread is created
             tokio::spawn(async move {
-                info!("Connection with {:?} established", socket_addr);
+                info!("Connection established with {:?}", socket_addr);
                 // Wait for me data from already connected sockets,
                 // by looping here the connection does not close.
                 // If we don't loop and when a client tries to send data continuously on the socket,
@@ -45,8 +45,7 @@ impl Listener {
                     match handler.run().await {
                         Ok(_) => (),
                         Err(e) => {
-                            // TODO: log error
-                            println!("{:?}", e);
+                            error!("Failed to handle the request: {:?}", e);
                             break;
                         }
                     };
