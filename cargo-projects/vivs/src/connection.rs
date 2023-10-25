@@ -52,6 +52,17 @@ impl Connection {
         }
     }
 
+    /// Returns a remotely connected peer address. An empty string if no peer_addr is returned
+    /// since this method is only used for logging purposes at the moment.
+    pub fn connected_peer_addr(&self) -> String {
+        let address = self.stream.get_ref().peer_addr();
+        if let Ok(addr) = address {
+            addr.to_string()
+        } else {
+            "".to_owned()
+        }
+    }
+
     pub async fn read_and_process_stream(&mut self) -> Result<DataChunkFrame> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared will be adding to the buffer
