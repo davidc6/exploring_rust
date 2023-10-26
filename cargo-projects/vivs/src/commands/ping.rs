@@ -23,7 +23,15 @@ impl Ping {
 
     pub async fn respond(self, conn: &mut Connection) -> Result<()> {
         if let Some(message) = self.message {
-            info!("{}", format!("{:?} {}", PING_CMD, message));
+            info!(
+                "{}",
+                format!(
+                    "{:?} {:?} {}",
+                    conn.connected_peer_addr(),
+                    PING_CMD,
+                    message
+                )
+            );
             conn.write_chunk(super::DataType::SimpleString, Some(message.as_bytes()))
                 .await?;
         } else {
