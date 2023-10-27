@@ -51,39 +51,21 @@ async fn main() -> Result<()> {
 
         // TODO: implement command parser
         let data_chunk = match cmd.to_lowercase().as_ref() {
-            "ping" => Ping::new(line.next().map(|val| {
-                // since val without quotes will also be written back without quotes
-                // and it is not desirable
-                if val.starts_with('\"') {
-                    val.to_owned()
-                } else {
-                    format!("{:?}", val)
-                }
-            }))
-            .into_chunk(),
+            "ping" => Ping::new(line.next().map(|val| val.to_owned())).into_chunk(),
             _ => todo!(),
         };
 
         // convert to the byte stream
         // i.e. [Bulk("PING"), Bulk("Mary")]
-        // *1\r\n$4\r\nPING\r\n$4\r\nMary\r\n
+        // *0\r\n$4\r\nPING\r\n$4\r\nMary\r\n
 
-        // writes some bytes to server socket
+        // writes bytes to server socket
+        // e.g. *0\r\n$4\r\nPING\r\n$4\r\nMary\r\n
         connection.write_chunk_frame(data_chunk).await?;
 
-        // reads some bytes from the socket
+        // reads bytes from server socket
+        // e.g. Mary
         let bytes_read = connection.read_chunk_frame().await?;
-
-        // let buffer = match command.as_ref() {
-        //     "ping" => format!(
-        //         "{}\r\n{}{}\r\n{}\r\n",
-        //         "*1",                         // number of elements
-        //         "\x24",                       // $
-        //         command.len(),                // <number_of_chars>
-        //         buffer.trim_end().to_owned(), // command (e.g. PING)
-        //     ),
-        //     &_ => unimplemented!(),
-        // };
 
         stdout().write_all(&bytes_read)?;
         stdout().write_all(b"\n")?;
