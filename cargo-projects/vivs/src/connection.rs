@@ -155,10 +155,20 @@ impl Connection {
     pub async fn read_chunk_frame(&mut self) -> Result<Bytes> {
         // read response
         let mut data_chunk = self.read_and_process_stream().await?;
-        let data_chunk = data_chunk.next();
-
-        match data_chunk.unwrap() {
-            DataChunk::Bulk(data) => Ok(data),
+        match data_chunk.next()? {
+            DataChunk::Bulk(data_bytes) => {
+                // This is a hack in order to write consistently formatted values to stdout.
+                // Since val without quotes can also be written back to stdout without quotes
+                // it is not desirable and therefore we want to add extra quotes to the output value.
+                // We need to think about allocations here as it will affect performance in the long run.
+                if data_bytes.first() != Some(&34) {
+                    let quotes_bytes = Bytes::from("\"");
+                    let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
+                    Ok(Bytes::from(concat_bytes))
+                } else {
+                    Ok(data_bytes)
+                }
+            }
             _ => Ok(Bytes::new()),
         }
     }
