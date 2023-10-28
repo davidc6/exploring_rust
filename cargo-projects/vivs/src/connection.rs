@@ -58,6 +58,7 @@ impl Connection {
             DataType::SimpleString => b'+',
             DataType::Null => b'_',
             DataType::SimpleError => b'-',
+            DataType::Integer => b':',
         };
 
         self.stream.write_u8(data_type).await?;
