@@ -1,15 +1,18 @@
 use crate::data_chunk::{DataChunk, DataChunkFrame};
-use crate::{Connection, DataStoreWrapper, Result};
+use crate::{Connection, DataStoreWrapper, Error, Result};
 use get::Get;
 use ping::Ping;
+use set::Set;
 use std::result::Result as NativeResult;
 
 pub mod get;
 pub mod ping;
+pub mod set;
 
 pub enum Command {
     Ping(Ping),
     Get(Get),
+    Set(Set),
     Unknown,
 }
 
@@ -24,11 +27,18 @@ pub enum ParseError {
     Other(crate::Error),
 }
 
+impl From<Error> for ParseError {
+    fn from(error: Error) -> Self {
+        ParseError::Other(error)
+    }
+}
+
 impl Command {
     // This method should parse a network frame/data unit instead of returning the hard-coded command
     // the frame essential is a redis command and for now this library will only support an array type
     // ref: https://redis.io/docs/reference/protocol-spec/#resp-arrays
     pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseError> {
+        // The iterator should contain all the necessary commands and values i.e. [SET, key, value]
         // Next chunk should be of Bulk string type which should be the command we need to process
         let command = match data_chunk.next() {
             Ok(DataChunk::Bulk(data)) => data,
@@ -36,11 +46,12 @@ impl Command {
         };
 
         // To figure out which command needs to be processed,
-        // we have to convert byte slice to a string slice
+        // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = std::str::from_utf8(&command).unwrap().to_lowercase();
         let command = match &command[..] {
-            "ping" => Command::Ping(Ping::parse(data_chunk).unwrap()),
+            "ping" => Command::Ping(Ping::parse(data_chunk)?),
             "get" => Command::Get(Get::parse(data_chunk).unwrap()),
+            "set" => Command::Set(Set::parse(data_chunk).unwrap()),
             _ => Command::Unknown,
         };
 
@@ -51,6 +62,7 @@ impl Command {
         match self {
             Command::Ping(command) => command.respond(conn).await,
             Command::Get(command) => command.respond(conn, db).await,
+            Command::Set(command) => command.respond(conn, db).await,
             Command::Unknown => Ok(()),
         }
     }

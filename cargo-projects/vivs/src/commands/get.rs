@@ -1,54 +1,49 @@
-use crate::data_chunk::{DataChunk, DataChunkFrame};
+use crate::data_chunk::DataChunkFrame;
 use crate::Result;
 use crate::{Connection, DataStoreWrapper};
-use bytes::Buf;
+use std::fmt::Display;
+
+#[derive(Debug)]
+enum GetError {
+    NoKey,
+}
+
+impl std::error::Error for GetError {}
+
+impl Display for GetError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            GetError::NoKey => write!(f, "No key was passed to GET command"),
+        }
+    }
+}
 
 pub struct Get {
-    key: Option<DataChunk>,
+    key: Option<String>,
 }
 
 impl Get {
     pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
-        // TODO: peek instead of next so that we can
-        match data.next() {
-            Ok(data) => Ok(Get { key: Some(data) }),
-            Err(e) => Err(e.into()), 
-        }
+        let Ok(key) = data.next_as_str() else {
+            return Err(Box::new(GetError::NoKey));
+        };
+
+        Ok(Self { key: Some(key) })
     }
 
     pub async fn respond(self, conn: Connection, db: DataStoreWrapper) -> Result<()> {
-        match self.key.unwrap() {
-            DataChunk::Bulk(key) => {
-                let key = std::str::from_utf8(key.chunk());
+        let Some(key) = self.key.as_ref() else {
+            return Err(Box::new(GetError::NoKey));
+        };
 
-                if key.is_err() {
-                    return Err("Failed to convert to UTF8".into());
-                }
+        let data_store_guard = db.db.read().await;
 
-                let key = key.unwrap();
-
-                if key.is_empty() {
-                    // TODO: extract various error prefix types
-                    let error = "ERROR wrong number of arguments".to_owned();
-                    conn.write_chunk(super::DataType::SimpleError, Some(error.as_bytes()))
-                        .await?;
-                    return Ok(());
-                }
-
-                let data_store_guard = db.db.read().await;
-
-                // TODO: once TTL is figured out, check for expiration here
-                if let Some(value) = data_store_guard.db.get(key) {
-                    conn.write_chunk(super::DataType::Null, Some(value.as_bytes()))
-                        .await?
-                } else {
-                    conn.write_chunk(super::DataType::Null, None).await?
-                }
-            }
-            _ => {
-                // TODO - to rethink
-                panic!("Error")
-            }
+        // TODO: once TTL is figured out, it needs to be accounted for
+        if let Some(value) = data_store_guard.db.get(key) {
+            conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                .await?
+        } else {
+            conn.write_null().await?
         }
 
         Ok(())

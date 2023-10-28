@@ -1,7 +1,7 @@
-use bytes::{buf, Buf, Bytes, BytesMut};
+use bytes::BytesMut;
 use std::io::{self, Cursor};
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::{AsyncReadExt, AsyncWriteExt, BufWriter},
     net::TcpStream,
 };
 
@@ -12,11 +12,10 @@ use crate::{
 };
 
 pub struct Connection {
-    // writer: BufWriter<TcpStream>
     // writer: BufWriter<WriteHalf<'a>>,
     // reader: BufReader<ReadHalf>,
     // reader: BufReader<ReadHalf<'a>>,
-    stream: TcpStream,
+    stream: BufWriter<TcpStream>,
     buffer: BytesMut,
 }
 
@@ -31,8 +30,7 @@ impl Connection {
             // writer: BufWriter::new(write),
             // reader: BufReader::new(read),
             // writer: BufWriter::new(write),
-            // writer: BufWriter::new(write),
-            stream,
+            stream: BufWriter::new(stream),
             // BytesMut is a unique reference into a continuguos slice of memory
             // 1kb, for now but mostly will need to increase in the future
             buffer: BytesMut::with_capacity(1024),
@@ -54,6 +52,7 @@ impl Connection {
 
     // Write chunk of data / frame to the stream
     // Frame is defined as bits of data in this context
+    // Since data is buffered in BufWriter no excessive sys calls to write will occur here
     pub async fn write_chunk(mut self, data_type: DataType, data: Option<&[u8]>) -> io::Result<()> {
         let data_type = match data_type {
             DataType::SimpleString => b'+',
@@ -63,12 +62,27 @@ impl Connection {
 
         self.stream.write_u8(data_type).await?;
 
+        // Failed command error description
         if data.is_some() {
             self.stream.write_all(data.unwrap()).await?;
         }
 
         self.stream.write_all(b"\r\n").await?;
+        self.stream.flush().await
+    }
 
-        Ok(())
+    pub async fn write_error(mut self, err_msg_bytes: &[u8]) -> io::Result<()> {
+        // "-" - first byte denotes error data type
+        // "ERR" - generic error type
+        // TODO: as a future improvement we could differentiate between error types
+        self.stream.write_all(b"-ERR").await?;
+        self.stream.write_all(err_msg_bytes).await?;
+        self.stream.flush().await
+    }
+
+    pub async fn write_null(mut self) -> io::Result<()> {
+        // "_" - first byte denotes null which represents non-existent values
+        self.stream.write_all(b"_\r\n").await?;
+        self.stream.flush().await
     }
 }

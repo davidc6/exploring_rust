@@ -1,7 +1,6 @@
+use crate::Result as CustomResult;
 use bytes::{Buf, Bytes};
 use std::{fmt, io::Cursor, num::TryFromIntError, vec::IntoIter};
-
-use crate::Result as CustomResult;
 
 #[derive(Debug)]
 pub enum Error {
@@ -9,6 +8,8 @@ pub enum Error {
     Uknown(String),
     ParseError,
 }
+
+impl std::error::Error for Error {}
 
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
@@ -53,11 +54,39 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
 pub struct DataChunkFrame {
     // data_chunks: DataChunk,
     segments: IntoIter<DataChunk>,
+    pub len: usize,
 }
 
 impl DataChunkFrame {
+    #![allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<DataChunk, Error> {
         self.segments.next().ok_or(Error::ParseError)
+    }
+
+    /// Tries to return next element in the collection
+    /// as a String type or Error
+    pub fn next_as_str(&mut self) -> Result<String, Error> {
+        let Some(segment) = self.segments.next() else {
+            return Err(Error::ParseError);
+        };
+
+        match segment {
+            DataChunk::Bulk(value) => {
+                let s = std::str::from_utf8(value.chunk());
+
+                if let Ok(str) = s {
+                    Ok(str.to_owned())
+                } else {
+                    // TODO: fix error handling
+                    Ok(String::from("aha"))
+                }
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn enumerate(self) -> std::iter::Enumerate<IntoIter<DataChunk>> {
+        self.segments.enumerate()
     }
 }
 
@@ -68,19 +97,23 @@ pub enum DataChunk {
 }
 
 impl DataChunk {
+    #![allow(clippy::new_ret_no_self)]
     pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> CustomResult<DataChunkFrame> {
-        // 1. parse
-        // 2. create DataChunk that has iterator also else error
+        // parse commands from byte slice
         let commands = DataChunk::parse(cursored_buffer);
 
-        let array = match commands {
+        let data_chunks_vec = match commands {
             Ok(DataChunk::Array(val)) => val,
             _ => return Err("some error".into()),
         };
 
+        let segments = data_chunks_vec.into_iter();
+        let segments_length = segments.len();
+
         Ok(DataChunkFrame {
             // data_chunks: commands.unwrap(),
-            segments: array.into_iter(),
+            segments,
+            len: segments_length,
         })
     }
 
@@ -143,12 +176,6 @@ impl From<TryFromIntError> for Error {
     }
 }
 
-// impl From<std::error::Error> for Error {
-//     fn from(_src: Error) -> Error {
-//         "Invalid".into()
-//     }
-// }
-
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -158,5 +185,3 @@ impl fmt::Display for Error {
         }
     }
 }
-
-impl std::error::Error for Error {}

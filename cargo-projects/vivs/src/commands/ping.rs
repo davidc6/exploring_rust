@@ -1,55 +1,30 @@
-use crate::{
-    data_chunk::{DataChunk, DataChunkFrame},
-    Connection, Result,
-};
-use bytes::Buf;
+use crate::{data_chunk::DataChunkFrame, Connection, Result};
 
 #[derive(Debug, Default)]
 pub struct Ping {
-    message: Option<DataChunk>,
+    message: Option<String>,
 }
 
 impl Ping {
-    pub fn new(message: Option<DataChunk>) -> Self {
+    pub fn new(message: Option<String>) -> Self {
         Ping { message }
     }
 
     pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
-        // TODO: peek instead of next so that we can
-        match data.next() {
-            Ok(data) => Ok(Ping::new(Some(data))),
+        match data.next_as_str() {
+            Ok(value) => Ok(Ping::new(Some(value))),
             Err(_) => Ok(Ping::default()),
         }
     }
 
     pub async fn respond(self, conn: Connection) -> Result<()> {
-        let default_response = "PONG";
-
-        // write message that was "pinged" or "pong" back if no message was found
         if let Some(message) = self.message {
-            match message {
-                DataChunk::Bulk(message) => {
-                    conn.write_chunk(super::DataType::SimpleString, Some(message.chunk()))
-                        .await?
-                }
-                _ => {
-                    conn.write_chunk(
-                        super::DataType::SimpleString,
-                        Some(default_response.as_bytes()),
-                    )
-                    .await?
-                }
-            }
-
-            Ok(())
+            conn.write_chunk(super::DataType::SimpleString, Some(message.as_bytes()))
+                .await?
         } else {
-            conn.write_chunk(
-                super::DataType::SimpleString,
-                Some(default_response.as_bytes()),
-            )
-            .await?;
-
-            Ok(())
+            conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
+                .await?
         }
+        Ok(())
     }
 }
