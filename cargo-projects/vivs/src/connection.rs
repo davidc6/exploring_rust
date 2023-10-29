@@ -1,5 +1,5 @@
 use crate::{
-    commands::DataType,
+    commands::{ping::PING_CMD, DataType},
     data_chunk::{DataChunk, DataChunkFrame},
     Result,
 };
@@ -161,7 +161,7 @@ impl Connection {
                 // Since val without quotes can also be written back to stdout without quotes
                 // it is not desirable and therefore we want to add extra quotes to the output value.
                 // We need to think about allocations here as it will affect performance in the long run.
-                if data_bytes.first() != Some(&34) {
+                if data_bytes.first() != Some(&34) && data_bytes != *PING_CMD {
                     let quotes_bytes = Bytes::from("\"");
                     let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
                     Ok(Bytes::from(concat_bytes))
