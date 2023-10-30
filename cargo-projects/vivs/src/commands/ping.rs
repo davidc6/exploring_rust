@@ -3,6 +3,7 @@ use bytes::Bytes;
 use log::info;
 
 const PING_CMD: &str = "PING";
+pub const PONG: &str = "PONG";
 
 #[derive(Debug, Default)]
 pub struct Ping {
@@ -26,7 +27,7 @@ impl Ping {
             info!(
                 "{}",
                 format!(
-                    "{:?} {:?} {}",
+                    "{:?} {:?} {:?}",
                     conn.connected_peer_addr(),
                     PING_CMD,
                     message
@@ -35,7 +36,11 @@ impl Ping {
             conn.write_chunk(super::DataType::SimpleString, Some(message.as_bytes()))
                 .await?;
         } else {
-            info!("{}", format!("{:?}", PING_CMD));
+            info!(
+                "{:?} {}",
+                conn.connected_peer_addr(),
+                format!("{:?}", PING_CMD)
+            );
             conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
                 .await?
         }
