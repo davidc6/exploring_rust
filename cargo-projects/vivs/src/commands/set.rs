@@ -53,7 +53,7 @@ impl Set {
         })
     }
 
-    pub async fn respond(&self, connection: Connection, db: DataStoreWrapper) -> Result<()> {
+    pub async fn respond(&self, connection: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
             return Err(Box::new(SetError::NoKey));
         };

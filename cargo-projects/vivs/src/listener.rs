@@ -12,18 +12,21 @@ impl Listener {
     }
 
     pub async fn run(self) -> Result<()> {
-        println!("Listening for requests...");
+        // TODO: logging here
+        println!(
+            "Listening on {:?} for the incoming connections ...",
+            self.tcp_listener.local_addr()?
+        );
 
         // To accept multiple incoming connections,
-        // loop construct is used here to handle each connection
+        // loop construct is used here to handle each connection.
         // as a separate task (either on the current or different thread)
         loop {
-            // wait for the new connection to establish
+            // wait to accept a new connection from the tcp listener
             let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
             println!("Incoming request from {:?}", socket_addr);
 
-            // Each connection gets a handler
-            let handler = Handler {
+            let mut handler = Handler {
                 // As the db is wrapped in an Arc, we use .clone() here to produce a new instance
                 // which points to the same allocation as source and increases the reference count
                 db: self.db.clone(),
@@ -31,9 +34,23 @@ impl Listener {
                 connection: Connection::new(tcp_stream),
             };
 
-            // spawn a new task which might end up executing on the same or different thread,
-            // depending on the Tokio scheduler
-            tokio::spawn(async move { handler.run().await });
+            // spawn a new task, by passing an async block to it a green thread is created
+            tokio::spawn(async move {
+                // Wait for me data from already connected sockets,
+                // by looping here the connection does not close.
+                // If we don't loop and when a client tries to send data continuously on the socket,
+                // we'll get the "brokne pipe" error message.
+                loop {
+                    match handler.run().await {
+                        Ok(_) => (),
+                        Err(e) => {
+                            // TODO: log error
+                            println!("ERROR {:?}", e);
+                            break;
+                        }
+                    };
+                }
+            });
         }
     }
 }

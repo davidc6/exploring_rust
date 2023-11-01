@@ -19,4 +19,4 @@ fi
 # use -e flag to process \r\n
 echo $command
 
-printf $command | nc -C -N 127.0.0.1 6379
+printf $command | nc -C -N -v 127.0.0.1 6379
