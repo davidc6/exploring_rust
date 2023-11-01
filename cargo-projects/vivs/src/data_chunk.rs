@@ -53,7 +53,6 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
 
 #[derive(Debug, Default)]
 pub struct DataChunkFrame {
-    // data_chunks: DataChunk,
     segments: IntoIter<DataChunk>,
     pub len: usize,
 }
@@ -131,7 +130,6 @@ impl DataChunk {
         let segments_length = segments.len();
 
         Ok(DataChunkFrame {
-            // data_chunks: commands.unwrap(),
             segments,
             len: segments_length,
         })
