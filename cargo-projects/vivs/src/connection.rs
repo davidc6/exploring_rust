@@ -66,14 +66,13 @@ impl Connection {
 
         self.stream.write_u8(data_type).await?;
 
-        // Failed command error description
+        // Write data to the socket
         if data.is_some() {
             self.stream.write_all(data.unwrap()).await?;
         }
 
         self.stream.write_all(b"\r\n").await?;
-        self.stream.flush().await?;
-        Ok(())
+        self.stream.flush().await
     }
 
     pub async fn write_error(mut self, err_msg_bytes: &[u8]) -> io::Result<()> {
