@@ -1,6 +1,9 @@
+use log::error;
 use std::fmt::Display;
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, stdout, Cursor, Write};
 use tokio::net::TcpStream;
+use vivs::commands::get::Get;
+use vivs::data_chunk::DataChunkFrame;
 use vivs::Result;
 use vivs::{commands::ping::Ping, Connection};
 
@@ -42,6 +45,7 @@ async fn main() -> Result<()> {
         let command = buffer.trim().to_owned();
         let mut line: std::str::Split<'_, char> = command.split(' ');
 
+        // Fist element should always the command
         let Some(cmd) = line.next() else {
             continue;
         };
@@ -50,8 +54,20 @@ async fn main() -> Result<()> {
         }
 
         // TODO: implement command parser
+        // let payload = connection.read_and_process_stream().await.map_err(|e| {
+        //     error!("Failed to processes the stream: {}", e);
+        //     e
+        // })?;
+
+        // let mut cursored_buffer = Cursor::new(&self.buffer[..]);
+
+        // println!("PAYLOAD {:?}", payload);
+        // Second element (in the current setup) should be message or key
+        // Third element to be worked on yet
+
         let data_chunk = match cmd.to_lowercase().as_ref() {
             "ping" => Ping::new(line.next().map(|val| val.to_owned())).into_chunk(),
+            // "get" => Get::parse(line.next().map(|val| DataChunkFrame::from(value))),
             _ => todo!(),
         };
 
