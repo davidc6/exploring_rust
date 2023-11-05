@@ -152,6 +152,12 @@ impl Connection {
         self.stream.flush().await
     }
 
+    pub async fn write_complete_frame(&mut self, data: &str) -> io::Result<()> {
+        self.stream.write_all(data.as_bytes()).await?;
+        self.stream.flush().await
+    }
+
+    // TODO: need to rethink this since clients should potentially handle this
     pub async fn read_chunk_frame(&mut self) -> Result<Bytes> {
         // read response
         let mut data_chunk = self.read_and_process_stream().await?;
@@ -169,7 +175,9 @@ impl Connection {
                     Ok(data_bytes)
                 }
             }
-            _ => Ok(Bytes::new()),
+            DataChunk::Null => Ok(Bytes::from("(nil)")),
+            DataChunk::Integer(val) => Ok(val),
+            _ => Ok(Bytes::from("Unknown")),
         }
     }
 }
