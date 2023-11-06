@@ -1,6 +1,11 @@
 use crate::Result as CustomResult;
 use bytes::{Buf, Bytes};
-use std::{fmt, io::Cursor, num::TryFromIntError, vec::IntoIter};
+use std::{
+    fmt::{self, format},
+    io::Cursor,
+    num::TryFromIntError,
+    vec::IntoIter,
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -112,6 +117,8 @@ impl DataChunkFrame {
 pub enum DataChunk {
     Array(Vec<DataChunk>),
     Bulk(Bytes),
+    Null,
+    Integer(Bytes),
 }
 
 impl DataChunk {
@@ -123,6 +130,8 @@ impl DataChunk {
         let data_chunks_vec = match commands {
             Ok(DataChunk::Array(val)) => val,
             Ok(DataChunk::Bulk(value)) => vec![DataChunk::Bulk(value)],
+            Ok(DataChunk::Null) => vec![DataChunk::Null],
+            Ok(DataChunk::Integer(value)) => vec![DataChunk::Integer(value)],
             _ => return Err("some error".into()),
         };
 
@@ -133,6 +142,16 @@ impl DataChunk {
             segments,
             len: segments_length,
         })
+    }
+
+    pub fn from_string(value: &str) -> CustomResult<String> {
+        let split = value.trim_end().split(' ');
+
+        let a = split.fold(("\r\n".to_owned(), 0), |acc, val| {
+            (format!("{}${}\r\n{}\r\n", acc.0, val.len(), val), acc.1 + 1)
+        });
+
+        Ok(format!("*{}{}", a.1, a.0))
     }
 
     pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
@@ -171,7 +190,6 @@ impl DataChunk {
 
                 // cursored_buffer.chunk().len() - the length of the whole buffer
                 let bulk_str_data = Bytes::copy_from_slice(&cursored_buffer.chunk()[..str_len]);
-
                 // advance the interval position (+2 \r and \n) as we've now gotten the needed bulk string
                 cursored_buffer.advance(str_len + 2);
 
@@ -185,8 +203,15 @@ impl DataChunk {
                 let bulk_str_data = Bytes::copy_from_slice(&str_line.unwrap().chunk()[..len]);
                 Ok(DataChunk::Bulk(bulk_str_data))
             }
+            // e.g. :1
+            b':' => {
+                let n = line(cursored_buffer);
+                let v = Bytes::copy_from_slice(n.unwrap());
+                Ok(DataChunk::Integer(v))
+            }
+            b'_' => Ok(DataChunk::Null),
             _ => {
-                println!("Usigned 8 bit integer: {:?}", n);
+                println!("Usigned 7 bit integer: {:?}", n);
                 println!("Line: {:?}", line(cursored_buffer));
                 unimplemented!();
             }
