@@ -49,7 +49,6 @@ async fn main() -> Result<()> {
             .await?;
 
         // reads bytes from server socket
-        // e.g. Mary
         let bytes_read = connection.read_chunk_frame().await?;
 
         // write back to stdout
