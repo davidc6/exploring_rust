@@ -147,11 +147,13 @@ impl DataChunk {
     pub fn from_string(value: &str) -> CustomResult<String> {
         let split = value.trim_end().split(' ');
 
-        let a = split.fold(("\r\n".to_owned(), 0), |acc, val| {
+        let parsed_commands = split.fold(("\r\n".to_owned(), 0), |acc, val| {
             (format!("{}${}\r\n{}\r\n", acc.0, val.len(), val), acc.1 + 1)
         });
 
-        Ok(format!("*{}{}", a.1, a.0))
+        let (commands, commands_count) = parsed_commands;
+
+        Ok(format!("*{commands_count}{commands}"))
     }
 
     pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
