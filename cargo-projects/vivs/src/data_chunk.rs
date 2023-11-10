@@ -1,7 +1,7 @@
 use crate::Result as CustomResult;
 use bytes::{Buf, Bytes};
 use std::{
-    fmt::{self, format},
+    fmt::{self},
     io::Cursor,
     num::TryFromIntError,
     vec::IntoIter,
@@ -119,6 +119,7 @@ pub enum DataChunk {
     Bulk(Bytes),
     Null,
     Integer(Bytes),
+    SimpleError(Bytes),
 }
 
 impl DataChunk {
@@ -132,6 +133,7 @@ impl DataChunk {
             Ok(DataChunk::Bulk(value)) => vec![DataChunk::Bulk(value)],
             Ok(DataChunk::Null) => vec![DataChunk::Null],
             Ok(DataChunk::Integer(value)) => vec![DataChunk::Integer(value)],
+            Ok(DataChunk::SimpleError(value)) => vec![DataChunk::SimpleError(value)],
             _ => return Err("some error".into()),
         };
 
@@ -212,6 +214,11 @@ impl DataChunk {
                 Ok(DataChunk::Integer(v))
             }
             b'_' => Ok(DataChunk::Null),
+            b'-' => {
+                let err = line(cursored_buffer);
+                let copied_err = Bytes::copy_from_slice(err.unwrap());
+                Ok(DataChunk::SimpleError(copied_err))
+            }
             _ => {
                 println!("Usigned 7 bit integer: {:?}", n);
                 println!("Line: {:?}", line(cursored_buffer));
