@@ -52,11 +52,12 @@ impl Command {
         // .next() chunk should be of Bulk string type which should be the command we need to process
         let command = data_chunk.next_as_str()?.to_lowercase();
 
+        // TODO: remove unwraps
         // To figure out which command needs to be processed,
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = match &command[..] {
             "ping" => Command::Ping(Ping::parse(data_chunk)?),
-            "get" => Command::Get(Get::parse(data_chunk).unwrap()),
+            "get" => Command::Get(Get::parse(data_chunk)?),
             "set" => Command::Set(Set::parse(data_chunk).unwrap()),
             "delete" => Command::Delete(Delete::parse(data_chunk)?),
             _ => Command::Unknown,
@@ -71,6 +72,7 @@ impl Command {
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
+            // Error?
             Command::Unknown => Ok(()),
         }
     }
