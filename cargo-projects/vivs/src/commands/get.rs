@@ -3,9 +3,12 @@ use crate::Result;
 use crate::{Connection, DataStoreWrapper};
 use std::fmt::Display;
 
+pub const MINIMUM_REQUIRED_ARGS: u8 = 2;
+
 #[derive(Debug)]
 enum GetError {
     NoKey,
+    NotEnoughArgs,
 }
 
 impl std::error::Error for GetError {}
@@ -14,6 +17,7 @@ impl Display for GetError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             GetError::NoKey => write!(f, "No key was passed to GET command"),
+            GetError::NotEnoughArgs => write!(f, "Not enough arguments"),
         }
     }
 }
@@ -24,8 +28,14 @@ pub struct Get {
 
 impl Get {
     pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
+        // if data.len < 2 {
+        //     println!("Not enough args");
+        //     return Err(Box::new(GetError::NotEnoughArgs));
+        // }
+
         let Ok(key) = data.next_as_str() else {
-            return Err(Box::new(GetError::NoKey));
+            return Ok(Self { key: None });
+            // return Err(Box::new(GetError::NoKey));
         };
 
         Ok(Self { key: Some(key) })
@@ -37,8 +47,14 @@ impl Get {
     // }
 
     pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
+        // TODO: can we handle not enough args message/error here?
+
         let Some(key) = self.key.as_ref() else {
-            return Err(Box::new(GetError::NoKey));
+            //
+            conn.write_error("ERR Incorrect number of arguments\r\n".as_bytes())
+                .await?;
+            return Ok(());
+            // return Err(Box::new(GetError::NoKey));
         };
 
         let data_store_guard = db.db.read().await;
