@@ -114,7 +114,7 @@ impl Connection {
         // "-" - first byte denotes error data type
         // "ERR" - generic error type
         // TODO: as a future improvement we could differentiate between error types
-        self.stream.write_all(b"-(error) ERR ").await?;
+        self.stream.write_all(b"-(error) ").await?;
         self.stream.write_all(err_msg_bytes).await?;
         self.stream.flush().await
     }
