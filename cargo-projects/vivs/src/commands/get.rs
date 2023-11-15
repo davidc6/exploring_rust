@@ -47,14 +47,10 @@ impl Get {
     // }
 
     pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
-        // TODO: can we handle not enough args message/error here?
-
         let Some(key) = self.key.as_ref() else {
-            //
             conn.write_error("ERR Incorrect number of arguments\r\n".as_bytes())
                 .await?;
             return Ok(());
-            // return Err(Box::new(GetError::NoKey));
         };
 
         let data_store_guard = db.db.read().await;
