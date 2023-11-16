@@ -28,23 +28,12 @@ pub struct Get {
 
 impl Get {
     pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
-        // if data.len < 2 {
-        //     println!("Not enough args");
-        //     return Err(Box::new(GetError::NotEnoughArgs));
-        // }
-
         let Ok(key) = data.next_as_str() else {
             return Ok(Self { key: None });
-            // return Err(Box::new(GetError::NoKey));
         };
 
         Ok(Self { key: Some(key) })
     }
-
-    // $2\r\nNo\r\n
-    // pub fn parse_from(data: String) -> DataChunkFrame {
-    //     DataChunk::new(cursored_buffer)
-    // }
 
     pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
