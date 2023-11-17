@@ -3,8 +3,6 @@ use crate::Result;
 use crate::{Connection, DataStoreWrapper};
 use std::fmt::Display;
 
-pub const MINIMUM_REQUIRED_ARGS: u8 = 2;
-
 #[derive(Debug)]
 enum GetError {
     NoKey,
