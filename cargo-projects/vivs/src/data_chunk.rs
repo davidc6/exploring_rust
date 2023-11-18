@@ -51,14 +51,14 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
     Err(Error::Insufficient)
 }
 
+#[derive(Debug, Default)]
 pub struct DataChunkFrame {
-    // data_chunks: DataChunk,
     segments: IntoIter<DataChunk>,
     pub len: usize,
 }
 
 impl DataChunkFrame {
-    #![allow(clippy::should_implement_trait)]
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Result<DataChunk, Error> {
         self.segments.next().ok_or(Error::ParseError)
     }
@@ -88,6 +88,24 @@ impl DataChunkFrame {
     pub fn enumerate(self) -> std::iter::Enumerate<IntoIter<DataChunk>> {
         self.segments.enumerate()
     }
+
+    pub fn iter(self) -> IntoIter<DataChunk> {
+        self.segments
+    }
+
+    pub fn size(&self) -> usize {
+        self.segments.len()
+    }
+
+    pub fn push_bulk_str(mut self, b: Bytes) -> Self {
+        // Hack (for now): convert iterator to vector
+        // in order to push data chunks into it.
+        // This functionality is part of the so called "client encoder"
+        let mut v: Vec<DataChunk> = self.segments.collect();
+        v.push(DataChunk::Bulk(b));
+        self.segments = v.into_iter();
+        self
+    }
 }
 
 #[derive(Debug)]
@@ -104,6 +122,7 @@ impl DataChunk {
 
         let data_chunks_vec = match commands {
             Ok(DataChunk::Array(val)) => val,
+            Ok(DataChunk::Bulk(value)) => vec![DataChunk::Bulk(value)],
             _ => return Err("some error".into()),
         };
 
@@ -111,14 +130,16 @@ impl DataChunk {
         let segments_length = segments.len();
 
         Ok(DataChunkFrame {
-            // data_chunks: commands.unwrap(),
             segments,
             len: segments_length,
         })
     }
 
     pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
-        match cursored_buffer.get_u8() {
+        // cursored_buffer.has_remaining()
+        let n = cursored_buffer.get_u8();
+
+        match n {
             // e.g. *1
             b'*' => {
                 // Using range expression ( .. ) which implements Iterator trait enables to map over each element
@@ -156,8 +177,16 @@ impl DataChunk {
 
                 Ok(DataChunk::Bulk(bulk_str_data))
             }
+            // e.g. +PING
+            b'+' => {
+                // up to \r\n
+                let str_line = line(cursored_buffer);
+                let len = str_line.as_ref().unwrap().len();
+                let bulk_str_data = Bytes::copy_from_slice(&str_line.unwrap().chunk()[..len]);
+                Ok(DataChunk::Bulk(bulk_str_data))
+            }
             _ => {
-                println!("Usigned 8 bit integer: {:?}", cursored_buffer.get_u8());
+                println!("Usigned 8 bit integer: {:?}", n);
                 println!("Line: {:?}", line(cursored_buffer));
                 unimplemented!();
             }

@@ -1,4 +1,5 @@
 use crate::{Connection, DataStoreWrapper, Handler, Result};
+use log::{error, info};
 use tokio::net::TcpListener;
 
 pub struct Listener {
@@ -12,19 +13,18 @@ impl Listener {
     }
 
     pub async fn run(self) -> Result<()> {
-        // TODO: logging here
-        println!(
-            "Listening on {:?} for the incoming connections ...",
-            self.tcp_listener.local_addr()?
-        );
+        info!("Server initialised");
+        info!("Listening for connections");
 
         // To accept multiple incoming connections,
         // loop construct is used here to handle each connection.
         // as a separate task (either on the current or different thread)
+        // Then a loop inside each thread is used to handle incoming data from client socket
         loop {
             // wait to accept a new connection from the tcp listener
             let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
-            println!("Incoming request from {:?}", socket_addr);
+
+            info!("Incoming connection request from {:?}", socket_addr);
 
             let mut handler = Handler {
                 // As the db is wrapped in an Arc, we use .clone() here to produce a new instance
@@ -36,6 +36,7 @@ impl Listener {
 
             // spawn a new task, by passing an async block to it a green thread is created
             tokio::spawn(async move {
+                info!("Connection established with {:?}", socket_addr);
                 // Wait for me data from already connected sockets,
                 // by looping here the connection does not close.
                 // If we don't loop and when a client tries to send data continuously on the socket,
@@ -44,8 +45,7 @@ impl Listener {
                     match handler.run().await {
                         Ok(_) => (),
                         Err(e) => {
-                            // TODO: log error
-                            println!("ERROR {:?}", e);
+                            error!("Failed to handle the request: {:?}", e);
                             break;
                         }
                     };

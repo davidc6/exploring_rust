@@ -31,6 +31,11 @@ impl Get {
         Ok(Self { key: Some(key) })
     }
 
+    // $2\r\nNo\r\n
+    // pub fn parse_from(data: String) -> DataChunkFrame {
+    //     DataChunk::new(cursored_buffer)
+    // }
+
     pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
             return Err(Box::new(GetError::NoKey));

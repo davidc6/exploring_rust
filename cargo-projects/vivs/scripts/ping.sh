@@ -12,7 +12,8 @@ if [ -z $1 ]; then
   command="*1${data_type}PING\r\n"
 else 
   message_length="${#1}"
-  command="*2${data_type}PING\r\n\x24${message_length}\r\n${1}\r\n"
+  len=$((message_length + 2))
+  command="*2${data_type}PING\r\n\x24${len}\r\n\x22${1}\x22\r\n"
 fi
 
 # This is for debugging purposes, to see what we are sending to the server
