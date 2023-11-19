@@ -64,12 +64,15 @@ pub struct DataChunkFrame {
 
 impl DataChunkFrame {
     #[allow(clippy::should_implement_trait)]
+    /// Tries to return the next element in the collection.
+    /// Returns an error otherwise
     pub fn next(&mut self) -> Result<DataChunk, Error> {
         self.segments.next().ok_or(Error::ParseError)
     }
 
-    /// Tries to return next element in the collection
-    /// as a String type or Error
+    /// Tries to return next element in the collection/segments.
+    /// If the element exists then a String type gets returned.
+    /// Other an Error is returned.
     pub fn next_as_str(&mut self) -> Result<String, Error> {
         let Some(segment) = self.segments.next() else {
             return Err(Error::ParseError);
