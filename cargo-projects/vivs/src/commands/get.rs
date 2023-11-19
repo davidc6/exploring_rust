@@ -36,6 +36,7 @@ impl Get {
 
     pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
+            // TODO: extract error type into a separate function
             conn.write_error("ERR Incorrect number of arguments\r\n".as_bytes())
                 .await?;
             return Ok(());
