@@ -110,11 +110,11 @@ impl Connection {
         self.stream.flush().await
     }
 
-    pub async fn write_error(mut self, err_msg_bytes: &[u8]) -> io::Result<()> {
+    pub async fn write_error(&mut self, err_msg_bytes: &[u8]) -> io::Result<()> {
         // "-" - first byte denotes error data type
         // "ERR" - generic error type
         // TODO: as a future improvement we could differentiate between error types
-        self.stream.write_all(b"-ERR").await?;
+        self.stream.write_all(b"-(error) ").await?;
         self.stream.write_all(err_msg_bytes).await?;
         self.stream.flush().await
     }
@@ -152,6 +152,12 @@ impl Connection {
         self.stream.flush().await
     }
 
+    pub async fn write_complete_frame(&mut self, data: &str) -> io::Result<()> {
+        self.stream.write_all(data.as_bytes()).await?;
+        self.stream.flush().await
+    }
+
+    // TODO: need to rethink this since clients should potentially handle this
     pub async fn read_chunk_frame(&mut self) -> Result<Bytes> {
         // read response
         let mut data_chunk = self.read_and_process_stream().await?;
@@ -169,7 +175,10 @@ impl Connection {
                     Ok(data_bytes)
                 }
             }
-            _ => Ok(Bytes::new()),
+            DataChunk::Null => Ok(Bytes::from("(nil)")),
+            DataChunk::SimpleError(data_bytes) => Ok(data_bytes),
+            DataChunk::Integer(val) => Ok(val),
+            _ => Ok(Bytes::from("Unknown")),
         }
     }
 }
