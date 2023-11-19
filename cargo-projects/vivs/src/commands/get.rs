@@ -6,7 +6,7 @@ use std::fmt::Display;
 #[derive(Debug)]
 enum GetError {
     NoKey,
-    NotEnoughArgs,
+    IncorrectNumberOfArgs,
 }
 
 impl std::error::Error for GetError {}
@@ -15,7 +15,7 @@ impl Display for GetError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             GetError::NoKey => write!(f, "No key was passed to GET command"),
-            GetError::NotEnoughArgs => write!(f, "Not enough arguments"),
+            GetError::IncorrectNumberOfArgs => write!(f, "Not enough arguments"),
         }
     }
 }
