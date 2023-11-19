@@ -157,7 +157,8 @@ impl Connection {
         self.stream.flush().await
     }
 
-    // TODO: need to rethink this since clients should potentially handle this
+    /// TODO: need to rethink this since clients should potentially handle this
+    /// The last _ (fall through / catch-all case)
     pub async fn read_chunk_frame(&mut self) -> Result<Bytes> {
         // read response
         let mut data_chunk = self.read_and_process_stream().await?;
@@ -175,11 +176,12 @@ impl Connection {
                     Ok(data_bytes)
                 }
             }
-            Some(DataChunk::Array(val)) => Ok(Bytes::from("")), // This is here so that the case is covered that we can't actually do much with it
+            // Some(DataChunk::Array(val)) => Ok(Bytes::from("")), // This is here so that the case is covered that we can't actually do much with it
             Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
             Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
             Some(DataChunk::Integer(val)) => Ok(val),
             None => Ok(Bytes::from("Unknown")),
+            _ => Ok(Bytes::from("(nil)")),
         }
     }
 }
