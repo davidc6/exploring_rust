@@ -12,6 +12,7 @@ pub enum Error {
     Insufficient,
     Uknown(String),
     ParseError,
+    NonExistent,
 }
 
 impl std::error::Error for Error {}
@@ -66,8 +67,8 @@ impl DataChunkFrame {
     #[allow(clippy::should_implement_trait)]
     /// Tries to return the next element in the collection.
     /// Returns an error otherwise
-    pub fn next(&mut self) -> Result<DataChunk, Error> {
-        self.segments.next().ok_or(Error::ParseError)
+    pub fn next(&mut self) -> Option<DataChunk> {
+        self.segments.next()
     }
 
     /// Tries to return next element in the collection/segments.
@@ -75,7 +76,7 @@ impl DataChunkFrame {
     /// Other an Error is returned.
     pub fn next_as_str(&mut self) -> Result<String, Error> {
         let Some(segment) = self.segments.next() else {
-            return Err(Error::ParseError);
+            return Err(Error::NonExistent);
         };
 
         match segment {
@@ -223,7 +224,7 @@ impl DataChunk {
                 Ok(DataChunk::SimpleError(copied_err))
             }
             _ => {
-                println!("Usigned 7 bit integer: {:?}", n);
+                println!("Next byte: {:?}", n);
                 println!("Line: {:?}", line(cursored_buffer));
                 unimplemented!();
             }
@@ -255,6 +256,7 @@ impl fmt::Display for Error {
             Error::ParseError => "protocol error; unexpected end of stream".fmt(f),
             Error::Uknown(err) => err.fmt(f),
             Error::Insufficient => "error".fmt(f),
+            Error::NonExistent => "no next value in the iterator".fmt(f),
         }
     }
 }
