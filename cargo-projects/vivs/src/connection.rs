@@ -176,12 +176,11 @@ impl Connection {
                     Ok(data_bytes)
                 }
             }
-            // Some(DataChunk::Array(val)) => Ok(Bytes::from("")), // This is here so that the case is covered that we can't actually do much with it
             Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
             Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
             Some(DataChunk::Integer(val)) => Ok(val),
             None => Ok(Bytes::from("Unknown")),
-            _ => Ok(Bytes::from("(nil)")),
+            _ => Ok(Bytes::from("(nil)")), // catch all case
         }
     }
 }
