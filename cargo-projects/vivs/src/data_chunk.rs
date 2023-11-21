@@ -1,9 +1,11 @@
-use crate::Result as CustomResult;
+use crate::{commands::ParseError, Result as CustomResult};
 use bytes::{Buf, Bytes};
 use std::{
     fmt::{self},
     io::Cursor,
     num::TryFromIntError,
+    str::Utf8Error,
+    string::FromUtf8Error,
     vec::IntoIter,
 };
 
@@ -13,9 +15,22 @@ pub enum Error {
     Uknown(String),
     ParseError,
     NonExistent,
+    Other(Utf8Error),
 }
 
 impl std::error::Error for Error {}
+
+impl From<Utf8Error> for Error {
+    fn from(e: Utf8Error) -> Self {
+        Error::Other(e)
+    }
+}
+
+// impl From<Error> for Error {
+//     fn from(e: Error) -> Self {
+//         ParseError::Other(e)
+//     }
+// }
 
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
@@ -81,14 +96,8 @@ impl DataChunkFrame {
 
         match segment {
             DataChunk::Bulk(value) => {
-                let s = std::str::from_utf8(value.chunk());
-
-                if let Ok(str) = s {
-                    Ok(str.to_owned())
-                } else {
-                    // TODO: fix error handling
-                    Ok(String::from("aha"))
-                }
+                let value = std::str::from_utf8(value.chunk())?;
+                Ok(value.to_owned())
             }
             _ => unimplemented!(),
         }
@@ -257,6 +266,7 @@ impl fmt::Display for Error {
             Error::Uknown(err) => err.fmt(f),
             Error::Insufficient => "error".fmt(f),
             Error::NonExistent => "no next value in the iterator".fmt(f),
+            Error::Other(val) => val.fmt(f),
         }
     }
 }

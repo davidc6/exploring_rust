@@ -162,6 +162,7 @@ impl Connection {
     pub async fn read_chunk_frame(&mut self) -> Result<Bytes> {
         // read response
         let mut data_chunk = self.read_and_process_stream().await?;
+
         match data_chunk.next() {
             Some(DataChunk::Bulk(data_bytes)) => {
                 // This is a hack in order to write consistently formatted values to stdout.
