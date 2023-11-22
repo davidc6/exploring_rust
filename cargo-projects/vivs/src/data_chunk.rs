@@ -1,11 +1,10 @@
-use crate::{commands::ParseError, Result as CustomResult};
+use crate::Result as CustomResult;
 use bytes::{Buf, Bytes};
 use std::{
     fmt::{self},
     io::Cursor,
     num::TryFromIntError,
     str::Utf8Error,
-    string::FromUtf8Error,
     vec::IntoIter,
 };
 
@@ -25,12 +24,6 @@ impl From<Utf8Error> for Error {
         Error::Other(e)
     }
 }
-
-// impl From<Error> for Error {
-//     fn from(e: Error) -> Self {
-//         ParseError::Other(e)
-//     }
-// }
 
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
