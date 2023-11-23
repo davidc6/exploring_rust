@@ -82,6 +82,8 @@ impl DataChunkFrame {
     /// Tries to return next element in the collection/segments.
     /// If the element exists then a String type gets returned.
     /// Other an Error is returned.
+    /// The reason the error is returned is because we attempt to convert a
+    /// slice of bytes to string slice
     pub fn next_as_str(&mut self) -> Result<String, Error> {
         let Some(segment) = self.segments.next() else {
             return Err(Error::NonExistent);
