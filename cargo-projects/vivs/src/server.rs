@@ -1,12 +1,12 @@
 use crate::DataStoreWrapper;
 use crate::Listener;
+use crate::Result;
 use log::error;
 use log::info;
 use tokio::net::TcpListener;
 
-// New improved way of handling requests
-pub async fn start(addr: String, port: String) -> crate::Result<()> {
-    let address = format!("{}:{}", addr, port);
+pub async fn start(ipv4: String, port: String) -> Result<()> {
+    let address = format!("{}:{}", ipv4, port);
     info!("Attempting to bind on port {}", port);
 
     // bind/asign address to the socket (ip address + port number)

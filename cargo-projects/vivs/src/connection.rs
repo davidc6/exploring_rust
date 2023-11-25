@@ -157,12 +157,14 @@ impl Connection {
         self.stream.flush().await
     }
 
-    // TODO: need to rethink this since clients should potentially handle this
+    /// TODO: need to rethink this since clients should potentially handle this
+    /// The last _ (fall through / catch-all case)
     pub async fn read_chunk_frame(&mut self) -> Result<Bytes> {
         // read response
         let mut data_chunk = self.read_and_process_stream().await?;
-        match data_chunk.next()? {
-            DataChunk::Bulk(data_bytes) => {
+
+        match data_chunk.next() {
+            Some(DataChunk::Bulk(data_bytes)) => {
                 // This is a hack in order to write consistently formatted values to stdout.
                 // Since val without quotes can also be written back to stdout without quotes
                 // it is not desirable and therefore we want to add extra quotes to the output value.
@@ -175,10 +177,11 @@ impl Connection {
                     Ok(data_bytes)
                 }
             }
-            DataChunk::Null => Ok(Bytes::from("(nil)")),
-            DataChunk::SimpleError(data_bytes) => Ok(data_bytes),
-            DataChunk::Integer(val) => Ok(val),
-            _ => Ok(Bytes::from("Unknown")),
+            Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
+            Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
+            Some(DataChunk::Integer(val)) => Ok(val),
+            None => Ok(Bytes::from("Unknown")),
+            _ => Ok(Bytes::from("(nil)")), // catch all case
         }
     }
 }

@@ -4,7 +4,7 @@ use tokio::net::TcpListener;
 
 pub struct Listener {
     pub tcp_listener: TcpListener,
-    pub db: DataStoreWrapper, // should be clonable
+    pub db: DataStoreWrapper,
 }
 
 impl Listener {
@@ -34,7 +34,9 @@ impl Listener {
                 connection: Connection::new(tcp_stream),
             };
 
-            // spawn a new task, by passing an async block to it a green thread is created
+            // Create a new task.
+            // A Tokio task is an async green (aka virtual) thread that is created by a runtime of VM (instead of OS).
+            // Tasks are created by passing an async block to spawn().
             tokio::spawn(async move {
                 info!("Connection established with {:?}", socket_addr);
                 // Wait for me data from already connected sockets,

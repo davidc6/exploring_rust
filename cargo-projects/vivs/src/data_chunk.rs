@@ -4,6 +4,7 @@ use std::{
     fmt::{self},
     io::Cursor,
     num::TryFromIntError,
+    str::Utf8Error,
     vec::IntoIter,
 };
 
@@ -12,9 +13,17 @@ pub enum Error {
     Insufficient,
     Uknown(String),
     ParseError,
+    NonExistent,
+    Other(Utf8Error),
 }
 
 impl std::error::Error for Error {}
+
+impl From<Utf8Error> for Error {
+    fn from(e: Utf8Error) -> Self {
+        Error::Other(e)
+    }
+}
 
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
@@ -66,28 +75,24 @@ impl DataChunkFrame {
     #[allow(clippy::should_implement_trait)]
     /// Tries to return the next element in the collection.
     /// Returns an error otherwise
-    pub fn next(&mut self) -> Result<DataChunk, Error> {
-        self.segments.next().ok_or(Error::ParseError)
+    pub fn next(&mut self) -> Option<DataChunk> {
+        self.segments.next()
     }
 
     /// Tries to return next element in the collection/segments.
     /// If the element exists then a String type gets returned.
     /// Other an Error is returned.
+    /// The reason the error is returned is because we attempt to convert a
+    /// slice of bytes to string slice
     pub fn next_as_str(&mut self) -> Result<String, Error> {
         let Some(segment) = self.segments.next() else {
-            return Err(Error::ParseError);
+            return Err(Error::NonExistent);
         };
 
         match segment {
             DataChunk::Bulk(value) => {
-                let s = std::str::from_utf8(value.chunk());
-
-                if let Ok(str) = s {
-                    Ok(str.to_owned())
-                } else {
-                    // TODO: fix error handling
-                    Ok(String::from("aha"))
-                }
+                let value = std::str::from_utf8(value.chunk())?;
+                Ok(value.to_owned())
             }
             _ => unimplemented!(),
         }
@@ -223,7 +228,7 @@ impl DataChunk {
                 Ok(DataChunk::SimpleError(copied_err))
             }
             _ => {
-                println!("Usigned 7 bit integer: {:?}", n);
+                println!("Next byte: {:?}", n);
                 println!("Line: {:?}", line(cursored_buffer));
                 unimplemented!();
             }
@@ -255,6 +260,8 @@ impl fmt::Display for Error {
             Error::ParseError => "protocol error; unexpected end of stream".fmt(f),
             Error::Uknown(err) => err.fmt(f),
             Error::Insufficient => "error".fmt(f),
+            Error::NonExistent => "no next value in the iterator".fmt(f),
+            Error::Other(val) => val.fmt(f),
         }
     }
 }
