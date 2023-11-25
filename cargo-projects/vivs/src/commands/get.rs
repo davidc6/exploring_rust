@@ -1,6 +1,5 @@
 use crate::data_chunk::DataChunkFrame;
-use crate::Result;
-use crate::{Connection, DataStoreWrapper};
+use crate::{Connection, DataStoreWrapper, Result};
 use std::fmt::Display;
 
 #[derive(Debug)]
