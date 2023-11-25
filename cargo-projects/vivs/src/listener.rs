@@ -34,9 +34,9 @@ impl Listener {
                 connection: Connection::new(tcp_stream),
             };
 
-            // Spawn a new task.
+            // Create a new task.
             // A Tokio task is an async green (aka virtual) thread that is created by a runtime of VM (instead of OS).
-            // This is done by passing an async block to spawn() which created a green thread.
+            // Tasks are created by passing an async block to spawn().
             tokio::spawn(async move {
                 info!("Connection established with {:?}", socket_addr);
                 // Wait for me data from already connected sockets,
