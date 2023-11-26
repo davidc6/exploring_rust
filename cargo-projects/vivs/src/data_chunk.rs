@@ -1,4 +1,5 @@
 use crate::Result as CustomResult;
+use atoi::atoi;
 use bytes::{Buf, Bytes};
 use std::{
     fmt::{self},
@@ -9,46 +10,37 @@ use std::{
 };
 
 #[derive(Debug)]
-pub enum Error {
+pub enum DataChunkError {
     Insufficient,
     Uknown(String),
-    ParseError,
+    Parse(String),
     NonExistent,
     Other(Utf8Error),
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for DataChunkError {}
 
-impl From<Utf8Error> for Error {
+impl From<Utf8Error> for DataChunkError {
     fn from(e: Utf8Error) -> Self {
-        Error::Other(e)
+        DataChunkError::Other(e)
     }
 }
 
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
-fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Error> {
-    use atoi::atoi;
-
-    // current cursor position
-    // let current_position = cursored_buffer.position() as usize;
-    // number of overall elements in the underlying value
-    // let length = cursored_buffer.get_ref().len();
-    // underlying slice
-    // let buffer_slice = &cursored_buffer.get_ref()[current_position..length];
-
-    // cursored_buffer.set_position(length as u64 - current_position as u64);
-
+fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, DataChunkError> {
     let slice = line(cursored_buffer)?;
 
-    atoi::<u64>(slice).ok_or_else(|| "could not parse integer from a slice".into())
+    atoi::<u64>(slice).ok_or(DataChunkError::Parse(
+        "Failed to parse an integer from a slice".to_owned(),
+    ))
 }
 
 /// Tries to find EOL (\r\n - carriage return(CR) and line feed (LF)),
 /// return everything before EOL and advance (by incrementing by 2) Cursor to the next position
 /// which is after EOL. The return value is a slice of bytes if parsed
 /// correctly or Err otherwise.
-fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
+fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChunkError> {
     // get current position and total length
     let current_position = cursored_buffer.position() as usize;
     let length = cursored_buffer.get_ref().len();
@@ -62,7 +54,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], Error> {
         }
     }
 
-    Err(Error::Insufficient)
+    Err(DataChunkError::Insufficient)
 }
 
 #[derive(Debug, Default)]
@@ -84,9 +76,9 @@ impl DataChunkFrame {
     /// Other an Error is returned.
     /// The reason the error is returned is because we attempt to convert a
     /// slice of bytes to string slice
-    pub fn next_as_str(&mut self) -> Result<String, Error> {
+    pub fn next_as_str(&mut self) -> Result<String, DataChunkError> {
         let Some(segment) = self.segments.next() else {
-            return Err(Error::NonExistent);
+            return Err(DataChunkError::NonExistent);
         };
 
         match segment {
@@ -166,7 +158,9 @@ impl DataChunk {
         Ok(format!("*{commands_count}{commands}"))
     }
 
-    pub fn parse(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<DataChunk, Error> {
+    pub fn parse(
+        cursored_buffer: &mut Cursor<&[u8]>,
+    ) -> std::result::Result<DataChunk, DataChunkError> {
         // cursored_buffer.has_remaining()
         let n = cursored_buffer.get_u8();
 
@@ -197,7 +191,7 @@ impl DataChunk {
                 // Compare if speficied and actual lengths are the same
                 // The specified length of the buffer elements cannot be more that the length of the buffer itself
                 if str_len > cursored_buffer.chunk().len() {
-                    return Err(Error::Insufficient);
+                    return Err(DataChunkError::Insufficient);
                 }
 
                 // cursored_buffer.chunk().len() - the length of the whole buffer
@@ -228,40 +222,42 @@ impl DataChunk {
                 Ok(DataChunk::SimpleError(copied_err))
             }
             _ => {
-                println!("Next byte: {:?}", n);
-                println!("Line: {:?}", line(cursored_buffer));
-                unimplemented!();
+                // we are trying to parse something that does not exist
+                Err(DataChunkError::Parse(format!(
+                    "Failed to parse unknown data type {:?}",
+                    n
+                )))
             }
         }
     }
 }
 
-impl From<String> for Error {
+impl From<String> for DataChunkError {
     fn from(value: String) -> Self {
-        Error::Uknown(value)
+        DataChunkError::Uknown(value)
     }
 }
 
-impl From<&str> for Error {
-    fn from(value: &str) -> Error {
+impl From<&str> for DataChunkError {
+    fn from(value: &str) -> DataChunkError {
         value.to_string().into()
     }
 }
 
-impl From<TryFromIntError> for Error {
-    fn from(_src: TryFromIntError) -> Error {
+impl From<TryFromIntError> for DataChunkError {
+    fn from(_src: TryFromIntError) -> DataChunkError {
         "invalid data chunk".into()
     }
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for DataChunkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::ParseError => "protocol error; unexpected end of stream".fmt(f),
-            Error::Uknown(err) => err.fmt(f),
-            Error::Insufficient => "error".fmt(f),
-            Error::NonExistent => "no next value in the iterator".fmt(f),
-            Error::Other(val) => val.fmt(f),
+            DataChunkError::Parse(e) => format!("protocol error: {:?}", e).fmt(f),
+            DataChunkError::Uknown(err) => err.fmt(f),
+            DataChunkError::Insufficient => "error".fmt(f),
+            DataChunkError::NonExistent => "no next value in the iterator".fmt(f),
+            DataChunkError::Other(val) => val.fmt(f),
         }
     }
 }

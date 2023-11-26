@@ -1,4 +1,5 @@
-use crate::data_chunk::{DataChunkFrame, Error as DataChunkError};
+use crate::data_chunk::{DataChunkError, DataChunkFrame};
+use crate::utils::format_err_msg;
 use crate::{Connection, DataStoreWrapper, Error, Result};
 use delete::Delete;
 use get::Get;
@@ -16,7 +17,7 @@ pub enum Command {
     Get(Get),
     Set(Set),
     Delete(Delete),
-    Unknown,
+    Unknown(String),
 }
 
 pub enum DataType {
@@ -27,19 +28,20 @@ pub enum DataType {
 }
 
 #[derive(Debug)]
-pub enum ParseError {
+pub enum ParseCommand {
     Other(crate::Error),
+    Unknown,
 }
 
-impl From<Error> for ParseError {
+impl From<Error> for ParseCommand {
     fn from(error: Error) -> Self {
-        ParseError::Other(error)
+        ParseCommand::Other(error)
     }
 }
 
-impl From<DataChunkError> for ParseError {
+impl From<DataChunkError> for ParseCommand {
     fn from(error: DataChunkError) -> Self {
-        ParseError::Other(Box::new(error))
+        ParseCommand::Other(Box::new(error))
     }
 }
 
@@ -47,7 +49,7 @@ impl Command {
     // This method should parse a network frame/data unit instead of returning the hard-coded command
     // the frame essential is a redis command and for now this library will only support an array type
     // ref: https://redis.io/docs/reference/protocol-spec/#resp-arrays
-    pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseError> {
+    pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseCommand> {
         // The iterator should contain all the necessary commands and values i.e. [SET, key, value]
         // .next() chunk should be of Bulk string type which should be the command we need to process
         let command = data_chunk.next_as_str()?.to_lowercase();
@@ -60,7 +62,7 @@ impl Command {
             "get" => Command::Get(Get::parse(data_chunk)?),
             "set" => Command::Set(Set::parse(data_chunk).unwrap()),
             "delete" => Command::Delete(Delete::parse(data_chunk)?),
-            _ => Command::Unknown,
+            val => Command::Unknown(val.to_owned()),
         };
 
         Ok(command)
@@ -72,20 +74,23 @@ impl Command {
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
-            // Error?
-            Command::Unknown => Ok(()),
+            Command::Unknown(command) => {
+                let e = format_err_msg(format!("uknown command \"{}\"", command));
+                conn.write_error(e.as_bytes()).await?;
+                Ok(())
+            }
         }
     }
 }
 
-impl From<String> for ParseError {
-    fn from(src: String) -> ParseError {
-        ParseError::Other(src.into())
+impl From<String> for ParseCommand {
+    fn from(src: String) -> ParseCommand {
+        ParseCommand::Other(src.into())
     }
 }
 
-impl From<&str> for ParseError {
-    fn from(src: &str) -> ParseError {
+impl From<&str> for ParseCommand {
+    fn from(src: &str) -> ParseCommand {
         src.to_string().into()
     }
 }

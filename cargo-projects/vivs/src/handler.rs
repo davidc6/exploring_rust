@@ -1,15 +1,15 @@
-use crate::{commands::ParseError, Command, Connection, DataStoreWrapper, Error};
+use crate::{commands::ParseCommand, Command, Connection, DataStoreWrapper, Error};
 use log::error;
 use std::result::Result as NativeResult;
 
 #[derive(Debug)]
 pub enum HandlerError {
-    CommandParsing(ParseError),
+    CommandParsing(ParseCommand),
     Other(Error),
 }
 
-impl From<ParseError> for HandlerError {
-    fn from(e: ParseError) -> Self {
+impl From<ParseCommand> for HandlerError {
+    fn from(e: ParseCommand) -> Self {
         HandlerError::CommandParsing(e)
     }
 }
