@@ -1,4 +1,5 @@
 use crate::data_chunk::DataChunkFrame;
+use crate::utils::format_err_msg;
 use crate::{Connection, DataStoreWrapper, Result};
 use std::fmt::Display;
 
@@ -36,8 +37,8 @@ impl Get {
     pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
             // TODO: extract error type into a separate function
-            conn.write_error("ERR Incorrect number of arguments\r\n".as_bytes())
-                .await?;
+            let e = format_err_msg("Incorrect number of arguments".to_owned());
+            conn.write_error(e.as_bytes()).await?;
             return Ok(());
         };
 
