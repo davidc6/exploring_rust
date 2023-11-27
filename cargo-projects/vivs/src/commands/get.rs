@@ -1,8 +1,7 @@
-use log::info;
-
 use crate::data_chunk::DataChunkFrame;
 use crate::utils::format_err_msg;
 use crate::{Connection, DataStoreWrapper, Result};
+use log::info;
 
 const GET_CMD: &str = "GET";
 
@@ -41,6 +40,7 @@ impl Get {
         );
 
         // TODO: once TTL is figured out, it needs to be accounted for
+        // i.e. if expired expire and do not return
         if let Some(value) = data_store_guard.db.get(key) {
             conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
                 .await?
