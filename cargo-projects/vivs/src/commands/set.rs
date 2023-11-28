@@ -1,5 +1,6 @@
 use crate::{data_chunk::DataChunkFrame, Connection, DataStoreWrapper, Result};
-use std::fmt::Display;
+use std::result::Result as NativeResult;
+use std::{fmt::Display, io::Error};
 
 #[derive(Debug)]
 pub enum CommandError {
@@ -17,10 +18,17 @@ impl Display for CommandError {
     }
 }
 
+impl From<Error> for SetError {
+    fn from(e: Error) -> Self {
+        SetError::Other(e)
+    }
+}
+
 #[derive(Debug)]
 pub enum SetError {
     NoKey,
     NoValue,
+    Other(Error),
 }
 
 impl std::error::Error for SetError {}
@@ -30,6 +38,9 @@ impl Display for SetError {
         match self {
             SetError::NoKey => write!(f, "No key was passed to SET command"),
             SetError::NoValue => write!(f, "No value was passed to SET command"),
+            SetError::Other(error) => {
+                write!(f, "There was an issue with writing a chunk {}", error)
+            }
         }
     }
 }
