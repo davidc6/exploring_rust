@@ -1,6 +1,5 @@
-use std::fmt::Display;
-
 use crate::{data_chunk::DataChunkFrame, Connection, DataStoreWrapper, Result};
+use std::fmt::Display;
 
 #[derive(Debug)]
 enum DeleteError {
