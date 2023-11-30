@@ -1,22 +1,5 @@
 use crate::{data_chunk::DataChunkFrame, Connection, DataStoreWrapper, Result};
-use std::result::Result as NativeResult;
 use std::{fmt::Display, io::Error};
-
-#[derive(Debug)]
-pub enum CommandError {
-    NonParsableCommand,
-    UnknownCommand,
-}
-impl std::error::Error for CommandError {}
-
-impl Display for CommandError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            CommandError::NonParsableCommand => write!(f, "This command cannot be parsed"),
-            CommandError::UnknownCommand => write!(f, "This command is unknown"),
-        }
-    }
-}
 
 impl From<Error> for SetError {
     fn from(e: Error) -> Self {
