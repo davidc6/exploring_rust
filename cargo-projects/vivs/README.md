@@ -2,6 +2,21 @@
 
 Vivs is an in-memory data store.
 
+### Guide
+
+To run
+
+```
+// server
+cargo run --bin vivs
+
+// server with logs
+RUST_LOG=vivs --bin vivs
+
+// client / repl, to execute commands
+cargo run --bin vivs-repl
+```
+
 ### Examples
 
 `PING` command:
@@ -51,7 +66,7 @@ printf '*2\r\n\x243\r\n\GET\r\n\x241\r\na\r\n' | nc -C -N 127.0.0.1 6379
 
 ## TODOs
 
-- [ ] Logging (.log)
+- [ ] Logging (.log) for all commands
 - [x] PING
 - [x] SET
 - [x] GET
