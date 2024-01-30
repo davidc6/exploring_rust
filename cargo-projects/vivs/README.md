@@ -2,6 +2,8 @@
 
 Vivs is an in-memory data store.
 
+**This project here is quite raw and "very" work in progress**
+
 ### Guide
 
 To run
