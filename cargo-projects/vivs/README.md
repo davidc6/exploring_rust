@@ -19,8 +19,6 @@ RUST_LOG=vivs --bin vivs
 cargo run --bin vivs-repl
 ```
 
-**This project here is quite raw and very work in progress**
-
 ### Examples
 
 `PING` command:
