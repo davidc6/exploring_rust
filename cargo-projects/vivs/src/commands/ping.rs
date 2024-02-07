@@ -28,6 +28,7 @@ impl Ping {
             if message.chars().nth(0) != Some('\"') {
                 message = format!("\"{}\"", message);
             }
+
             info!(
                 "{}",
                 format!(
