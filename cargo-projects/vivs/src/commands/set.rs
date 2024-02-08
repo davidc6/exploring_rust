@@ -1,4 +1,6 @@
-use crate::{data_chunk::DataChunkFrame, Connection, DataStoreWrapper, Result};
+use crate::{
+    data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStoreWrapper, Result,
+};
 use std::{fmt::Display, io::Error};
 
 impl From<Error> for SetError {
@@ -35,11 +37,13 @@ pub struct Set {
 
 impl Set {
     pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
+        // we try to get the key first
         let Ok(key) = data.next_as_str() else {
-            return Err(Box::new(SetError::NoKey));
+            return Ok(Self::default());
         };
+        // and then the value
         let Ok(value) = data.next_as_str() else {
-            return Err(Box::new(SetError::NoValue));
+            return Ok(Self::default());
         };
         Ok(Self {
             key: Some(key),
@@ -49,11 +53,13 @@ impl Set {
 
     pub async fn respond(&self, connection: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
-            return Err(Box::new(SetError::NoKey));
+            connection.write_error(num_args_err().as_bytes()).await?;
+            return Ok(());
         };
 
         let Some(value) = self.value.as_ref() else {
-            return Err(Box::new(SetError::NoValue));
+            connection.write_error(num_args_err().as_bytes()).await?;
+            return Ok(());
         };
 
         let mut data_store_guard = db.db.write().await;
