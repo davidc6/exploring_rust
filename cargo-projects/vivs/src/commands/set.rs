@@ -1,34 +1,6 @@
 use crate::{
     data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStoreWrapper, Result,
 };
-use std::{fmt::Display, io::Error};
-
-impl From<Error> for SetError {
-    fn from(e: Error) -> Self {
-        SetError::Other(e)
-    }
-}
-
-#[derive(Debug)]
-pub enum SetError {
-    NoKey,
-    NoValue,
-    Other(Error),
-}
-
-impl std::error::Error for SetError {}
-
-impl Display for SetError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            SetError::NoKey => write!(f, "No key was passed to SET command"),
-            SetError::NoValue => write!(f, "No value was passed to SET command"),
-            SetError::Other(error) => {
-                write!(f, "There was an issue with writing a chunk {}", error)
-            }
-        }
-    }
-}
 
 pub struct Set {
     key: Option<String>,
