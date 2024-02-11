@@ -2,6 +2,7 @@ use crate::{
     data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStoreWrapper, Result,
 };
 
+#[derive(Default)]
 pub struct Set {
     key: Option<String>,
     value: Option<String>,
