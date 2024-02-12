@@ -43,7 +43,7 @@ impl Set {
             .is_none()
         {
             connection
-                .write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                .write_chunk(super::DataType::SimpleString, Some("OK".as_bytes()))
                 .await?
         } else {
             connection.write_chunk(super::DataType::Null, None).await?
