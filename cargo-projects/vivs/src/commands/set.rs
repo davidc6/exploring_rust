@@ -37,17 +37,10 @@ impl Set {
 
         let mut data_store_guard = db.db.write().await;
 
-        if data_store_guard
-            .db
-            .insert(key.to_owned(), value.to_owned())
-            .is_none()
-        {
-            connection
-                .write_chunk(super::DataType::SimpleString, Some("OK".as_bytes()))
-                .await?
-        } else {
-            connection.write_chunk(super::DataType::Null, None).await?
-        }
+        data_store_guard.db.insert(key.to_owned(), value.to_owned());
+        connection
+            .write_chunk(super::DataType::SimpleString, Some("OK".as_bytes()))
+            .await?;
 
         Ok(())
     }
