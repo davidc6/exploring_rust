@@ -35,7 +35,7 @@ impl Handler {
             .read_and_process_stream()
             .await
             .map_err(|e| {
-                error!("Failed to processes the stream: {}", e);
+                error!("Failed to process the stream: {}", e);
                 e
             })?;
 
