@@ -76,7 +76,7 @@ impl Command {
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
             Command::Unknown(command) => {
-                let e = format_err_msg(format!("uknown command \"{}\"", command));
+                let e = format_err_msg(format!("unknown command \"{}\"", command));
                 conn.write_error(e.as_bytes()).await?;
                 Ok(())
             }
