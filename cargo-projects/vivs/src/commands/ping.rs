@@ -26,12 +26,13 @@ impl Ping {
         if let Some(mut message) = self.message {
             // This is also a hack similar to read_chunk_frame() in the connection.rs module
             if message.chars().nth(0) != Some('\"') {
-                message = format!("\"{}\"", message);
+                message = format!("{}", message);
             }
+
             info!(
                 "{}",
                 format!(
-                    "{:?} {:?} {}",
+                    "{:?} {:?} {:?}",
                     conn.connected_peer_addr(),
                     PING_CMD,
                     message

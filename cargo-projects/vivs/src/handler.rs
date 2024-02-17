@@ -1,15 +1,15 @@
-use crate::{commands::ParseError, Command, Connection, DataStoreWrapper, Error};
+use crate::{commands::ParseCommand, Command, Connection, DataStoreWrapper, Error};
 use log::error;
 use std::result::Result as NativeResult;
 
 #[derive(Debug)]
 pub enum HandlerError {
-    CommandParsing(ParseError),
+    CommandParsing(ParseCommand),
     Other(Error),
 }
 
-impl From<ParseError> for HandlerError {
-    fn from(e: ParseError) -> Self {
+impl From<ParseCommand> for HandlerError {
+    fn from(e: ParseCommand) -> Self {
         HandlerError::CommandParsing(e)
     }
 }
@@ -35,11 +35,11 @@ impl Handler {
             .read_and_process_stream()
             .await
             .map_err(|e| {
-                error!("Failed to processes the stream: {}", e);
+                error!("Failed to process the stream: {}", e);
                 e
             })?;
 
-        // TODO get the command interator
+        // TODO get the command iterator
         // This will enable Command to get necessary data from the iterator by calling .next()
         let command = Command::parse_cmd(payload)?;
         command.run(&mut self.connection, &self.db).await?;

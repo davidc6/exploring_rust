@@ -1,21 +1,6 @@
-use std::fmt::Display;
-
-use crate::{data_chunk::DataChunkFrame, Connection, DataStoreWrapper, Result};
-
-#[derive(Debug)]
-enum DeleteError {
-    NoKey,
-}
-
-impl std::error::Error for DeleteError {}
-
-impl Display for DeleteError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            DeleteError::NoKey => write!(f, "No key was passed to GET command"),
-        }
-    }
-}
+use crate::{
+    data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStoreWrapper, Result,
+};
 
 #[derive(Debug, Default)]
 pub struct Delete {
@@ -25,7 +10,7 @@ pub struct Delete {
 impl Delete {
     pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
         let Ok(key) = data.next_as_str() else {
-            return Err(Box::new(DeleteError::NoKey));
+            return Ok(Self { key: None });
         };
 
         Ok(Self { key: Some(key) })
@@ -33,7 +18,8 @@ impl Delete {
 
     pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
-            return Err(Box::new(DeleteError::NoKey));
+            conn.write_error(num_args_err().as_bytes()).await?;
+            return Ok(());
         };
 
         let mut data_store_guard = db.db.write().await;
