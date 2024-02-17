@@ -31,6 +31,7 @@ pub enum DataType {
 pub enum ParseCommand {
     Other(crate::Error),
     Unknown,
+    NoCommand,
 }
 
 impl From<Error> for ParseCommand {
@@ -53,16 +54,17 @@ impl Command {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
         // .next() chunk should be of Bulk string type which should be the command we need to process
         // The first value is the command itself
-        let command = data_chunk.next_as_str()?.to_lowercase();
+        let Some(command) = data_chunk.next_as_str()?.map(|val| val.to_lowercase()) else {
+            return Err(ParseCommand::NoCommand);
+        };
 
-        // TODO: remove unwraps
         // To figure out which command needs to be processed,
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = match &command[..] {
-            "ping" => Command::Ping(Ping::parse(data_chunk)?),
-            "get" => Command::Get(Get::parse(data_chunk)?),
-            "set" => Command::Set(Set::parse(data_chunk)?),
-            "delete" => Command::Delete(Delete::parse(data_chunk)?),
+            "ping" => Command::Ping(Ping::parse(data_chunk)),
+            "get" => Command::Get(Get::parse(data_chunk)),
+            "set" => Command::Set(Set::parse(data_chunk)),
+            "delete" => Command::Delete(Delete::parse(data_chunk)),
             val => Command::Unknown(val.to_owned()),
         };
 

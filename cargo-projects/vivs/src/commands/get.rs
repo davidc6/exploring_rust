@@ -10,13 +10,13 @@ pub struct Get {
 }
 
 impl Get {
-    pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
+    pub fn parse(mut data: DataChunkFrame) -> Self {
         let Ok(key) = data.next_as_str() else {
-            // Setting key to None will force error message to be written back to tcp stream
-            return Ok(Self { key: None });
+            // Setting key to None here will write error message to tcp stream
+            return Self { key: None };
         };
 
-        Ok(Self { key: Some(key) })
+        Self { key }
     }
 
     pub async fn respond(&self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {

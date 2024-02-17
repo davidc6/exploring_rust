@@ -9,19 +9,17 @@ pub struct Set {
 }
 
 impl Set {
-    pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
+    pub fn parse(mut data: DataChunkFrame) -> Self {
         // we try to get the key first
         let Ok(key) = data.next_as_str() else {
-            return Ok(Self::default());
+            return Self::default();
         };
         // and then the value
         let Ok(value) = data.next_as_str() else {
-            return Ok(Self::default());
+            return Self::default();
         };
-        Ok(Self {
-            key: Some(key),
-            value: Some(value),
-        })
+
+        Self { key, value }
     }
 
     pub async fn respond(&self, connection: &mut Connection, db: &DataStoreWrapper) -> Result<()> {

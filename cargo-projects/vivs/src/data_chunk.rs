@@ -12,7 +12,7 @@ use std::{
 #[derive(Debug)]
 pub enum DataChunkError {
     Insufficient,
-    Uknown(String),
+    Unknown(String),
     Parse(String),
     NonExistent,
     Other(Utf8Error),
@@ -76,15 +76,15 @@ impl DataChunkFrame {
     /// Other an Error is returned.
     /// The reason the error is returned is because we attempt to convert a
     /// slice of bytes to string slice in the match expression
-    pub fn next_as_str(&mut self) -> Result<String, DataChunkError> {
+    pub fn next_as_str(&mut self) -> Result<Option<String>, DataChunkError> {
         let Some(segment) = self.segments.next() else {
-            return Err(DataChunkError::NonExistent);
+            return Ok(None);
         };
 
         match segment {
             DataChunk::Bulk(value) => {
                 let value = std::str::from_utf8(value.chunk())?;
-                Ok(value.to_owned())
+                Ok(Some(value.to_owned()))
             }
             _ => unimplemented!(),
         }
@@ -234,7 +234,7 @@ impl DataChunk {
 
 impl From<String> for DataChunkError {
     fn from(value: String) -> Self {
-        DataChunkError::Uknown(value)
+        DataChunkError::Unknown(value)
     }
 }
 
@@ -254,7 +254,7 @@ impl fmt::Display for DataChunkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DataChunkError::Parse(e) => format!("protocol error: {:?}", e).fmt(f),
-            DataChunkError::Uknown(err) => err.fmt(f),
+            DataChunkError::Unknown(err) => err.fmt(f),
             DataChunkError::Insufficient => "error".fmt(f),
             DataChunkError::NonExistent => "no next value in the iterator".fmt(f),
             DataChunkError::Other(val) => val.fmt(f),

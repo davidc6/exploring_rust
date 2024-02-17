@@ -8,12 +8,12 @@ pub struct Delete {
 }
 
 impl Delete {
-    pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
+    pub fn parse(mut data: DataChunkFrame) -> Self {
         let Ok(key) = data.next_as_str() else {
-            return Ok(Self { key: None });
+            return Self { key: None };
         };
 
-        Ok(Self { key: Some(key) })
+        Self { key }
     }
 
     pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
