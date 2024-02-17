@@ -12,7 +12,6 @@ pub struct Get {
 impl Get {
     pub fn parse(mut data: DataChunkFrame) -> Self {
         let Ok(key) = data.next_as_str() else {
-            // Setting key to None here will write error message to tcp stream
             return Self { key: None };
         };
 

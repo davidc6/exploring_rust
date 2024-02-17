@@ -63,6 +63,7 @@ pub struct DataChunkFrame {
     pub len: usize,
 }
 
+// The iterator should contain all the necessary commands and values e.g. [SET, key, value]
 impl DataChunkFrame {
     #[allow(clippy::should_implement_trait)]
     /// Tries to return the next element in the collection.
@@ -103,6 +104,7 @@ impl DataChunkFrame {
     }
 
     pub fn push_bulk_str(mut self, b: Bytes) -> Self {
+        // TODO
         // Hack (for now): convert iterator to vector
         // in order to push data chunks into it.
         // This functionality is part of the so called "client encoder"
