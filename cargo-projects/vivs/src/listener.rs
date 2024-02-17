@@ -7,6 +7,7 @@ pub struct Listener {
     pub db: DataStoreWrapper,
 }
 
+/// Constructs, listens to incoming connections and assembles their processing
 impl Listener {
     pub fn new(tcp_listener: TcpListener, db: DataStoreWrapper) -> Self {
         Listener { tcp_listener, db }
@@ -17,11 +18,11 @@ impl Listener {
         info!("Listening for connections");
 
         // To accept multiple incoming connections,
-        // loop construct is used here to handle each connection.
-        // as a separate task (either on the current or different thread)
-        // Then a loop inside each thread is used to handle incoming data from client socket
+        // a loop construct is used here to handle each connection.
+        // It is handled as a separate task (either on the current or different thread).
+        // Then a loop inside each thread is used to handle incoming data from the client socket.
         loop {
-            // wait to accept a new connection from the tcp listener
+            // waits to accept a new connection from the tcp listener
             let (tcp_stream, socket_addr) = self.tcp_listener.accept().await?;
 
             info!("Incoming connection request from {:?}", socket_addr);

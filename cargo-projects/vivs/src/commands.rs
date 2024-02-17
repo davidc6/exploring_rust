@@ -1,5 +1,5 @@
 use crate::data_chunk::{DataChunkError, DataChunkFrame};
-use crate::utils::{format_err_msg, unknown_cmd_err};
+use crate::utils::unknown_cmd_err;
 use crate::{Connection, DataStoreWrapper, Error, Result};
 use delete::Delete;
 use get::Get;

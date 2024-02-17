@@ -1,8 +1,7 @@
 use crate::DataStoreWrapper;
 use crate::Listener;
 use crate::Result;
-use log::error;
-use log::info;
+use log::{error, info};
 use tokio::net::TcpListener;
 
 pub async fn start(ipv4: String, port: String) -> Result<()> {
@@ -15,7 +14,6 @@ pub async fn start(ipv4: String, port: String) -> Result<()> {
         err
     })?;
 
-    // listener construct, listens to incoming connections and assembles their processing
     let listener = Listener {
         tcp_listener,
         db: DataStoreWrapper::new(),
