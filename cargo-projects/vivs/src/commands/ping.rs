@@ -23,12 +23,7 @@ impl Ping {
     }
 
     pub async fn respond(self, conn: &mut Connection) -> Result<()> {
-        if let Some(mut message) = self.message {
-            // This is also a hack similar to read_chunk_frame() in the connection.rs module
-            if message.chars().nth(0) != Some('\"') {
-                message = format!("{}", message);
-            }
-
+        if let Some(message) = self.message {
             info!(
                 "{}",
                 format!(
@@ -47,7 +42,7 @@ impl Ping {
                 format!("{:?}", PING_CMD)
             );
             conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
-                .await?
+                .await?;
         }
         Ok(())
     }
