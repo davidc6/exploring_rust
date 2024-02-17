@@ -46,6 +46,18 @@ impl From<DataChunkError> for ParseCommandErr {
     }
 }
 
+impl From<String> for ParseCommandErr {
+    fn from(src: String) -> ParseCommandErr {
+        ParseCommandErr::Other(src.into())
+    }
+}
+
+impl From<&str> for ParseCommandErr {
+    fn from(src: &str) -> ParseCommandErr {
+        src.to_string().into()
+    }
+}
+
 impl Command {
     pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseCommandErr> {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
@@ -79,17 +91,5 @@ impl Command {
                 Ok(())
             }
         }
-    }
-}
-
-impl From<String> for ParseCommandErr {
-    fn from(src: String) -> ParseCommandErr {
-        ParseCommandErr::Other(src.into())
-    }
-}
-
-impl From<&str> for ParseCommandErr {
-    fn from(src: &str) -> ParseCommandErr {
-        src.to_string().into()
     }
 }

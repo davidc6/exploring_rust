@@ -40,8 +40,6 @@ impl Handler {
                 e
             })?;
 
-        // TODO get the command iterator
-        // This will enable Command to get necessary data from the iterator by calling .next()
         let command = Command::parse_cmd(payload)?;
         command.run(&mut self.connection, &self.db).await?;
 
