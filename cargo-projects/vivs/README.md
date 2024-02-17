@@ -6,17 +6,23 @@ Vivs is an in-memory data store.
 
 ### Guide
 
-To run
+To run:
 
-```
-// server
+```sh
+# server
 cargo run --bin vivs
 
-// server with logs
+# server with logs
 RUST_LOG=vivs --bin vivs
 
-// client / repl, to execute commands
+# client / repl, to execute commands
 cargo run --bin vivs-repl
+```
+
+To run integration tests:
+
+```sh
+cargo test --test commands
 ```
 
 ### Examples
