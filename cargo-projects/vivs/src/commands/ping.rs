@@ -15,10 +15,10 @@ impl Ping {
         Ping { message }
     }
 
-    pub fn parse(mut data: DataChunkFrame) -> Result<Self> {
+    pub fn parse(mut data: DataChunkFrame) -> Self {
         match data.next_as_str() {
-            Ok(value) => Ok(Ping::new(Some(value))),
-            Err(_) => Ok(Ping::default()),
+            Ok(value) => Ping::new(value),
+            Err(_) => Ping::default(),
         }
     }
 

@@ -1,5 +1,5 @@
 use crate::data_chunk::{DataChunkError, DataChunkFrame};
-use crate::utils::format_err_msg;
+use crate::utils::unknown_cmd_err;
 use crate::{Connection, DataStoreWrapper, Error, Result};
 use delete::Delete;
 use get::Get;
@@ -31,6 +31,7 @@ pub enum DataType {
 pub enum ParseCommand {
     Other(crate::Error),
     Unknown,
+    NoCommand,
 }
 
 impl From<Error> for ParseCommand {
@@ -46,23 +47,20 @@ impl From<DataChunkError> for ParseCommand {
 }
 
 impl Command {
-    // This method should parse a network frame/data unit instead of returning the hard-coded command
-    // the frame essential is a redis command and for now this library will only support an array type
-    // ref: https://redis.io/docs/reference/protocol-spec/#resp-arrays
     pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseCommand> {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
-        // .next() chunk should be of Bulk string type which should be the command we need to process
         // The first value is the command itself
-        let command = data_chunk.next_as_str()?.to_lowercase();
+        let Some(command) = data_chunk.next_as_str()?.map(|val| val.to_lowercase()) else {
+            return Err(ParseCommand::NoCommand);
+        };
 
-        // TODO: remove unwraps
         // To figure out which command needs to be processed,
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = match &command[..] {
-            "ping" => Command::Ping(Ping::parse(data_chunk)?),
-            "get" => Command::Get(Get::parse(data_chunk)?),
-            "set" => Command::Set(Set::parse(data_chunk)?),
-            "delete" => Command::Delete(Delete::parse(data_chunk)?),
+            "ping" => Command::Ping(Ping::parse(data_chunk)),
+            "get" => Command::Get(Get::parse(data_chunk)),
+            "set" => Command::Set(Set::parse(data_chunk)),
+            "delete" => Command::Delete(Delete::parse(data_chunk)),
             val => Command::Unknown(val.to_owned()),
         };
 
@@ -76,8 +74,8 @@ impl Command {
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
             Command::Unknown(command) => {
-                let e = format_err_msg(format!("unknown command \"{}\"", command));
-                conn.write_error(e.as_bytes()).await?;
+                conn.write_error(unknown_cmd_err(command).as_bytes())
+                    .await?;
                 Ok(())
             }
         }
