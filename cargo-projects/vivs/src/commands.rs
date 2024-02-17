@@ -28,30 +28,30 @@ pub enum DataType {
 }
 
 #[derive(Debug)]
-pub enum ParseCommand {
+pub enum ParseCommandErr {
     Other(crate::Error),
     Unknown,
     NoCommand,
 }
 
-impl From<Error> for ParseCommand {
+impl From<Error> for ParseCommandErr {
     fn from(error: Error) -> Self {
-        ParseCommand::Other(error)
+        ParseCommandErr::Other(error)
     }
 }
 
-impl From<DataChunkError> for ParseCommand {
+impl From<DataChunkError> for ParseCommandErr {
     fn from(error: DataChunkError) -> Self {
-        ParseCommand::Other(Box::new(error))
+        ParseCommandErr::Other(Box::new(error))
     }
 }
 
 impl Command {
-    pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseCommand> {
+    pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseCommandErr> {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
         // The first value is the command itself
         let Some(command) = data_chunk.next_as_str()?.map(|val| val.to_lowercase()) else {
-            return Err(ParseCommand::NoCommand);
+            return Err(ParseCommandErr::NoCommand);
         };
 
         // To figure out which command needs to be processed,
@@ -82,14 +82,14 @@ impl Command {
     }
 }
 
-impl From<String> for ParseCommand {
-    fn from(src: String) -> ParseCommand {
-        ParseCommand::Other(src.into())
+impl From<String> for ParseCommandErr {
+    fn from(src: String) -> ParseCommandErr {
+        ParseCommandErr::Other(src.into())
     }
 }
 
-impl From<&str> for ParseCommand {
-    fn from(src: &str) -> ParseCommand {
+impl From<&str> for ParseCommandErr {
+    fn from(src: &str) -> ParseCommandErr {
         src.to_string().into()
     }
 }

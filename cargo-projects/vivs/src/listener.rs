@@ -28,14 +28,11 @@ impl Listener {
             info!("Incoming connection request from {:?}", socket_addr);
 
             let mut handler = Handler {
-                // As the db is wrapped in an Arc, we use .clone() here to produce a new instance
-                // which points to the same allocation as source and increases the reference count
                 db: self.db.clone(),
-                // Connection instance - buffer allocation and frame (network data) parsing occurs here
                 connection: Connection::new(tcp_stream),
             };
 
-            // Create a new task.
+            // Creates a new task.
             // A Tokio task is an async green (aka virtual) thread that is created by a runtime of VM (instead of OS).
             // Tasks are created by passing an async block to spawn().
             tokio::spawn(async move {
@@ -43,7 +40,7 @@ impl Listener {
                 // Wait for me data from already connected sockets,
                 // by looping here the connection does not close.
                 // If we don't loop and when a client tries to send data continuously on the socket,
-                // we'll get the "brokne pipe" error message.
+                // we'll get the "broken pipe" error message.
                 loop {
                     match handler.run().await {
                         Ok(_) => (),

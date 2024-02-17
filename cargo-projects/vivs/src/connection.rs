@@ -38,6 +38,7 @@ pub struct Connection {
     buffer: BytesMut,
 }
 
+/// Buffer allocation and frame (network data) parsing occurs here
 impl Connection {
     pub fn new(stream: TcpStream) -> Connection {
         Connection {
@@ -65,7 +66,7 @@ impl Connection {
 
     pub async fn read_and_process_stream(&mut self) -> Result<DataChunkFrame> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
-        // and unless cleared will be adding to the buffer
+        // and unless cleared. it will be adding to the buffer
         self.buffer.clear();
         // Pull bytes from the source (self.stream: TcpStream) into the provided buffer (self.buffer)
         let bytes_read = self.stream.read_buf(&mut self.buffer).await?;
