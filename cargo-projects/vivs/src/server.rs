@@ -14,10 +14,7 @@ pub async fn start(ipv4: String, port: String) -> Result<()> {
         err
     })?;
 
-    let listener = Listener {
-        tcp_listener,
-        db: DataStoreWrapper::new(),
-    };
+    let listener = Listener::new(tcp_listener, DataStoreWrapper::new());
 
     // this should return a frame / bits of data
     // that will get parsed into commands

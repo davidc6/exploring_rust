@@ -31,19 +31,14 @@ impl Display for ConnectionError {
 }
 
 pub struct Connection {
-    // writer: BufWriter<WriteHalf<'a>>,
-    // reader: BufReader<ReadHalf>,
-    // reader: BufReader<ReadHalf<'a>>,
     stream: BufWriter<TcpStream>,
     buffer: BytesMut,
 }
 
+/// Buffer allocation and frame (network data) parsing occurs here
 impl Connection {
     pub fn new(stream: TcpStream) -> Connection {
         Connection {
-            // writer: BufWriter::new(write),
-            // reader: BufReader::new(read),
-            // writer: BufWriter::new(write),
             stream: BufWriter::new(stream),
             // BytesMut is a unique reference into a contiguous slice of memory
             // which acts as a buffer for a tcp stream read functionality
@@ -63,18 +58,19 @@ impl Connection {
         }
     }
 
+    /// Reads and processes a stream of bytes from the TCP stream
     pub async fn read_and_process_stream(&mut self) -> Result<DataChunkFrame> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
-        // and unless cleared will be adding to the buffer
+        // and unless cleared, it will be just appending to the buffer
         self.buffer.clear();
-        // Pull bytes from the source (self.stream: TcpStream) into the provided buffer (self.buffer)
+        // Pull bytes from the source/tcp stream into the buffer
         let bytes_read = self.stream.read_buf(&mut self.buffer).await?;
 
         // 0 read bytes usually indicates that the connection was closed
         if bytes_read != 0 {
-            // Cursor enables to track location in the buffer by providing seek functionality
-            // It wraps the underlying buffer (in our case BytesMut)
-            // In this case self.buffer refers to the slice (full range) of the buffer (BytesMut)
+            // Cursor enables to track location in the buffer by providing seek functionality.
+            // It wraps the underlying buffer (in our case BytesMut).
+            // In this case self.buffer refers to the slice (full range) of the buffer (BytesMut).
             let mut cursored_buffer = Cursor::new(&self.buffer[..]);
 
             // Data frame parsed and structured
