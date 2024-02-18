@@ -26,6 +26,36 @@ impl From<Utf8Error> for DataChunkError {
     }
 }
 
+impl From<String> for DataChunkError {
+    fn from(value: String) -> Self {
+        DataChunkError::Unknown(value)
+    }
+}
+
+impl From<&str> for DataChunkError {
+    fn from(value: &str) -> DataChunkError {
+        value.to_string().into()
+    }
+}
+
+impl From<TryFromIntError> for DataChunkError {
+    fn from(_src: TryFromIntError) -> DataChunkError {
+        "invalid data chunk".into()
+    }
+}
+
+impl fmt::Display for DataChunkError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DataChunkError::Parse(e) => format!("protocol error: {:?}", e).fmt(f),
+            DataChunkError::Unknown(err) => err.fmt(f),
+            DataChunkError::Insufficient => "error".fmt(f),
+            DataChunkError::NonExistent => "no next value in the iterator".fmt(f),
+            DataChunkError::Other(val) => val.fmt(f),
+        }
+    }
+}
+
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
 fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, DataChunkError> {
@@ -36,8 +66,8 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Da
     ))
 }
 
-/// Tries to find EOL (\r\n - carriage return(CR) and line feed (LF)),
-/// return everything before EOL and advance (by incrementing by 2) Cursor to the next position
+/// Tries to find EOL (\r\n - carriage return(CR) and line feed (LF)).
+/// Returns a slice before EOL and advances (increments by 2) the Cursor to the next position
 /// which is after EOL. The return value is a slice of bytes if parsed
 /// correctly or Err otherwise.
 fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChunkError> {
@@ -46,6 +76,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChun
     let length = cursored_buffer.get_ref().len();
 
     for position in current_position..length + 1 {
+        // checks current and next bytes
         if cursored_buffer.get_ref()[position] == b'\r'
             && cursored_buffer.get_ref()[position + 1] == b'\n'
         {
@@ -59,8 +90,8 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChun
 
 #[derive(Debug, Default)]
 pub struct DataChunkFrame {
+    /// Iterator of DataChunk type
     segments: IntoIter<DataChunk>,
-    pub len: usize,
 }
 
 // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
@@ -76,7 +107,7 @@ impl DataChunkFrame {
     /// If the element exists then a String type gets returned.
     /// Other an Error is returned.
     /// The reason the error is returned is because we attempt to convert a
-    /// slice of bytes to string slice in the match expression
+    /// slice of bytes to string slice in the match expression.
     pub fn next_as_str(&mut self) -> Result<Option<String>, DataChunkError> {
         let Some(segment) = self.segments.next() else {
             return Ok(None);
@@ -104,10 +135,9 @@ impl DataChunkFrame {
     }
 
     pub fn push_bulk_str(mut self, b: Bytes) -> Self {
-        // TODO
-        // Hack (for now): convert iterator to vector
-        // in order to push data chunks into it.
-        // This functionality is part of the so called "client encoder"
+        // TODO - this is a hack (for now).
+        // Convert iterator to vector in order to push data chunks into it.
+        // This functionality is part of the so called "client encoder".
         let mut v: Vec<DataChunk> = self.segments.collect();
         v.push(DataChunk::Bulk(b));
         self.segments = v.into_iter();
@@ -126,8 +156,8 @@ pub enum DataChunk {
 
 impl DataChunk {
     #![allow(clippy::new_ret_no_self)]
+    /// Constructs DataChunkFrame by parsing the incoming buffer
     pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> CustomResult<DataChunkFrame> {
-        // parse commands from byte slice
         let commands = DataChunk::parse(cursored_buffer);
 
         let data_chunks_vec = match commands {
@@ -136,18 +166,20 @@ impl DataChunk {
             Ok(DataChunk::Null) => vec![DataChunk::Null],
             Ok(DataChunk::Integer(value)) => vec![DataChunk::Integer(value)],
             Ok(DataChunk::SimpleError(value)) => vec![DataChunk::SimpleError(value)],
-            _ => return Err("some error".into()),
+            Err(e) => return Err(e.into()),
         };
 
         let segments = data_chunks_vec.into_iter();
-        let segments_length = segments.len();
 
-        Ok(DataChunkFrame {
-            segments,
-            len: segments_length,
-        })
+        Ok(DataChunkFrame { segments })
     }
 
+    /// Splits a string slice by whitespace,
+    /// and then builds a String of commands and values.
+    ///
+    /// This associated function is used by the REPL implementation,
+    /// to convert commands to a parsable String which then
+    /// gets written as bytes to the tcp stream.
     pub fn from_string(value: &str) -> CustomResult<String> {
         let split = value.trim_end().split(' ');
 
@@ -160,17 +192,28 @@ impl DataChunk {
         Ok(format!("*{commands_count}{commands}"))
     }
 
+    /// Parses the data type (first byte sign like +, :, $ etc)
+    /// then get the value that comes after it.
+    ///
+    /// This can be the number of elements in the array (in the case of *)
+    /// or the string size (in the case of $).
+    ///
+    /// After initially parsing '*', the function calls itself
+    /// to parse the rest of the stream eventually returning an array of elements.
+    /// For instance command SET "greeting" "hi" which looks like
+    /// (*3/r/n$3/r/nSET/r/n$8/r/ngreeting/r/n$2/r/nhi/r/n), will translate to something like
+    /// [SET, "greeting", "hi"].
     pub fn parse(
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> std::result::Result<DataChunk, DataChunkError> {
-        // cursored_buffer.has_remaining()
+        // TODO - add cursored_buffer.has_remaining() check
         let n = cursored_buffer.get_u8();
 
         match n {
             // e.g. *1
             b'*' => {
-                // Using range expression ( .. ) which implements Iterator trait enables to map over each element
-                // then collect iterator into a vector
+                // Using range expression ( .. ) which implements Iterator trait,
+                // enables to map over each element then collect iterator into a vector.
                 let number = number_of(cursored_buffer)?;
                 let commands = (0..number)
                     .map(|_| {
@@ -183,22 +226,20 @@ impl DataChunk {
             }
             // e.g. $4
             b'$' => {
-                // Not parsing the line here, just getting length of string and returning a copy
-
-                // get length of the bulk string + 2 (i.e. \n\r)
+                // Not parsing, just getting length of string.
                 let str_len = number_of(cursored_buffer)?.try_into()?;
 
-                // TODO: do we need to handle the case where we haven't received CR and LF
+                // TODO: handle the case where we haven't received CR and LF
 
-                // Compare if speficied and actual lengths are the same
-                // The specified length of the buffer elements cannot be more that the length of the buffer itself
+                // Compare if indicated ($[4]) and actual lengths are the same,
+                // since string length cannot be more that the length of the buffer itself.
                 if str_len > cursored_buffer.chunk().len() {
                     return Err(DataChunkError::Insufficient);
                 }
 
-                // cursored_buffer.chunk().len() - the length of the whole buffer
+                // cursored_buffer.chunk().len() is the length of the whole buffer
                 let bulk_str_data = Bytes::copy_from_slice(&cursored_buffer.chunk()[..str_len]);
-                // advance the interval position (+2 \r and \n) as we've now gotten the needed bulk string
+                // advance the interval position (+2 because of \r and \n) as we've now gotten the needed bulk string
                 cursored_buffer.advance(str_len + 2);
 
                 Ok(DataChunk::Bulk(bulk_str_data))
@@ -217,49 +258,20 @@ impl DataChunk {
                 let v = Bytes::copy_from_slice(n.unwrap());
                 Ok(DataChunk::Integer(v))
             }
+            // null value
             b'_' => Ok(DataChunk::Null),
+            // error value
             b'-' => {
                 let err = line(cursored_buffer);
                 let copied_err = Bytes::copy_from_slice(err.unwrap());
                 Ok(DataChunk::SimpleError(copied_err))
             }
-            _ => {
-                // we are trying to parse something that does not exist
-                Err(DataChunkError::Parse(format!(
-                    "Failed to parse unknown data type {:?}",
-                    n
-                )))
-            }
-        }
-    }
-}
-
-impl From<String> for DataChunkError {
-    fn from(value: String) -> Self {
-        DataChunkError::Unknown(value)
-    }
-}
-
-impl From<&str> for DataChunkError {
-    fn from(value: &str) -> DataChunkError {
-        value.to_string().into()
-    }
-}
-
-impl From<TryFromIntError> for DataChunkError {
-    fn from(_src: TryFromIntError) -> DataChunkError {
-        "invalid data chunk".into()
-    }
-}
-
-impl fmt::Display for DataChunkError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DataChunkError::Parse(e) => format!("protocol error: {:?}", e).fmt(f),
-            DataChunkError::Unknown(err) => err.fmt(f),
-            DataChunkError::Insufficient => "error".fmt(f),
-            DataChunkError::NonExistent => "no next value in the iterator".fmt(f),
-            DataChunkError::Other(val) => val.fmt(f),
+            // everything else, catch-all case
+            // potentially, when we are trying to parse something that does not exist
+            _ => Err(DataChunkError::Parse(format!(
+                "Failed to parse unknown data type {:?}",
+                n
+            ))),
         }
     }
 }
