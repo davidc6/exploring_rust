@@ -1,10 +1,8 @@
-use crate::DataStore;
-use crate::Listener;
-use crate::Result;
+use crate::{DataStore, Listener, GenericResult};
 use log::{error, info};
 use tokio::net::TcpListener;
 
-pub async fn start(ipv4: String, port: String) -> Result<()> {
+pub async fn start(ipv4: String, port: String) -> GenericResult<()> {
     let address = format!("{}:{}", ipv4, port);
     info!("Attempting to bind on port {}", port);
 

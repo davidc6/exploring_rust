@@ -2,7 +2,7 @@ use log::{error, info};
 use vivs::server;
 
 #[tokio::main]
-pub async fn main() -> vivs::Result<()> {
+pub async fn main() -> vivs::GenericResult<()> {
     env_logger::init();
 
     let ipv4 = "127.0.0.1".to_string(); // TODO - extract into a config file

@@ -1,11 +1,10 @@
 use crate::data_chunk::{DataChunkError, DataChunkFrame};
 use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
-use crate::{Connection, DataStore, Error, Result};
+use crate::{Connection, DataStore, GenericError, GenericResult};
 use delete::Delete;
 use get::Get;
 use ping::Ping;
 use set::Set;
-use std::result::Result as NativeResult;
 
 pub mod delete;
 pub mod get;
@@ -30,13 +29,13 @@ pub enum DataType {
 
 #[derive(Debug)]
 pub enum ParseCommandErr {
-    Other(crate::Error),
+    Other(crate::GenericError),
     Unknown,
     NoCommand,
 }
 
-impl From<Error> for ParseCommandErr {
-    fn from(error: Error) -> Self {
+impl From<GenericError> for ParseCommandErr {
+    fn from(error: GenericError) -> Self {
         ParseCommandErr::Other(error)
     }
 }
@@ -60,7 +59,7 @@ impl From<&str> for ParseCommandErr {
 }
 
 impl Command {
-    pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> NativeResult<Command, ParseCommandErr> {
+    pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> Result<Command, ParseCommandErr> {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
         // The first value is the command itself
         let Some(command) = data_chunk.next_as_str()?.map(|val| val.to_lowercase()) else {
@@ -81,7 +80,7 @@ impl Command {
         Ok(command)
     }
 
-    pub async fn run(self, conn: &mut Connection, db: &DataStore) -> Result<()> {
+    pub async fn run(self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         match self {
             Command::Ping(command) => command.respond(conn).await,
             Command::Get(command) => command.respond(conn, db).await,

@@ -1,7 +1,7 @@
 use crate::{
     commands::{ping::PONG, DataType},
     data_chunk::{DataChunk, DataChunkFrame},
-    Result,
+    GenericResult,
 };
 use bytes::{Bytes, BytesMut};
 use std::{
@@ -59,7 +59,7 @@ impl Connection {
     }
 
     /// Reads and processes a stream of bytes from the TCP stream
-    pub async fn read_and_process_stream(&mut self) -> Result<DataChunkFrame> {
+    pub async fn read_and_process_stream(&mut self) -> GenericResult<DataChunkFrame> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared, it will be just appending to the buffer
         self.buffer.clear();
@@ -161,7 +161,7 @@ impl Connection {
 
     /// TODO: need to rethink this since clients should potentially handle this
     /// The last _ (fall through / catch-all case)
-    pub async fn read_chunk_frame(&mut self) -> Result<Bytes> {
+    pub async fn read_chunk_frame(&mut self) -> GenericResult<Bytes> {
         // read response
         let mut data_chunk = self.read_and_process_stream().await?;
 

@@ -1,10 +1,9 @@
-use crate::{commands::ParseCommandErr, Command, Connection, DataStore, Error};
-use std::result::Result as NativeResult;
+use crate::{commands::ParseCommandErr, Command, Connection, DataStore, GenericError};
 
 #[derive(Debug)]
 pub enum HandlerError {
     CommandParsing(ParseCommandErr),
-    Other(Error),
+    Other(GenericError),
 }
 
 impl From<ParseCommandErr> for HandlerError {
@@ -13,8 +12,8 @@ impl From<ParseCommandErr> for HandlerError {
     }
 }
 
-impl From<Error> for HandlerError {
-    fn from(e: Error) -> Self {
+impl From<GenericError> for HandlerError {
+    fn from(e: GenericError) -> Self {
         HandlerError::Other(e)
     }
 }
@@ -25,7 +24,7 @@ pub struct Handler {
 }
 
 impl Handler {
-    pub async fn run(&mut self) -> NativeResult<(), HandlerError> {
+    pub async fn run(&mut self) -> Result<(), HandlerError> {
         // TODO: should probably have a separate parser module
         // read a frame, should probably live in connection
         // read bits that host/client can send (frame)

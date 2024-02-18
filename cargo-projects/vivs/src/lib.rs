@@ -22,26 +22,29 @@ pub mod data_chunk;
 
 pub mod utils;
 
-// any error that is safe to pass between threads (Send + Sync marker traits)
+// Any error that is safe to pass between threads (Send + Sync marker traits).
 //
 // Send - safe to send to another thread
 // Sync - safe to share between threads (A type can be Sync only if it is Send)
 //
 // Multiple trait bounds here are applied with a "+" in order
-// for Error to be bound by them
+// for Error to be bound by them.
 //
 // <Box> returns reference to some memory on the heap,
-// since Error can be type is only known at runtime.
+// since Error can be of a type only known at runtime.
+// These are unsized in Rust terminology i.e. can have a different
+// size in memory.
 //
 // dyn highlights the fact that calls to methods on the associated trait
-// (Error, in this case) are dynamically dispatched
+// (Error, in this case) are dynamically dispatched.
 //
-// This is a severly type-erased error type which only reveals that it's an error
+// This is a severely type-erased error type which only reveals that it's an error
 // without an ability to introspect it.
-pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
-// we use type alias here to to aviod having to repeat the Error type
+pub type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+// We use type alias here to to avoid having to repeat the Error type
 // For example, Result<bool> is interpreted as Result<bool, Error>
-pub type Result<T> = std::result::Result<T, Error>;
+pub type GenericResult<T> = std::result::Result<T, GenericError>;
 
 // TODO: investigate and remove
 // impl Error {

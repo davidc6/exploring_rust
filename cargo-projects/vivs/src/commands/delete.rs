@@ -1,4 +1,6 @@
-use crate::{data_chunk::DataChunkFrame, utils::INCORRECT_ARGS_ERR, Connection, DataStore, Result};
+use crate::{
+    data_chunk::DataChunkFrame, utils::INCORRECT_ARGS_ERR, Connection, DataStore, GenericResult,
+};
 
 #[derive(Debug, Default)]
 pub struct Delete {
@@ -14,7 +16,7 @@ impl Delete {
         Self { key }
     }
 
-    pub async fn respond(self, conn: &mut Connection, db: &DataStore) -> Result<()> {
+    pub async fn respond(self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
             conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
             return Ok(());

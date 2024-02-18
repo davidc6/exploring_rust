@@ -1,4 +1,4 @@
-use crate::{Connection, DataStore, Handler, Result};
+use crate::{Connection, DataStore, GenericResult, Handler};
 use log::{error, info};
 use tokio::net::TcpListener;
 
@@ -13,7 +13,7 @@ impl Listener {
         Listener { tcp_listener, db }
     }
 
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self) -> GenericResult<()> {
         info!("Server initialised");
         info!("Listening for connections");
 

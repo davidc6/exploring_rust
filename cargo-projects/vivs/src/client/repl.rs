@@ -1,9 +1,7 @@
 use std::fmt::Display;
 use std::io::{stdin, stdout, Write};
 use tokio::net::TcpStream;
-use vivs::data_chunk::DataChunk;
-use vivs::Connection;
-use vivs::Result;
+use vivs::{data_chunk::DataChunk, Connection, GenericResult};
 
 #[derive(Debug)]
 pub enum CliError {
@@ -21,7 +19,7 @@ impl Display for CliError {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> GenericResult<()> {
     let stream = TcpStream::connect("127.0.0.1:6379").await?;
     let mut connection = Connection::new(stream);
 

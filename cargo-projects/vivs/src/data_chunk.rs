@@ -1,4 +1,4 @@
-use crate::Result as CustomResult;
+use crate::GenericResult;
 use atoi::atoi;
 use bytes::{Buf, Bytes};
 use std::{
@@ -158,7 +158,7 @@ pub enum DataChunk {
 impl DataChunk {
     #![allow(clippy::new_ret_no_self)]
     /// Constructs DataChunkFrame by parsing the incoming buffer
-    pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> CustomResult<DataChunkFrame> {
+    pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> GenericResult<DataChunkFrame> {
         let commands = DataChunk::parse(cursored_buffer);
 
         let data_chunks_vec = match commands {
@@ -181,7 +181,7 @@ impl DataChunk {
     /// This associated function is used by the REPL implementation,
     /// to convert commands to a parsable String which then
     /// gets written as bytes to the tcp stream.
-    pub fn from_string(value: &str) -> CustomResult<String> {
+    pub fn from_string(value: &str) -> GenericResult<String> {
         let split = value.trim_end().split(' ');
 
         let parsed_commands = split.fold(("\r\n".to_owned(), 0), |acc, val| {
