@@ -1,6 +1,4 @@
-use crate::{
-    data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStoreWrapper, Result,
-};
+use crate::{data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStore, Result};
 
 #[derive(Default)]
 pub struct Set {
@@ -22,7 +20,7 @@ impl Set {
         Self { key, value }
     }
 
-    pub async fn respond(&self, connection: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
+    pub async fn respond(&self, connection: &mut Connection, db: &DataStore) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
             connection.write_error(num_args_err().as_bytes()).await?;
             return Ok(());
@@ -35,7 +33,7 @@ impl Set {
 
         let mut data_store_guard = db.db.write().await;
 
-        data_store_guard.db.insert(key.to_owned(), value.to_owned());
+        data_store_guard.insert(key.to_owned(), value.to_owned());
         connection
             .write_chunk(super::DataType::SimpleString, Some("OK".as_bytes()))
             .await?;

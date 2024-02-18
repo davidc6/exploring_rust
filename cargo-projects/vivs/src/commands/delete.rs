@@ -1,6 +1,4 @@
-use crate::{
-    data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStoreWrapper, Result,
-};
+use crate::{data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStore, Result};
 
 #[derive(Debug, Default)]
 pub struct Delete {
@@ -16,7 +14,7 @@ impl Delete {
         Self { key }
     }
 
-    pub async fn respond(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
+    pub async fn respond(self, conn: &mut Connection, db: &DataStore) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
             conn.write_error(num_args_err().as_bytes()).await?;
             return Ok(());
@@ -25,7 +23,7 @@ impl Delete {
         let mut data_store_guard = db.db.write().await;
 
         // TODO: once TTL is figured out, it needs to be accounted for
-        if let Some(_value) = data_store_guard.db.remove(key) {
+        if let Some(_value) = data_store_guard.remove(key) {
             conn.write_chunk(super::DataType::Integer, Some("1".as_bytes()))
                 .await?
         } else {

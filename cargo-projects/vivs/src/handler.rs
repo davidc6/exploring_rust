@@ -1,4 +1,4 @@
-use crate::{commands::ParseCommandErr, Command, Connection, DataStoreWrapper, Error};
+use crate::{commands::ParseCommandErr, Command, Connection, DataStore, Error};
 use log::error;
 use std::result::Result as NativeResult;
 
@@ -21,7 +21,7 @@ impl From<Error> for HandlerError {
 }
 
 pub struct Handler {
-    pub db: DataStoreWrapper,
+    pub db: DataStore,
     pub connection: Connection,
 }
 

@@ -1,6 +1,6 @@
 use crate::data_chunk::{DataChunkError, DataChunkFrame};
 use crate::utils::unknown_cmd_err;
-use crate::{Connection, DataStoreWrapper, Error, Result};
+use crate::{Connection, DataStore, Error, Result};
 use delete::Delete;
 use get::Get;
 use ping::Ping;
@@ -79,7 +79,7 @@ impl Command {
         Ok(command)
     }
 
-    pub async fn run(self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
+    pub async fn run(self, conn: &mut Connection, db: &DataStore) -> Result<()> {
         match self {
             Command::Ping(command) => command.respond(conn).await,
             Command::Get(command) => command.respond(conn, db).await,

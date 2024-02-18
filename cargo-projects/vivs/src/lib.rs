@@ -6,7 +6,6 @@ pub use listener::Listener;
 
 pub mod db;
 pub use db::DataStore;
-pub use db::DataStoreWrapper;
 
 pub mod server;
 

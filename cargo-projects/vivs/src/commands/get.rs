@@ -1,6 +1,6 @@
 use crate::data_chunk::DataChunkFrame;
 use crate::utils::num_args_err;
-use crate::{Connection, DataStoreWrapper, Result};
+use crate::{Connection, DataStore, Result};
 use log::info;
 
 const GET_CMD: &str = "GET";
@@ -18,7 +18,7 @@ impl Get {
         Self { key }
     }
 
-    pub async fn respond(&self, conn: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
+    pub async fn respond(&self, conn: &mut Connection, db: &DataStore) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
             conn.write_error(num_args_err().as_bytes()).await?;
             return Ok(());
@@ -38,7 +38,7 @@ impl Get {
 
         // TODO: once TTL is figured out, it needs to be accounted for
         // i.e. if expired expire and do not return
-        if let Some(value) = data_store_guard.db.get(key) {
+        if let Some(value) = data_store_guard.get(key) {
             conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
                 .await?
         } else {
