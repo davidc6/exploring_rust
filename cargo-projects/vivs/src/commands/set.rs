@@ -1,4 +1,4 @@
-use crate::{data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStore, Result};
+use crate::{data_chunk::DataChunkFrame, utils::INCORRECT_ARGS_ERR, Connection, DataStore, Result};
 
 #[derive(Default)]
 pub struct Set {
@@ -22,12 +22,16 @@ impl Set {
 
     pub async fn respond(&self, connection: &mut Connection, db: &DataStore) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
-            connection.write_error(num_args_err().as_bytes()).await?;
+            connection
+                .write_error(INCORRECT_ARGS_ERR.as_bytes())
+                .await?;
             return Ok(());
         };
 
         let Some(value) = self.value.as_ref() else {
-            connection.write_error(num_args_err().as_bytes()).await?;
+            connection
+                .write_error(INCORRECT_ARGS_ERR.as_bytes())
+                .await?;
             return Ok(());
         };
 

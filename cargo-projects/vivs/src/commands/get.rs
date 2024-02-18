@@ -1,5 +1,5 @@
 use crate::data_chunk::DataChunkFrame;
-use crate::utils::num_args_err;
+use crate::utils::INCORRECT_ARGS_ERR;
 use crate::{Connection, DataStore, Result};
 use log::info;
 
@@ -20,7 +20,7 @@ impl Get {
 
     pub async fn respond(&self, conn: &mut Connection, db: &DataStore) -> Result<()> {
         let Some(key) = self.key.as_ref() else {
-            conn.write_error(num_args_err().as_bytes()).await?;
+            conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
             return Ok(());
         };
 
