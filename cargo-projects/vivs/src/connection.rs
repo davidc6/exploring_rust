@@ -66,7 +66,6 @@ impl Connection {
         // Pull bytes from the source/tcp stream into the buffer
         let bytes_read = self.stream.read_buf(&mut self.buffer).await?;
 
-        // 0 read bytes usually indicates that the connection was closed
         if bytes_read != 0 {
             // Cursor enables to track location in the buffer by providing seek functionality.
             // It wraps the underlying buffer (in our case BytesMut).
@@ -77,7 +76,14 @@ impl Connection {
             return DataChunk::new(&mut cursored_buffer);
         }
 
-        Err(Box::new(ConnectionError::TcpClosed))
+        // 0 read bytes usually indicates end of stream/connection closed:
+        // 1. the reader reached end of file and most likely won't produce more bytes
+        // 2. buffer has remaining capacity of zero
+        if self.buffer.is_empty() {
+            Ok(DataChunkFrame::default())
+        } else {
+            Err(Box::new(ConnectionError::TcpClosed))
+        }
     }
 
     // Write chunk of data / frame to the stream

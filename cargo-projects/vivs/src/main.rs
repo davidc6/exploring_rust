@@ -1,4 +1,4 @@
-use log::info;
+use log::{error, info};
 use vivs::server;
 
 #[tokio::main]
@@ -10,7 +10,10 @@ pub async fn main() -> vivs::Result<()> {
 
     info!("Vivs is starting");
 
-    server::start(ipv4, port).await?;
+    server::start(ipv4, port).await.map_err(|e| {
+        error!("Failed to start Vivs server: {e}");
+        e
+    })?;
 
     Ok(())
 }

@@ -1,5 +1,4 @@
 use crate::{commands::ParseCommandErr, Command, Connection, DataStore, Error};
-use log::error;
 use std::result::Result as NativeResult;
 
 #[derive(Debug)]
@@ -31,14 +30,7 @@ impl Handler {
         // read a frame, should probably live in connection
         // read bits that host/client can send (frame)
         // this should return array of commands which will later parse
-        let payload = self
-            .connection
-            .read_and_process_stream()
-            .await
-            .map_err(|e| {
-                error!("Failed to process the stream: {}", e);
-                e
-            })?;
+        let payload = self.connection.read_and_process_stream().await?;
 
         let command = Command::parse_cmd(payload)?;
         command.run(&mut self.connection, &self.db).await?;

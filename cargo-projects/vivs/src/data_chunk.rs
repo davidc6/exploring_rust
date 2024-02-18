@@ -145,10 +145,11 @@ impl DataChunkFrame {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum DataChunk {
     Array(Vec<DataChunk>),
     Bulk(Bytes),
+    #[default]
     Null,
     Integer(Bytes),
     SimpleError(Bytes),

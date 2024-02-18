@@ -45,7 +45,7 @@ impl Listener {
                     match handler.run().await {
                         Ok(_) => (),
                         Err(e) => {
-                            error!("Failed to handle the request: {:?}", e);
+                            error!("Failed to handle {socket_addr} request: {:?}", e);
                             break;
                         }
                     };

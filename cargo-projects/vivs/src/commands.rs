@@ -1,5 +1,5 @@
 use crate::data_chunk::{DataChunkError, DataChunkFrame};
-use crate::utils::unknown_cmd_err;
+use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
 use crate::{Connection, DataStore, Error, Result};
 use delete::Delete;
 use get::Get;
@@ -18,6 +18,7 @@ pub enum Command {
     Set(Set),
     Delete(Delete),
     Unknown(String),
+    None,
 }
 
 pub enum DataType {
@@ -63,7 +64,7 @@ impl Command {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
         // The first value is the command itself
         let Some(command) = data_chunk.next_as_str()?.map(|val| val.to_lowercase()) else {
-            return Err(ParseCommandErr::NoCommand);
+            return Ok(Command::None);
         };
 
         // To figure out which command needs to be processed,
@@ -73,6 +74,7 @@ impl Command {
             "get" => Command::Get(Get::parse(data_chunk)),
             "set" => Command::Set(Set::parse(data_chunk)),
             "delete" => Command::Delete(Delete::parse(data_chunk)),
+            "" => Command::None,
             val => Command::Unknown(val.to_owned()),
         };
 
@@ -85,6 +87,10 @@ impl Command {
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
+            Command::None => {
+                conn.write_error(NO_CMD_ERR.as_bytes()).await?;
+                Ok(())
+            }
             Command::Unknown(command) => {
                 conn.write_error(unknown_cmd_err(command).as_bytes())
                     .await?;
