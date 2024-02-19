@@ -1,16 +1,17 @@
+use super::CommonCommand;
 use crate::data_chunk::DataChunkFrame;
 use crate::utils::INCORRECT_ARGS_ERR;
 use crate::{Connection, DataStore, GenericResult};
 use log::info;
 
-const GET_CMD: &str = "GET";
+pub const GET_CMD: &str = "get";
 
 pub struct Get {
     key: Option<String>,
 }
 
-impl Get {
-    pub fn parse(mut data: DataChunkFrame) -> Self {
+impl CommonCommand for Get {
+    fn parse(mut data: DataChunkFrame) -> Self {
         let Ok(key) = data.next_as_str() else {
             return Self { key: None };
         };
@@ -18,7 +19,7 @@ impl Get {
         Self { key }
     }
 
-    pub async fn respond(&self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
+    async fn respond(&self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
             conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
             return Ok(());
@@ -31,7 +32,7 @@ impl Get {
             format!(
                 "{:?} {:?} {:?}",
                 conn.connected_peer_addr(),
-                GET_CMD,
+                GET_CMD.to_uppercase(),
                 self.key.as_ref().unwrap()
             )
         );

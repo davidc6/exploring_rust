@@ -2,7 +2,7 @@ use crate::{data_chunk::DataChunkFrame, Connection, GenericResult};
 use bytes::Bytes;
 use log::info;
 
-const PING_CMD: &str = "PING";
+pub const PING_CMD: &str = "ping";
 pub const PONG: &str = "PONG";
 
 #[derive(Debug, Default)]
@@ -29,7 +29,7 @@ impl Ping {
                 format!(
                     "{:?} {:?} {:?}",
                     conn.connected_peer_addr(),
-                    PING_CMD,
+                    PING_CMD.to_uppercase(),
                     message
                 )
             );
@@ -37,9 +37,9 @@ impl Ping {
                 .await?;
         } else {
             info!(
-                "{:?} {}",
+                "{:?} {:?}",
                 conn.connected_peer_addr(),
-                format!("{:?}", PING_CMD)
+                PING_CMD.to_uppercase()
             );
             conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
                 .await?;
