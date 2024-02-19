@@ -181,7 +181,7 @@ impl DataChunk {
     /// This associated function is used by the REPL implementation,
     /// to convert commands to a parsable String which then
     /// gets written as bytes to the tcp stream.
-    pub fn from_string(value: &str) -> GenericResult<String> {
+    pub fn from_string(value: &str) -> String {
         let split = value.trim_end().split(' ');
 
         let parsed_commands = split.fold(("\r\n".to_owned(), 0), |acc, val| {
@@ -190,7 +190,7 @@ impl DataChunk {
 
         let (commands, commands_count) = parsed_commands;
 
-        Ok(format!("*{commands_count}{commands}"))
+        format!("*{commands_count}{commands}")
     }
 
     /// Parses the data type (first byte sign like +, :, $ etc)

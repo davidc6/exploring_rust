@@ -22,8 +22,9 @@ pub mod data_chunk;
 
 pub mod utils;
 
-// Any error that is safe to pass between threads (Send + Sync marker traits).
+// Boxing errors is a good starting point but would need to be reconsidered.
 //
+// Any error that is safe to pass between threads implements Send + Sync marker traits.
 // Send - safe to send to another thread
 // Sync - safe to share between threads (A type can be Sync only if it is Send)
 //
@@ -46,15 +47,5 @@ pub type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
 // For example, Result<bool> is interpreted as Result<bool, Error>
 pub type GenericResult<T> = std::result::Result<T, GenericError>;
 
-// TODO: investigate and remove
-// impl Error {
-//     fn new(m: &str) -> Error {
-//         Error()
-//     }
-// }
-
-// impl From<CommandErrors> for Error {
-//     fn from(err: CommandErrors) -> Self {
-//         Error::new(err.description())
-//     }
-// }
+// This is the default port the server listens on
+pub const PORT: u16 = 9000;

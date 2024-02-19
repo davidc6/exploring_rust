@@ -76,7 +76,7 @@ impl Connection {
             return DataChunk::new(&mut cursored_buffer);
         }
 
-        // 0 read bytes usually indicates end of stream/connection closed:
+        // 0 read bytes usually indicates end of stream/connection closed status and could be because:
         // 1. the reader reached end of file and most likely won't produce more bytes
         // 2. buffer has remaining capacity of zero
         if self.buffer.is_empty() {
