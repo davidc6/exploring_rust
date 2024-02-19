@@ -1,6 +1,6 @@
 use crate::data_chunk::{DataChunkError, DataChunkFrame};
 use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
-use crate::{connection, Connection, DataStore, GenericError, GenericResult};
+use crate::{Connection, DataStore, GenericError, GenericResult};
 use delete::Delete;
 use get::Get;
 use ping::Ping;
