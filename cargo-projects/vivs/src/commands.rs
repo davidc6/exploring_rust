@@ -1,10 +1,14 @@
 use crate::data_chunk::{DataChunkError, DataChunkFrame};
 use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
-use crate::{Connection, DataStore, GenericError, GenericResult};
+use crate::{connection, Connection, DataStore, GenericError, GenericResult};
 use delete::Delete;
 use get::Get;
 use ping::Ping;
 use set::Set;
+use self::delete::DELETE_CMD;
+use self::get::GET_CMD;
+use self::ping::PING_CMD;
+use self::set::SET_CMD;
 
 pub mod delete;
 pub mod get;
@@ -58,6 +62,15 @@ impl From<&str> for ParseCommandErr {
     }
 }
 
+pub trait CommonCommand {
+    fn parse(data: DataChunkFrame) -> Self;
+    fn respond(
+        &self,
+        connection: &mut Connection,
+        datastore: &DataStore,
+    ) -> impl std::future::Future<Output = GenericResult<()>> + Send;
+}
+
 impl Command {
     pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> Result<Command, ParseCommandErr> {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
@@ -69,10 +82,10 @@ impl Command {
         // To figure out which command needs to be processed,
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = match &command[..] {
-            "ping" => Command::Ping(Ping::parse(data_chunk)),
-            "get" => Command::Get(Get::parse(data_chunk)),
-            "set" => Command::Set(Set::parse(data_chunk)),
-            "delete" => Command::Delete(Delete::parse(data_chunk)),
+            PING_CMD => Command::Ping(Ping::parse(data_chunk)),
+            GET_CMD => Command::Get(Get::parse(data_chunk)),
+            SET_CMD => Command::Set(Set::parse(data_chunk)),
+            DELETE_CMD => Command::Delete(Delete::parse(data_chunk)),
             "" => Command::None,
             val => Command::Unknown(val.to_owned()),
         };

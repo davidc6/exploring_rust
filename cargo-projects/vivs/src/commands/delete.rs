@@ -1,14 +1,18 @@
+use super::CommonCommand;
 use crate::{
     data_chunk::DataChunkFrame, utils::INCORRECT_ARGS_ERR, Connection, DataStore, GenericResult,
 };
+use log::info;
+
+pub const DELETE_CMD: &str = "delete";
 
 #[derive(Debug, Default)]
 pub struct Delete {
     key: Option<String>,
 }
 
-impl Delete {
-    pub fn parse(mut data: DataChunkFrame) -> Self {
+impl CommonCommand for Delete {
+    fn parse(mut data: DataChunkFrame) -> Self {
         let Ok(key) = data.next_as_str() else {
             return Self { key: None };
         };
@@ -16,7 +20,7 @@ impl Delete {
         Self { key }
     }
 
-    pub async fn respond(self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
+    async fn respond(&self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
             conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
             return Ok(());
@@ -32,6 +36,16 @@ impl Delete {
             conn.write_chunk(super::DataType::Integer, Some("0".as_bytes()))
                 .await?
         }
+
+        info!(
+            "{}",
+            format!(
+                "{:?} {:?} {:?}",
+                conn.connected_peer_addr(),
+                DELETE_CMD.to_uppercase(),
+                self.key.as_ref().unwrap()
+            )
+        );
 
         Ok(())
     }
