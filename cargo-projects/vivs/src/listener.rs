@@ -1,19 +1,19 @@
-use crate::{Connection, DataStoreWrapper, Handler, Result};
+use crate::{Connection, DataStore, GenericResult, Handler};
 use log::{error, info};
 use tokio::net::TcpListener;
 
 pub struct Listener {
     pub tcp_listener: TcpListener,
-    pub db: DataStoreWrapper,
+    pub db: DataStore,
 }
 
 /// Constructs, listens to incoming connections and assembles their processing
 impl Listener {
-    pub fn new(tcp_listener: TcpListener, db: DataStoreWrapper) -> Self {
+    pub fn new(tcp_listener: TcpListener, db: DataStore) -> Self {
         Listener { tcp_listener, db }
     }
 
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(self) -> GenericResult<()> {
         info!("Server initialised");
         info!("Listening for connections");
 
@@ -45,7 +45,7 @@ impl Listener {
                     match handler.run().await {
                         Ok(_) => (),
                         Err(e) => {
-                            error!("Failed to handle the request: {:?}", e);
+                            error!("Failed to handle {socket_addr} request: {:?}", e);
                             break;
                         }
                     };

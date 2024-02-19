@@ -1,7 +1,7 @@
 use crate::{
     commands::{ping::PONG, DataType},
     data_chunk::{DataChunk, DataChunkFrame},
-    Result,
+    GenericResult,
 };
 use bytes::{Bytes, BytesMut};
 use std::{
@@ -59,14 +59,13 @@ impl Connection {
     }
 
     /// Reads and processes a stream of bytes from the TCP stream
-    pub async fn read_and_process_stream(&mut self) -> Result<DataChunkFrame> {
+    pub async fn read_and_process_stream(&mut self) -> GenericResult<DataChunkFrame> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared, it will be just appending to the buffer
         self.buffer.clear();
         // Pull bytes from the source/tcp stream into the buffer
         let bytes_read = self.stream.read_buf(&mut self.buffer).await?;
 
-        // 0 read bytes usually indicates that the connection was closed
         if bytes_read != 0 {
             // Cursor enables to track location in the buffer by providing seek functionality.
             // It wraps the underlying buffer (in our case BytesMut).
@@ -77,7 +76,14 @@ impl Connection {
             return DataChunk::new(&mut cursored_buffer);
         }
 
-        Err(Box::new(ConnectionError::TcpClosed))
+        // 0 read bytes usually indicates end of stream/connection closed status and could be because:
+        // 1. the reader reached end of file and most likely won't produce more bytes
+        // 2. buffer has remaining capacity of zero
+        if self.buffer.is_empty() {
+            Ok(DataChunkFrame::default())
+        } else {
+            Err(Box::new(ConnectionError::TcpClosed))
+        }
     }
 
     // Write chunk of data / frame to the stream
@@ -155,7 +161,7 @@ impl Connection {
 
     /// TODO: need to rethink this since clients should potentially handle this
     /// The last _ (fall through / catch-all case)
-    pub async fn read_chunk_frame(&mut self) -> Result<Bytes> {
+    pub async fn read_chunk_frame(&mut self) -> GenericResult<Bytes> {
         // read response
         let mut data_chunk = self.read_and_process_stream().await?;
 

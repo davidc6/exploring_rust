@@ -5,7 +5,7 @@ mod server {
         io::{AsyncReadExt, AsyncWriteExt},
         net::{TcpListener, TcpStream},
     };
-    use vivs::{DataStoreWrapper, Listener};
+    use vivs::{DataStore, Listener};
 
     async fn init_server() -> SocketAddr {
         let listener = TcpListener::bind("127.0.0.1:0")
@@ -13,7 +13,7 @@ mod server {
             .expect("Failed to bind to OS chosen port");
         let address = listener.local_addr().unwrap();
 
-        let db = DataStoreWrapper::new();
+        let db = DataStore::new();
 
         tokio::spawn(async move {
             let listener = Listener::new(listener, db);

@@ -1,11 +1,9 @@
-use crate::{commands::ParseCommandErr, Command, Connection, DataStoreWrapper, Error};
-use log::error;
-use std::result::Result as NativeResult;
+use crate::{commands::ParseCommandErr, Command, Connection, DataStore, GenericError};
 
 #[derive(Debug)]
 pub enum HandlerError {
     CommandParsing(ParseCommandErr),
-    Other(Error),
+    Other(GenericError),
 }
 
 impl From<ParseCommandErr> for HandlerError {
@@ -14,31 +12,24 @@ impl From<ParseCommandErr> for HandlerError {
     }
 }
 
-impl From<Error> for HandlerError {
-    fn from(e: Error) -> Self {
+impl From<GenericError> for HandlerError {
+    fn from(e: GenericError) -> Self {
         HandlerError::Other(e)
     }
 }
 
 pub struct Handler {
-    pub db: DataStoreWrapper,
+    pub db: DataStore,
     pub connection: Connection,
 }
 
 impl Handler {
-    pub async fn run(&mut self) -> NativeResult<(), HandlerError> {
+    pub async fn run(&mut self) -> Result<(), HandlerError> {
         // TODO: should probably have a separate parser module
         // read a frame, should probably live in connection
         // read bits that host/client can send (frame)
         // this should return array of commands which will later parse
-        let payload = self
-            .connection
-            .read_and_process_stream()
-            .await
-            .map_err(|e| {
-                error!("Failed to process the stream: {}", e);
-                e
-            })?;
+        let payload = self.connection.read_and_process_stream().await?;
 
         let command = Command::parse_cmd(payload)?;
         command.run(&mut self.connection, &self.db).await?;

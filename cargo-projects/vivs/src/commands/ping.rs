@@ -1,4 +1,4 @@
-use crate::{data_chunk::DataChunkFrame, Connection, Result};
+use crate::{data_chunk::DataChunkFrame, Connection, GenericResult};
 use bytes::Bytes;
 use log::info;
 
@@ -22,7 +22,7 @@ impl Ping {
         }
     }
 
-    pub async fn respond(self, conn: &mut Connection) -> Result<()> {
+    pub async fn respond(self, conn: &mut Connection) -> GenericResult<()> {
         if let Some(message) = self.message {
             info!(
                 "{}",

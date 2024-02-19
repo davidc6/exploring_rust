@@ -1,5 +1,5 @@
 use crate::{
-    data_chunk::DataChunkFrame, utils::num_args_err, Connection, DataStoreWrapper, Result,
+    data_chunk::DataChunkFrame, utils::INCORRECT_ARGS_ERR, Connection, DataStore, GenericResult,
 };
 
 #[derive(Default)]
@@ -22,20 +22,24 @@ impl Set {
         Self { key, value }
     }
 
-    pub async fn respond(&self, connection: &mut Connection, db: &DataStoreWrapper) -> Result<()> {
+    pub async fn respond(&self, connection: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
-            connection.write_error(num_args_err().as_bytes()).await?;
+            connection
+                .write_error(INCORRECT_ARGS_ERR.as_bytes())
+                .await?;
             return Ok(());
         };
 
         let Some(value) = self.value.as_ref() else {
-            connection.write_error(num_args_err().as_bytes()).await?;
+            connection
+                .write_error(INCORRECT_ARGS_ERR.as_bytes())
+                .await?;
             return Ok(());
         };
 
         let mut data_store_guard = db.db.write().await;
 
-        data_store_guard.db.insert(key.to_owned(), value.to_owned());
+        data_store_guard.insert(key.to_owned(), value.to_owned());
         connection
             .write_chunk(super::DataType::SimpleString, Some("OK".as_bytes()))
             .await?;
