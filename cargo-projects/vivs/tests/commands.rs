@@ -57,7 +57,7 @@ mod server {
     }
 
     #[tokio::test]
-    async fn get_missing_key() {
+    async fn get_nonexistent_key() {
         let addr = init_server().await;
 
         let mut stream = TcpStream::connect(addr)
