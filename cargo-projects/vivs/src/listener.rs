@@ -27,10 +27,7 @@ impl Listener {
 
             info!("Incoming connection request from {:?}", socket_addr);
 
-            let mut handler = Handler {
-                db: self.db.clone(),
-                connection: Connection::new(tcp_stream),
-            };
+            let mut handler = Handler::new(self.db.clone(), Connection::new(tcp_stream));
 
             // Creates a new task.
             // A Tokio task is an async green (aka virtual) thread that is created by a runtime of VM (instead of OS).

@@ -24,6 +24,10 @@ pub struct Handler {
 }
 
 impl Handler {
+    pub fn new(db: DataStore, connection: Connection) -> Self {
+        Handler { db, connection }
+    }
+
     pub async fn run(&mut self) -> Result<(), HandlerError> {
         // TODO: should probably have a separate parser module
         // read a frame, should probably live in connection
