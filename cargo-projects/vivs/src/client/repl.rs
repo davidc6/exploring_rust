@@ -32,7 +32,7 @@ async fn main() -> GenericResult<()> {
         let bytes_read = connection.read_chunk_frame().await?;
 
         stdout().write_all(&bytes_read)?;
-        stdout().write_all(b"\n")?;
+        stdout().write_all(b"\r\n")?;
         stdout().flush()?;
     }
 }
