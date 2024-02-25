@@ -1,6 +1,14 @@
-# 0.0.1 (2024-03-16)
+# TBD
 
-Start changelog to track changes and enhancements.
+No release notes available yet.
+
+### Features
+
+- `SET` command now can set string that contain spaces e.g. `SET greeting "hello world"`
+
+# 0.1.0 (2024-02-24)
+
+Create CHANGELOG to track changes and enhancements.
 
 ### Features
 
