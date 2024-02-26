@@ -1,13 +1,7 @@
 use crate::GenericResult;
 use atoi::atoi;
 use bytes::{Buf, Bytes};
-use std::{
-    fmt::{self},
-    io::Cursor,
-    num::TryFromIntError,
-    str::Utf8Error,
-    vec::IntoIter,
-};
+use std::{fmt, io::Cursor, num::TryFromIntError, str::Utf8Error, vec::IntoIter};
 
 #[derive(Debug)]
 pub enum DataChunkError {
@@ -66,7 +60,7 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Da
     ))
 }
 
-/// Tries to find EOL (\r\n - carriage return(CR) and line feed (LF)).
+/// Tries to find EOL i.e. end of line (\r\n - carriage return(CR) and line feed (LF)).
 /// Returns a slice before EOL and advances (increments by 2) the Cursor to the next position
 /// which is after EOL. The return value is a slice of bytes if parsed
 /// correctly or Err otherwise.
@@ -177,14 +171,56 @@ impl DataChunk {
 
     /// Splits a string slice by whitespace,
     /// and then builds a String of commands and values.
+    /// Additionally, this method takes into account strings with spaces,
+    /// that are surrounded by " or '.
     ///
     /// This associated function is used by the REPL implementation,
     /// to convert commands to a parsable String which then
     /// gets written as bytes to the tcp stream.
     pub fn from_string(value: &str) -> String {
-        let split = value.trim_end().split(' ');
+        let mut elements: Vec<String> = vec![];
+        let mut start_position = 0;
+        let mut end_position = 0;
 
-        let parsed_commands = split.fold(("\r\n".to_owned(), 0), |acc, val| {
+        let chars_iter = value.chars();
+        let mut in_range = false;
+
+        for char in chars_iter {
+            // value inside of " or ' e.g. "hello world" or 'hello world'
+            if (char == '"' || char == '\'') && in_range {
+                let value = value[start_position..end_position].to_owned();
+                elements.push(value);
+                end_position += 1;
+                start_position = end_position;
+                in_range = false;
+                continue;
+            }
+
+            // a space or newline but not when seeking inside of " or '
+            if (char == ' ' || char == '\n') && !in_range {
+                let slice = value[start_position..end_position].to_owned();
+                if !slice.is_empty() {
+                    elements.push(slice);
+                }
+
+                end_position += 1;
+                start_position = end_position;
+                continue;
+            }
+
+            // start of value inside " or '
+            if (char == '"' || char == '\'') && !in_range {
+                in_range = true;
+                start_position = end_position + 1;
+                end_position += 1;
+                continue;
+            }
+
+            // any other values outside of " or '
+            end_position += 1;
+        }
+
+        let parsed_commands = elements.iter().fold(("\r\n".to_owned(), 0), |acc, val| {
             (format!("{}${}\r\n{}\r\n", acc.0, val.len(), val), acc.1 + 1)
         });
 
