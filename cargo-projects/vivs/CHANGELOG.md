@@ -1,6 +1,6 @@
-# TBD
+# 0.2.0
 
-No release notes available yet.
+Added `SET` command feature.
 
 ### Features
 
