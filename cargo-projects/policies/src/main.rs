@@ -12,6 +12,7 @@ struct OwnedVehicle {
     vehicle_id: String,
 }
 
+#[derive(Debug)]
 struct UpsellOpportunity {
     person_id: String,
     vehicle_id: String,
@@ -38,57 +39,56 @@ fn get_owned_vehicles(person_ids: Vec<&str>) -> Vec<OwnedVehicle> {
     ]
 }
 
-fn find_potential_upsells(policies: Vec<Policy>) -> Vec<OwnedVehicle> {
-    let mut upsells: Vec<OwnedVehicle> = vec![];
-    let mut user_vehicles: HashMap<&str, Vec<String>> = HashMap::new();
+fn user_active_policies(active_policies: &Vec<Policy>) -> HashMap<&str, Vec<String>> {
+    let mut active_policy_user_vehicles: HashMap<&str, Vec<String>> = HashMap::new();
 
-    // build a map of user ids and owned vehicles
-    for policy in &policies {
-        if let Some(vehicle) = user_vehicles.get_mut(&policy.person_id as &str) {
-            vehicle.push(policy.vehicle_id.clone())
+    for active_policy in active_policies {
+        let Policy {
+            person_id,
+            vehicle_id,
+        } = active_policy;
+
+        if let Some(vehicle) = active_policy_user_vehicles.get_mut(&person_id as &str) {
+            vehicle.push(vehicle_id.clone())
         } else {
-            user_vehicles.insert(&policy.person_id, vec![policy.vehicle_id.clone()]);
+            active_policy_user_vehicles.insert(person_id, vec![vehicle_id.to_owned()]);
         }
     }
 
-    // chunk the vector
-    let policy_chunk = policies.chunks(1);
+    active_policy_user_vehicles
+}
 
-    for policy in policy_chunk {
+fn find_potential_upsells(active_policies: Vec<Policy>) -> Vec<UpsellOpportunity> {
+    let mut upsells: Vec<UpsellOpportunity> = vec![];
+    let mut active_policy_user_vehicles = user_active_policies(&active_policies);
+
+    let active_policies_chunk = active_policies.chunks(1);
+
+    for active_policy_chunk in active_policies_chunk {
         // iterator over a slice, map to return person_id field only and collect into a Vector of string slices
-        let user_ids: Vec<&str> = policy
+        let user_ids: Vec<&str> = active_policy_chunk
             .iter()
-            .map(|val| {
-                // let id: &str = val.person_id.as_ref();
-                // let owned_vehicles = user_vehicles.get_mut(id);
-
-                // if let Some(vehicles) = owned_vehicles {
-                //     vehicles.push(&val.vehicle_id);
-                // } else {
-                //     user_vehicles.insert(id, vec![&val.vehicle_id]);
-                // }
-
-                val.person_id.as_ref()
-            })
+            .map(|current_policy| current_policy.person_id.as_ref())
             .collect();
 
         let all_owned_vehicles = get_owned_vehicles(user_ids);
 
         for vehicle in all_owned_vehicles {
-            // let OwnedVehicle {
-            //     person_id,
-            //     vehicle_id,
-            // } = vehicle;
+            let OwnedVehicle {
+                person_id,
+                vehicle_id,
+            } = vehicle;
 
-            let user_policies = user_vehicles.get_mut(&vehicle.person_id as &str).unwrap();
+            let user_policies = active_policy_user_vehicles
+                .get_mut(&person_id as &str)
+                .unwrap();
 
-            if !user_policies.contains(&vehicle.vehicle_id) {
-                upsells.push(OwnedVehicle {
-                    person_id: vehicle.person_id,
-                    vehicle_id: vehicle.vehicle_id.clone(),
+            if !user_policies.contains(&vehicle_id) {
+                upsells.push(UpsellOpportunity {
+                    person_id,
+                    vehicle_id: vehicle_id.clone(),
                 });
-                // let v_c = vehicle_id.clone();
-                user_policies.push(vehicle.vehicle_id)
+                user_policies.push(vehicle_id);
             }
         }
     }
@@ -97,7 +97,7 @@ fn find_potential_upsells(policies: Vec<Policy>) -> Vec<OwnedVehicle> {
 }
 
 fn main() {
-    let policies = vec![
+    let active_policies = vec![
         Policy {
             person_id: "P1".to_owned(),
             vehicle_id: "V8".to_owned(),
@@ -108,7 +108,36 @@ fn main() {
         },
     ];
 
-    let upsells = find_potential_upsells(policies);
+    let upsells = find_potential_upsells(active_policies);
 
     println!("{:?}", upsells);
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use crate::{user_active_policies, Policy};
+
+    #[test]
+    fn create_user_active_policies() {
+        let active_policies = vec![
+            Policy {
+                person_id: "P1".to_owned(),
+                vehicle_id: "V8".to_owned(),
+            },
+            Policy {
+                person_id: "P2".to_owned(),
+                vehicle_id: "V6".to_owned(),
+            },
+        ];
+
+        let policies = user_active_policies(&active_policies);
+
+        let mut expected_policies = HashMap::new();
+        expected_policies.insert("P1", vec!["V8".to_owned()]);
+        expected_policies.insert("P2", vec!["V6".to_owned()]);
+
+        assert_eq!(policies, expected_policies);
+    }
 }
