@@ -1,4 +1,4 @@
-# 0.2.0
+# 0.2.0 (2024-03-15)
 
 Added `SET` command feature.
 
