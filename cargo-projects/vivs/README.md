@@ -1,8 +1,8 @@
 # README
 
-Vivs is an in-memory data store.
+Vivs is a simple, (currently) experimental in-memory data store.
 
-**This project here is quite raw and "very" work in progress**
+**This project is still in its early stages and work in progress**
 
 ### Guide
 
@@ -25,7 +25,7 @@ To run integration tests:
 cargo test --test commands
 ```
 
-### Examples
+### Examples (without using the repl/client)
 
 `PING` command:
 
@@ -33,7 +33,7 @@ cargo test --test commands
 # Option 1
 # 
 # -C    sends CRLF as line-ending
-# -N    shutsdown the network socket after EOF on the input (required by some servers to finish work) 
+# -N    shuts down the network socket after EOF on the input (required by some servers to finish work) 
 printf '*1\r\n\x244\r\nPING\r\n\r\n' | nc -C -N 127.0.0.1 6379
 
 # Option 2
@@ -69,18 +69,19 @@ printf '*2\r\n\x243\r\n\GET\r\n\x241\r\na\r\n' | nc -C -N 127.0.0.1 6379
 ## General architecture
 
 - Client sends a frame which server parses
-- Server parses the payload by splitting it into "chunks"
-- Example `*1$4PING` get split into `*1`, `$4`, `PING`
+- Server parses the payload by splitting it into "chunks" (Example `*1$4PING` get split into `*1`, `$4`, `PING`)
+- Server then writes back to the stream which is read by the client
 
 ## TODOs
 
-- [ ] Logging (.log) for all commands
+- [x] Logging (.log) for all commands
 - [x] PING
 - [x] SET
 - [x] GET
 - [x] DELETE
-- [ ] HELLO
-- [ ] Save strings that contain spaces i.e. "Hello world"
+- [x] Save strings that contain spaces i.e. "Hello world"
+- [x] Build a REPL to test commands
+- [ ] HELLO (a command that returns instance information)
 - [ ] TTL (semi-active i.e. check ttl when key is being accessed AND/OR active i.e. sort keys by expiration in radix tree)
 - [ ] Build a client (connect to kv store, call get, set, delete commands)
 
@@ -99,4 +100,3 @@ printf '*2\r\n\x243\r\n\GET\r\n\x241\r\na\r\n' | nc -C -N 127.0.0.1 6379
 - Memory optimization - https://redis.io/docs/management/optimization/memory-optimization/
 - Redis Data Structures - https://redis.com/redis-enterprise/data-structures/
 - A collection of Redis internals links - https://abgoswam.wordpress.com/2016/11/22/redis-internals/
-
