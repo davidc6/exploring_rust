@@ -1,6 +1,8 @@
 use super::CommonCommand;
 use crate::{
-    data_chunk::DataChunkFrame, utils::INCORRECT_ARGS_ERR, Connection, DataStore, GenericResult,
+    data_chunk::DataChunkFrame,
+    utils::{INCORRECT_ARGS_ERR, VALUE_NOT_INT_ERR},
+    Connection, DataStore, GenericResult,
 };
 use log::info;
 
@@ -28,7 +30,12 @@ impl CommonCommand for Set {
             // check option
             if option.to_lowercase() == *"expire" {
                 if let Ok(Some(ex_val)) = data.next_as_str() {
-                    Some(ex_val.parse::<i32>().unwrap())
+                    let val = ex_val.parse::<i32>();
+                    if let Ok(v) = val {
+                        Some(v)
+                    } else {
+                        Some(-1)
+                    }
                 } else {
                     None
                 }
@@ -66,8 +73,12 @@ impl CommonCommand for Set {
         let mut data_store_guard = db.db.write().await;
         data_store_guard.insert(key.to_owned(), value.to_owned());
 
-        // expiration set on the key
         if let Some(expiration) = self.expiration {
+            if expiration == -1 {
+                connection.write_error(VALUE_NOT_INT_ERR.as_bytes()).await?;
+                return Ok(());
+            }
+
             let mut expirations_data_store_guard = db.expirations.write().await;
             expirations_data_store_guard.insert(key.to_owned(), expiration);
         };
