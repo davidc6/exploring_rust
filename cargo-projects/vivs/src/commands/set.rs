@@ -10,6 +10,7 @@ pub const SET_CMD: &str = "set";
 pub struct Set {
     key: Option<String>,
     value: Option<String>,
+    expiration: Option<i32>,
 }
 
 impl CommonCommand for Set {
@@ -18,15 +19,35 @@ impl CommonCommand for Set {
         let Ok(key) = data.next_as_str() else {
             return Self::default();
         };
-        // and then the value
+        // then the value
         let Ok(value) = data.next_as_str() else {
             return Self::default();
         };
+        // and then expiration
+        let expiration = if let Ok(Some(option)) = data.next_as_str() {
+            // check option
+            if option.to_lowercase() == *"expire" {
+                if let Ok(Some(ex_val)) = data.next_as_str() {
+                    Some(ex_val.parse::<i32>().unwrap())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
-        Self { key, value }
+        Self {
+            key,
+            value,
+            expiration,
+        }
     }
 
     async fn respond(&self, connection: &mut Connection, db: &DataStore) -> GenericResult<()> {
+        // key missing
         let Some(key) = self.key.as_ref() else {
             connection
                 .write_error(INCORRECT_ARGS_ERR.as_bytes())
@@ -34,6 +55,7 @@ impl CommonCommand for Set {
             return Ok(());
         };
 
+        // value missing
         let Some(value) = self.value.as_ref() else {
             connection
                 .write_error(INCORRECT_ARGS_ERR.as_bytes())
@@ -42,6 +64,13 @@ impl CommonCommand for Set {
         };
 
         let mut data_store_guard = db.db.write().await;
+        data_store_guard.insert(key.to_owned(), value.to_owned());
+
+        // expiration set on the key
+        if let Some(expiration) = self.expiration {
+            let mut expirations_data_store_guard = db.expirations.write().await;
+            expirations_data_store_guard.insert(key.to_owned(), expiration);
+        };
 
         info!(
             "{}",
@@ -49,11 +78,10 @@ impl CommonCommand for Set {
                 "{:?} {:?} {:?}",
                 connection.connected_peer_addr(),
                 SET_CMD.to_uppercase(),
-                self.key.as_ref().unwrap()
+                self.key
             )
         );
 
-        data_store_guard.insert(key.to_owned(), value.to_owned());
         connection
             .write_chunk(super::DataType::SimpleString, Some("OK".as_bytes()))
             .await?;
