@@ -15,7 +15,7 @@ use tokio::sync::RwLock;
 #[derive(Clone, Default)]
 pub struct DataStore {
     pub db: Arc<RwLock<HashMap<String, String>>>,
-    pub expirations: Arc<RwLock<HashMap<String, i32>>>,
+    pub expirations: Arc<RwLock<HashMap<String, u64>>>,
 }
 
 impl DataStore {
