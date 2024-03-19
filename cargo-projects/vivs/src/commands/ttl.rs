@@ -55,7 +55,13 @@ impl CommonCommand for Ttl {
             }
             .as_secs();
 
-            conn.write_chunk(super::DataType::Integer, Some(&ttl.to_ne_bytes()))
+            let ttl_byte_arr = if cfg!(target_endian = "big") {
+                ttl.to_be_bytes()
+            } else {
+                ttl.to_le_bytes()
+            };
+
+            conn.write_chunk(super::DataType::Integer, Some(&ttl_byte_arr))
                 .await?
         } else {
             conn.write_null().await?
