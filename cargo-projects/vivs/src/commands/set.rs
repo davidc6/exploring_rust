@@ -1,3 +1,5 @@
+use std::time::{Duration, SystemTime};
+
 use super::CommonCommand;
 use crate::{
     data_chunk::DataChunkFrame,
@@ -12,7 +14,7 @@ pub const SET_CMD: &str = "set";
 pub struct Set {
     key: Option<String>,
     value: Option<String>,
-    expiration: Option<i32>,
+    expiration: Option<u64>,
 }
 
 impl CommonCommand for Set {
@@ -30,11 +32,26 @@ impl CommonCommand for Set {
             // check option
             if option.to_lowercase() == *"expire" {
                 if let Ok(Some(ex_val)) = data.next_as_str() {
-                    let val = ex_val.parse::<i32>();
+                    let val = ex_val.parse::<u32>();
                     if let Ok(v) = val {
-                        Some(v)
+                        let current_system_time = SystemTime::now();
+                        let current_unix_time = current_system_time
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .unwrap();
+
+                        let expiry_s_u64 = u64::from(v);
+
+                        let expiry_duration_s = Duration::from_secs(expiry_s_u64);
+                        let expiry_time = current_system_time + expiry_duration_s;
+
+                        let ttl = expiry_time
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs();
+
+                        Some(ttl)
                     } else {
-                        Some(-1)
+                        Some(0)
                     }
                 } else {
                     None
@@ -74,7 +91,7 @@ impl CommonCommand for Set {
         data_store_guard.insert(key.to_owned(), value.to_owned());
 
         if let Some(expiration) = self.expiration {
-            if expiration == -1 {
+            if expiration == 0 {
                 connection.write_error(VALUE_NOT_INT_ERR.as_bytes()).await?;
                 return Ok(());
             }
