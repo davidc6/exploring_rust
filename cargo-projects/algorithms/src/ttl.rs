@@ -23,18 +23,18 @@ pub fn run_ttl(data: &[[i32; 2]], queries: &[i32]) -> Vec<i32> {
     // insert Start and End
     for data_point in data.iter() {
         let [start, ttl] = data_point;
-        let s = Event::new(EventType::Start, *start);
-        let e = Event::new(EventType::End, start + ttl);
 
-        result.push(s);
-        result.push(e);
+        let start_time = Event::new(EventType::Start, *start);
+        result.push(start_time);
+
+        let end_time = Event::new(EventType::End, start + ttl);
+        result.push(end_time);
     }
 
     // insert Query
     for query in queries.iter() {
-        let q = Event::new(EventType::Query, *query);
-
-        result.push(q);
+        let query_e = Event::new(EventType::Query, *query);
+        result.push(query_e);
     }
 
     // sort all values (events)
