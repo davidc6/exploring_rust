@@ -1,5 +1,3 @@
-use std::result;
-
 #[derive(Debug, PartialEq)]
 enum EventType {
     Start,
@@ -19,7 +17,7 @@ impl Event {
     }
 }
 
-pub fn run_ttl(data: &Vec<[i32; 2]>, queries: &[i32]) -> Vec<i32> {
+pub fn run_ttl(data: &[[i32; 2]], queries: &[i32]) -> Vec<i32> {
     let mut result = Vec::new();
 
     // insert Start and End
@@ -39,11 +37,10 @@ pub fn run_ttl(data: &Vec<[i32; 2]>, queries: &[i32]) -> Vec<i32> {
         result.push(q);
     }
 
-    // sort all values
+    // sort all values (events)
     result.sort_by(|a, b| a.value.cmp(&b.value));
 
-    let mut counts = vec![];
-
+    let mut query_count = vec![];
     let mut start_count = 0;
 
     for res in result {
@@ -60,11 +57,11 @@ pub fn run_ttl(data: &Vec<[i32; 2]>, queries: &[i32]) -> Vec<i32> {
         }
 
         if event_type == EventType::Query {
-            counts.push(start_count);
+            query_count.push(start_count);
         }
     }
 
-    counts
+    query_count
 }
 
 #[cfg(test)]
