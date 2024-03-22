@@ -17,6 +17,20 @@ impl Event {
     }
 }
 
+/// Count all queries that are within the boundaries of start time and ttl
+///
+/// Example:
+/// first value is start time, second is ttl
+/// data = [[1, 10], [3, 10], [5, 10]]
+/// queries = [1, 12, 14, 60]
+///
+/// 1  is within the boundaries of 1 and 1 + 10 so increment count by 1
+/// 12 is within the boundaries of 3 and 3 + 10 and 5 + 10 so increment by two
+/// 14 is withing the boundaries of 5 + 10 so increment by one
+/// 60 is not withing the boundaries so do not increment
+///
+/// So the result will be [1, 2, 1, 0]
+///
 pub fn run_ttl(data: &[[i32; 2]], queries: &[i32]) -> Vec<i32> {
     let mut result = Vec::new();
 
@@ -75,6 +89,17 @@ mod run_ttl_tests {
 
         let actual = run_ttl(&data, &queries);
         let expected = vec![2, 1, 0, 0];
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_queries_2() {
+        let data = vec![[1, 10], [3, 10], [5, 10]];
+        let queries = [1, 12, 14, 60];
+
+        let actual = run_ttl(&data, &queries);
+        let expected = vec![1, 2, 1, 0];
 
         assert_eq!(actual, expected);
     }
