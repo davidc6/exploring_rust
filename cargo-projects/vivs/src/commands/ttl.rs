@@ -1,11 +1,9 @@
-use std::time::{Duration, SystemTime};
-
 use super::CommonCommand;
 use crate::data_chunk::DataChunkFrame;
 use crate::utils::INCORRECT_ARGS_ERR;
 use crate::{Connection, DataStore, GenericResult};
 use log::info;
-// use std::time::{SystemTime};
+use std::time::{Duration, SystemTime};
 
 pub const TTL_CMD: &str = "ttl";
 
@@ -46,7 +44,7 @@ impl CommonCommand for Ttl {
             let current_time = SystemTime::now();
 
             let expiry_duration_s = Duration::from_secs(*expiry_s);
-            let current_duration_s = current_time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
+            let current_duration_s = current_time.duration_since(SystemTime::UNIX_EPOCH)?;
 
             let ttl = if expiry_duration_s <= current_duration_s {
                 Duration::from_secs(0)
