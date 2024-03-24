@@ -1,5 +1,3 @@
-use std::time::{Duration, SystemTime};
-
 use super::CommonCommand;
 use crate::{
     data_chunk::DataChunkFrame,
@@ -7,6 +5,7 @@ use crate::{
     Connection, DataStore, GenericResult,
 };
 use log::info;
+use std::time::{Duration, SystemTime};
 
 pub const SET_CMD: &str = "set";
 
@@ -30,14 +29,12 @@ impl CommonCommand for Set {
         // and then expiration
         let expiration = if let Ok(Some(option)) = data.next_as_str() {
             // check option
+            // *"expire" dereferences the static reference which is a string allocated in the read-only memory
             if option.to_lowercase() == *"expire" {
                 if let Ok(Some(ex_val)) = data.next_as_str() {
                     let val = ex_val.parse::<u32>();
                     if let Ok(v) = val {
                         let current_system_time = SystemTime::now();
-                        let current_unix_time = current_system_time
-                            .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap();
 
                         let expiry_s_u64 = u64::from(v);
 
