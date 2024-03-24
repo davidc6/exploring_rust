@@ -63,6 +63,7 @@ impl Connection {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared, it will be just appending to the buffer
         self.buffer.clear();
+
         // Pull bytes from the source/tcp stream into the buffer
         let bytes_read = self.stream.read_buf(&mut self.buffer).await?;
 
@@ -183,17 +184,21 @@ impl Connection {
             Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
             Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
             Some(DataChunk::Integer(val)) => {
+                // convert Bytes to bytes array
+                // then determine endianness to create u64 integer value from the bytes array
+                // and return integer as string
                 let bytes_slice = val.slice(0..8);
 
-                // converts slice to an array of u8 elements (since u64 is 8 bytes)
+                // converts the slice to an array of u8 elements (since u64 is 8 bytes)
                 let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
-                let endian_integer = if cfg!(target_endian = "big") {
+                let integer_as_string = if cfg!(target_endian = "big") {
                     u64::from_be_bytes(arr_u8)
                 } else {
                     u64::from_le_bytes(arr_u8)
-                };
+                }
+                .to_string();
 
-                Ok(Bytes::from(endian_integer.to_string()))
+                Ok(Bytes::from(format!("(integer) {}", integer_as_string)))
             }
             None => Ok(Bytes::from("Unknown")),
             _ => Ok(Bytes::from("(nil)")), // catch all case
