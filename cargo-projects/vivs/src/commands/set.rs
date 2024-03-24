@@ -9,7 +9,9 @@ use std::time::{Duration, SystemTime};
 
 pub const SET_CMD: &str = "set";
 
-const EXPIRE_OPTION: &str = "expire";
+// xs - expire in (s) seconds
+// xm - expire in (m) minutes
+const EXPIRE_SECONDS: &str = "xs";
 
 #[derive(Default)]
 pub struct Set {
@@ -32,7 +34,7 @@ impl CommonCommand for Set {
         if let Ok(Some(option)) = data.next_as_str() {
             // check for options (e.g. expire)
             // *"expire" dereferences the static reference which is a string allocated in the read-only memory
-            if option.to_lowercase() == *EXPIRE_OPTION {
+            if option.to_lowercase() == *EXPIRE_SECONDS {
                 // expire value (seconds)
                 if let Ok(Some(expiry_val_as_string)) = data.next_as_str() {
                     // parse to u64

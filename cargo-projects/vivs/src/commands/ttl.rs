@@ -1,6 +1,6 @@
 use super::CommonCommand;
 use crate::data_chunk::DataChunkFrame;
-use crate::utils::INCORRECT_ARGS_ERR;
+use crate::utils::{u64_as_bytes, INCORRECT_ARGS_ERR};
 use crate::{Connection, DataStore, GenericResult};
 use log::info;
 use std::time::{Duration, SystemTime};
@@ -26,7 +26,7 @@ impl CommonCommand for Ttl {
             return Ok(());
         };
 
-        let data_store_guard = db.expirations.read().await;
+        let mut expires_guard = db.expirations.write().await;
 
         info!(
             "{}",
@@ -40,13 +40,19 @@ impl CommonCommand for Ttl {
 
         // TODO: once TTL is figured out, it needs to be accounted for
         // i.e. if expired expire and do not return
-        if let Some(expiry_s) = data_store_guard.get(key) {
+        if let Some(expiry_s) = expires_guard.get(key) {
             let current_time = SystemTime::now();
 
             let expiry_duration_s = Duration::from_secs(*expiry_s);
             let current_duration_s = current_time.duration_since(SystemTime::UNIX_EPOCH)?;
 
             let ttl = if expiry_duration_s <= current_duration_s {
+                // remove from expirations and db
+                expires_guard.remove(key);
+
+                let mut db_guard = db.db.write().await;
+                db_guard.remove(key);
+
                 Duration::from_secs(0)
             } else {
                 expiry_duration_s - current_duration_s
@@ -54,16 +60,14 @@ impl CommonCommand for Ttl {
             .as_secs();
 
             // treat it as an integer
-            let ttl_byte_arr = if cfg!(target_endian = "big") {
-                ttl.to_be_bytes()
-            } else {
-                ttl.to_le_bytes()
-            };
+            let ttl_byte_arr = u64_as_bytes(ttl);
 
             conn.write_chunk(super::DataType::Integer, Some(&ttl_byte_arr))
                 .await?
         } else {
-            conn.write_null().await?
+            let no_ttl = u64_as_bytes(0);
+            conn.write_chunk(super::DataType::Integer, Some(&no_ttl))
+                .await?
         }
 
         Ok(())
