@@ -1,10 +1,9 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 use super::CommonCommand;
 use crate::data_chunk::DataChunkFrame;
 use crate::utils::INCORRECT_ARGS_ERR;
 use crate::{Connection, DataStore, GenericResult};
 use log::info;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub const GET_CMD: &str = "get";
 
@@ -27,7 +26,7 @@ impl CommonCommand for Get {
             return Ok(());
         };
 
-        let mut data_store_guard = db.db.write().await;
+        let mut db_guard = db.db.write().await;
 
         info!(
             "{}",
@@ -39,22 +38,18 @@ impl CommonCommand for Get {
             )
         );
 
-        // TODO: once TTL is figured out, it needs to be accounted for
-        // i.e. if expired expire and do not return
-        // let v = data_store_guard.get(key);
-        // drop(data_store_guard);
+        if let Some(v) = db_guard.get(key) {
+            let mut expires_guard = db.expirations.write().await;
 
-        if let Some(v) = data_store_guard.get(key) {
-            // check for expiration
-            let mut expires = db.expirations.write().await;
+            // If key exists in cache then check for TTL and whether the value has expired.
+            // If key exists but expired (i.e. current time is more than expiry time),
+            // evict from both stores and return null.
+            if let Some(unix_time) = expires_guard.get(key) {
+                let duration_now_s = SystemTime::now().duration_since(UNIX_EPOCH)?;
 
-            if let Some(ttl) = expires.get(key) {
-                let current = SystemTime::now();
-                let current_s = current.duration_since(UNIX_EPOCH).unwrap();
-
-                if Duration::from_secs(*ttl) <= current_s {
-                    data_store_guard.remove(key);
-                    expires.remove(key);
+                if Duration::from_secs(*unix_time) <= duration_now_s {
+                    db_guard.remove(key);
+                    expires_guard.remove(key);
 
                     conn.write_null().await?
                 } else {

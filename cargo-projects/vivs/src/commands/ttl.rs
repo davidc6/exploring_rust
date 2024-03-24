@@ -53,6 +53,7 @@ impl CommonCommand for Ttl {
             }
             .as_secs();
 
+            // treat it as an integer
             let ttl_byte_arr = if cfg!(target_endian = "big") {
                 ttl.to_be_bytes()
             } else {

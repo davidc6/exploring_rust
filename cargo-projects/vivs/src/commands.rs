@@ -1,3 +1,8 @@
+use self::delete::DELETE_CMD;
+use self::get::GET_CMD;
+use self::ping::PING_CMD;
+use self::set::SET_CMD;
+use self::ttl::TTL_CMD;
 use crate::data_chunk::{DataChunkError, DataChunkFrame};
 use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
 use crate::{Connection, DataStore, GenericError, GenericResult};
@@ -5,21 +10,20 @@ use delete::Delete;
 use get::Get;
 use ping::Ping;
 use set::Set;
-use self::delete::DELETE_CMD;
-use self::get::GET_CMD;
-use self::ping::PING_CMD;
-use self::set::SET_CMD;
+use ttl::Ttl;
 
 pub mod delete;
 pub mod get;
 pub mod ping;
 pub mod set;
+pub mod ttl;
 
 pub enum Command {
     Ping(Ping),
     Get(Get),
     Set(Set),
     Delete(Delete),
+    Ttl(Ttl),
     Unknown(String),
     None,
 }
@@ -86,6 +90,7 @@ impl Command {
             GET_CMD => Command::Get(Get::parse(data_chunk)),
             SET_CMD => Command::Set(Set::parse(data_chunk)),
             DELETE_CMD => Command::Delete(Delete::parse(data_chunk)),
+            TTL_CMD => Command::Ttl(Ttl::parse(data_chunk)),
             "" => Command::None,
             val => Command::Unknown(val.to_owned()),
         };
@@ -99,6 +104,7 @@ impl Command {
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
+            Command::Ttl(command) => command.respond(conn, db).await,
             Command::None => {
                 conn.write_error(NO_CMD_ERR.as_bytes()).await?;
                 Ok(())

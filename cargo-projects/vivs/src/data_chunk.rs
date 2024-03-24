@@ -292,8 +292,8 @@ impl DataChunk {
             // e.g. :1
             b':' => {
                 let n = line(cursored_buffer);
-                let v = Bytes::copy_from_slice(n.unwrap());
-                Ok(DataChunk::Integer(v))
+                let integer = Bytes::copy_from_slice(n.unwrap());
+                Ok(DataChunk::Integer(integer))
             }
             // null value
             b'_' => Ok(DataChunk::Null),
