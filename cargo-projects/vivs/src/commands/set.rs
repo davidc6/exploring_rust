@@ -9,6 +9,8 @@ use std::time::{Duration, SystemTime};
 
 pub const SET_CMD: &str = "set";
 
+const EXPIRE_OPTION: &str = "expire";
+
 #[derive(Default)]
 pub struct Set {
     key: Option<String>,
@@ -27,11 +29,13 @@ impl CommonCommand for Set {
             return Self::default();
         };
         // and then expiration
-        let expiry = if let Ok(Some(option)) = data.next_as_str() {
-            // check option
+        if let Ok(Some(option)) = data.next_as_str() {
+            // check for options (e.g. expire)
             // *"expire" dereferences the static reference which is a string allocated in the read-only memory
-            if option.to_lowercase() == *"expire" {
+            if option.to_lowercase() == *EXPIRE_OPTION {
+                // expire value (seconds)
                 if let Ok(Some(expiry_val_as_string)) = data.next_as_str() {
+                    // parse to u64
                     if let Ok(expiry_s_u64) = expiry_val_as_string.parse::<u64>() {
                         let current_system_time = SystemTime::now();
                         let expiry_time = current_system_time + Duration::from_secs(expiry_s_u64);
@@ -41,21 +45,21 @@ impl CommonCommand for Set {
                             .unwrap()
                             .as_secs();
 
-                        Some(ttl)
-                    } else {
-                        Some(0)
+                        return Self {
+                            key,
+                            value,
+                            expiry: Some(ttl),
+                        };
                     }
-                } else {
-                    None
                 }
-            } else {
-                None
             }
-        } else {
-            None
-        };
+        }
 
-        Self { key, value, expiry }
+        Self {
+            key,
+            value,
+            expiry: None,
+        }
     }
 
     async fn respond(&self, connection: &mut Connection, db: &DataStore) -> GenericResult<()> {
