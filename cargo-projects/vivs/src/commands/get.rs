@@ -38,26 +38,26 @@ impl CommonCommand for Get {
             )
         );
 
-        if let Some(v) = db_guard.get(key) {
-            let mut expires_guard = db.expirations.write().await;
+        if let Some(value) = db_guard.get(key) {
+            let mut expiries_guard = db.expirations.write().await;
 
             // If key exists in cache then check for TTL and whether the value has expired.
             // If key exists but expired (i.e. current time is more than expiry time),
             // evict from both stores and return null.
-            if let Some(unix_time) = expires_guard.get(key) {
+            if let Some(unix_time) = expiries_guard.get(key) {
                 let duration_now_s = SystemTime::now().duration_since(UNIX_EPOCH)?;
 
                 if Duration::from_secs(*unix_time) <= duration_now_s {
                     db_guard.remove(key);
-                    expires_guard.remove(key);
+                    expiries_guard.remove(key);
 
                     conn.write_null().await?
                 } else {
-                    conn.write_chunk(super::DataType::SimpleString, Some(v.as_bytes()))
+                    conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
                         .await?
                 }
             } else {
-                conn.write_chunk(super::DataType::SimpleString, Some(v.as_bytes()))
+                conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
                     .await?
             }
         } else {

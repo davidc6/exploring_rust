@@ -13,7 +13,7 @@ pub const SET_CMD: &str = "set";
 pub struct Set {
     key: Option<String>,
     value: Option<String>,
-    expiration: Option<u64>,
+    expiry: Option<u64>,
 }
 
 impl CommonCommand for Set {
@@ -27,19 +27,14 @@ impl CommonCommand for Set {
             return Self::default();
         };
         // and then expiration
-        let expiration = if let Ok(Some(option)) = data.next_as_str() {
+        let expiry = if let Ok(Some(option)) = data.next_as_str() {
             // check option
             // *"expire" dereferences the static reference which is a string allocated in the read-only memory
             if option.to_lowercase() == *"expire" {
-                if let Ok(Some(ex_val)) = data.next_as_str() {
-                    let val = ex_val.parse::<u32>();
-                    if let Ok(v) = val {
+                if let Ok(Some(expiry_val_as_string)) = data.next_as_str() {
+                    if let Ok(expiry_s_u64) = expiry_val_as_string.parse::<u64>() {
                         let current_system_time = SystemTime::now();
-
-                        let expiry_s_u64 = u64::from(v);
-
-                        let expiry_duration_s = Duration::from_secs(expiry_s_u64);
-                        let expiry_time = current_system_time + expiry_duration_s;
+                        let expiry_time = current_system_time + Duration::from_secs(expiry_s_u64);
 
                         let ttl = expiry_time
                             .duration_since(SystemTime::UNIX_EPOCH)
@@ -60,11 +55,7 @@ impl CommonCommand for Set {
             None
         };
 
-        Self {
-            key,
-            value,
-            expiration,
-        }
+        Self { key, value, expiry }
     }
 
     async fn respond(&self, connection: &mut Connection, db: &DataStore) -> GenericResult<()> {
@@ -87,7 +78,7 @@ impl CommonCommand for Set {
         let mut data_store_guard = db.db.write().await;
         data_store_guard.insert(key.to_owned(), value.to_owned());
 
-        if let Some(expiration) = self.expiration {
+        if let Some(expiration) = self.expiry {
             if expiration == 0 {
                 connection.write_error(VALUE_NOT_INT_ERR.as_bytes()).await?;
                 return Ok(());

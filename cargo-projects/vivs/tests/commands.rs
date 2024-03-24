@@ -2,7 +2,7 @@
 mod server {
     use std::net::SocketAddr;
     use tokio::{
-        io::{self, AsyncReadExt, AsyncWriteExt},
+        io::{AsyncReadExt, AsyncWriteExt},
         net::{TcpListener, TcpStream},
     };
     use vivs::{DataStore, Listener};
