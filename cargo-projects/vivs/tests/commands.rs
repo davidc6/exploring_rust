@@ -124,10 +124,12 @@ mod server {
             .await
             .unwrap();
 
-        let mut buffer = [0; 4];
+        let mut buffer = [0; 11];
         let _ = stream.read_exact(&mut buffer).await;
 
-        assert_eq!(b":1\r\n", &buffer);
+        let expected: [u8; 11] = [58, 1, 0, 0, 0, 0, 0, 0, 0, 13, 10];
+
+        assert_eq!(expected, buffer);
 
         stream
             .write_all(b"*2\r\n$3\r\nGET\r\n$8\r\ngreeting\r\n")
@@ -151,7 +153,7 @@ mod server {
         // SET
         stream
             .write_all(
-                b"*5\r\n$3\r\nSET\r\n$8\r\ngreeting\r\n$5\r\nhello\r\n$6\r\nexpire\r\n$2\r\n20\r\n",
+                b"*5\r\n$3\r\nSET\r\n$8\r\ngreeting\r\n$5\r\nhello\r\n$2\r\nxs\r\n$2\r\n20\r\n",
             )
             .await
             .unwrap();
