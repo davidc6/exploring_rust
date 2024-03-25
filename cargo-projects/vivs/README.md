@@ -25,6 +25,15 @@ To run integration tests:
 cargo test --test commands
 ```
 
+### Commands
+
+- `PING [value]` - pings the server, tests whether it's alive and can be also used to test latency
+- `GET key` - gets the value by key from the server
+- `SET key value [XS seconds]` - sets key to hold the value, optionally setting expire time
+    - `XS` option (stands for [X]Expire [S]Seconds)
+- `DELETE key` - deletes key from the store
+- `TTL key` - checks whether a key has time to live (expiry time)
+
 ### Examples (without using the repl/client)
 
 `PING` command:
