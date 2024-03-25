@@ -9,8 +9,8 @@ use std::time::{Duration, SystemTime};
 
 pub const SET_CMD: &str = "set";
 
-// xs - expire in (s) seconds
-// xm - expire in (m) minutes
+// xs - (x)expire in (s)seconds (e.g. SET greeting hello XS 60)
+// xm - (x)expire in (m)minutes (TODO: not implemented)
 const EXPIRE_SECONDS: &str = "xs";
 
 #[derive(Default)]
@@ -22,22 +22,22 @@ pub struct Set {
 
 impl CommonCommand for Set {
     fn parse(mut data: DataChunkFrame) -> Self {
-        // we try to get the key first
+        // Get the key first
         let Ok(key) = data.next_as_str() else {
             return Self::default();
         };
-        // then the value
+        // Get the value second
         let Ok(value) = data.next_as_str() else {
             return Self::default();
         };
-        // and then expiration
+        // Get the expiry value last
         if let Ok(Some(option)) = data.next_as_str() {
-            // check for options (e.g. expire)
+            // Check for options (e.g. expire)
             // *"expire" dereferences the static reference which is a string allocated in the read-only memory
             if option.to_lowercase() == *EXPIRE_SECONDS {
-                // expire value (seconds)
+                // Expire value (seconds)
                 if let Ok(Some(expiry_val_as_string)) = data.next_as_str() {
-                    // parse to u64
+                    // Parse to u64
                     if let Ok(expiry_s_u64) = expiry_val_as_string.parse::<u64>() {
                         let current_system_time = SystemTime::now();
                         let expiry_time = current_system_time + Duration::from_secs(expiry_s_u64);
@@ -65,7 +65,7 @@ impl CommonCommand for Set {
     }
 
     async fn respond(&self, connection: &mut Connection, db: &DataStore) -> GenericResult<()> {
-        // key missing
+        // Key missing
         let Some(key) = self.key.as_ref() else {
             connection
                 .write_error(INCORRECT_ARGS_ERR.as_bytes())
@@ -73,7 +73,7 @@ impl CommonCommand for Set {
             return Ok(());
         };
 
-        // value missing
+        // Value missing
         let Some(value) = self.value.as_ref() else {
             connection
                 .write_error(INCORRECT_ARGS_ERR.as_bytes())

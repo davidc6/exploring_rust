@@ -143,7 +143,7 @@ mod server {
     }
 
     #[tokio::test]
-    async fn set_get_and_ttl_key() {
+    async fn set_get_ttl_key() {
         let addr = init_server().await;
 
         let mut stream = TcpStream::connect(addr)
