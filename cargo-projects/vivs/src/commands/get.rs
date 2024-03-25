@@ -3,6 +3,7 @@ use crate::data_chunk::DataChunkFrame;
 use crate::utils::INCORRECT_ARGS_ERR;
 use crate::{Connection, DataStore, GenericResult};
 use log::info;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub const GET_CMD: &str = "get";
 
@@ -25,7 +26,7 @@ impl CommonCommand for Get {
             return Ok(());
         };
 
-        let data_store_guard = db.db.read().await;
+        let mut db_guard = db.db.write().await;
 
         info!(
             "{}",
@@ -37,11 +38,28 @@ impl CommonCommand for Get {
             )
         );
 
-        // TODO: once TTL is figured out, it needs to be accounted for
-        // i.e. if expired expire and do not return
-        if let Some(value) = data_store_guard.get(key) {
-            conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
-                .await?
+        if let Some(value) = db_guard.get(key) {
+            let mut expiries_guard = db.expirations.write().await;
+
+            // If key exists in cache then check for TTL and whether the value has expired.
+            // If key exists but expired (i.e. current time is more than expiry time),
+            // evict from both stores and return null.
+            if let Some(unix_time) = expiries_guard.get(key) {
+                let duration_now_s = SystemTime::now().duration_since(UNIX_EPOCH)?;
+
+                if Duration::from_secs(*unix_time) <= duration_now_s {
+                    db_guard.remove(key);
+                    expiries_guard.remove(key);
+
+                    conn.write_null().await?
+                } else {
+                    conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                        .await?
+                }
+            } else {
+                conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                    .await?
+            }
         } else {
             conn.write_null().await?
         }

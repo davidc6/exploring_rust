@@ -1,6 +1,8 @@
 use super::CommonCommand;
 use crate::{
-    data_chunk::DataChunkFrame, utils::INCORRECT_ARGS_ERR, Connection, DataStore, GenericResult,
+    data_chunk::DataChunkFrame,
+    utils::{u64_as_bytes, INCORRECT_ARGS_ERR},
+    Connection, DataStore, GenericResult,
 };
 use log::info;
 
@@ -26,14 +28,18 @@ impl CommonCommand for Delete {
             return Ok(());
         };
 
-        let mut data_store_guard = db.db.write().await;
+        let mut db_guard = db.db.write().await;
 
-        // TODO: once TTL is figured out, it needs to be accounted for
-        if let Some(_value) = data_store_guard.remove(key) {
-            conn.write_chunk(super::DataType::Integer, Some("1".as_bytes()))
+        if let Some(_value) = db_guard.remove(key) {
+            let mut expiries_guard = db.expirations.write().await;
+            expiries_guard.remove(key);
+
+            let val = u64_as_bytes(1);
+            conn.write_chunk(super::DataType::Integer, Some(&val))
                 .await?
         } else {
-            conn.write_chunk(super::DataType::Integer, Some("0".as_bytes()))
+            let val = u64_as_bytes(0);
+            conn.write_chunk(super::DataType::Integer, Some(&val))
                 .await?
         }
 

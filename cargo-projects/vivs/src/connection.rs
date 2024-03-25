@@ -63,6 +63,7 @@ impl Connection {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared, it will be just appending to the buffer
         self.buffer.clear();
+
         // Pull bytes from the source/tcp stream into the buffer
         let bytes_read = self.stream.read_buf(&mut self.buffer).await?;
 
@@ -171,6 +172,7 @@ impl Connection {
                 // Since val without quotes can also be written back to stdout without quotes
                 // it is not desirable and therefore we want to add extra quotes to the output value.
                 // We need to think about allocations here as it will affect performance in the long run.
+                // 34 is "
                 if data_bytes.first() != Some(&34) && data_bytes != *PONG {
                     let quotes_bytes = Bytes::from("\"");
                     let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
@@ -181,7 +183,23 @@ impl Connection {
             }
             Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
             Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
-            Some(DataChunk::Integer(val)) => Ok(val),
+            Some(DataChunk::Integer(val)) => {
+                // convert Bytes to bytes array
+                // then determine endianness to create u64 integer value from the bytes array
+                // and return integer as string
+                let bytes_slice = val.slice(0..8);
+
+                // converts the slice to an array of u8 elements (since u64 is 8 bytes)
+                let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
+                let integer_as_string = if cfg!(target_endian = "big") {
+                    u64::from_be_bytes(arr_u8)
+                } else {
+                    u64::from_le_bytes(arr_u8)
+                }
+                .to_string();
+
+                Ok(Bytes::from(format!("(integer) {}", integer_as_string)))
+            }
             None => Ok(Bytes::from("Unknown")),
             _ => Ok(Bytes::from("(nil)")), // catch all case
         }

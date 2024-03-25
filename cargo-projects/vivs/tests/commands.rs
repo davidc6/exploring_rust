@@ -124,10 +124,12 @@ mod server {
             .await
             .unwrap();
 
-        let mut buffer = [0; 4];
+        let mut buffer = [0; 11];
         let _ = stream.read_exact(&mut buffer).await;
 
-        assert_eq!(b":1\r\n", &buffer);
+        let expected: [u8; 11] = [58, 1, 0, 0, 0, 0, 0, 0, 0, 13, 10];
+
+        assert_eq!(expected, buffer);
 
         stream
             .write_all(b"*2\r\n$3\r\nGET\r\n$8\r\ngreeting\r\n")
@@ -138,5 +140,52 @@ mod server {
         let _ = stream.read_exact(&mut buffer).await;
 
         assert_eq!(b"_\r\n", &buffer);
+    }
+
+    #[tokio::test]
+    async fn set_get_ttl_key() {
+        let addr = init_server().await;
+
+        let mut stream = TcpStream::connect(addr)
+            .await
+            .expect("Failed to open a TCP connection");
+
+        // SET
+        stream
+            .write_all(
+                b"*5\r\n$3\r\nSET\r\n$8\r\ngreeting\r\n$5\r\nhello\r\n$2\r\nxs\r\n$2\r\n20\r\n",
+            )
+            .await
+            .unwrap();
+
+        let mut buffer = [0; 5];
+        let _ = stream.read_exact(&mut buffer).await;
+
+        assert_eq!(b"+OK\r\n", &buffer);
+
+        // GET
+        stream
+            .write_all(b"*2\r\n$3\r\nGET\r\n$8\r\ngreeting\r\n")
+            .await
+            .unwrap();
+
+        let mut buffer = [0; 8];
+        let _ = stream.read_exact(&mut buffer).await;
+
+        assert_eq!(b"+hello\r\n", &buffer);
+
+        // TTL
+        stream
+            .write_all(b"*2\r\n$3\r\nTTL\r\n$8\r\ngreeting\r\n")
+            .await
+            .unwrap();
+
+        let mut buffer = [0; 11];
+        let _ = stream.read_exact(&mut buffer).await;
+
+        // i.e. :19/r/n
+        let expected: [u8; 11] = [58, 19, 0, 0, 0, 0, 0, 0, 0, 13, 10];
+
+        assert_eq!(expected, buffer);
     }
 }
