@@ -85,7 +85,7 @@ impl CommonCommand for Set {
         };
 
         let mut data_store_guard = db.db.write().await;
-        // Instead of copying key, we can create pointers to the same memory location
+        // Instead of copying key, we can create pointers to the same memory location using Arc
         let key = Arc::new(key.to_owned());
 
         data_store_guard.insert(key.clone(), value.to_owned());
