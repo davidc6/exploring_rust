@@ -1,3 +1,10 @@
+# 0.3.0 (2024-03-25)
+
+In this release `TTL` command got added. Additionally, updated other commands to reflect the change.
+
+- `TTL` is the new command that enables checking for time to live e.g. `TTL <key>`
+- `GET`, `DELETE` and `TTL` commands remove entries from both HashMaps (expiries and data store) when called with an expired key.
+
 # 0.2.0 (2024-03-15)
 
 Added `SET` command feature.
