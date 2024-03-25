@@ -5,7 +5,10 @@ use crate::{
     Connection, DataStore, GenericResult,
 };
 use log::info;
-use std::time::{Duration, SystemTime};
+use std::{
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 
 pub const SET_CMD: &str = "set";
 
@@ -82,7 +85,10 @@ impl CommonCommand for Set {
         };
 
         let mut data_store_guard = db.db.write().await;
-        data_store_guard.insert(key.to_owned(), value.to_owned());
+        // Instead of copying key, we can create pointers to the same memory location
+        let key = Arc::new(key.to_owned());
+
+        data_store_guard.insert(key.clone(), value.to_owned());
 
         if let Some(expiration) = self.expiry {
             if expiration == 0 {
@@ -91,7 +97,7 @@ impl CommonCommand for Set {
             }
 
             let mut expirations_data_store_guard = db.expirations.write().await;
-            expirations_data_store_guard.insert(key.to_owned(), expiration);
+            expirations_data_store_guard.insert(key.clone(), expiration);
         };
 
         info!(
