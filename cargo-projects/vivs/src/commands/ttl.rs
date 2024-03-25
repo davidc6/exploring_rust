@@ -26,7 +26,7 @@ impl CommonCommand for Ttl {
             return Ok(());
         };
 
-        let mut expires_guard = db.expirations.write().await;
+        let mut expiries_guard = db.expirations.write().await;
 
         info!(
             "{}",
@@ -40,7 +40,7 @@ impl CommonCommand for Ttl {
 
         // TODO: once TTL is figured out, it needs to be accounted for
         // i.e. if expired expire and do not return
-        if let Some(expiry_s) = expires_guard.get(key) {
+        if let Some(expiry_s) = expiries_guard.get(key) {
             let current_time = SystemTime::now();
 
             let expiry_duration_s = Duration::from_secs(*expiry_s);
@@ -48,7 +48,7 @@ impl CommonCommand for Ttl {
 
             let ttl = if expiry_duration_s <= current_duration_s {
                 // remove from expirations and db
-                expires_guard.remove(key);
+                expiries_guard.remove(key);
 
                 let mut db_guard = db.db.write().await;
                 db_guard.remove(key);
