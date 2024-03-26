@@ -68,7 +68,6 @@ impl CommonCommand for Set {
     }
 
     async fn respond(&self, connection: &mut Connection, db: &DataStore) -> GenericResult<()> {
-        // Key missing
         let Some(key) = self.key.as_ref() else {
             connection
                 .write_error(INCORRECT_ARGS_ERR.as_bytes())
@@ -76,7 +75,6 @@ impl CommonCommand for Set {
             return Ok(());
         };
 
-        // Value missing
         let Some(value) = self.value.as_ref() else {
             connection
                 .write_error(INCORRECT_ARGS_ERR.as_bytes())
@@ -84,11 +82,11 @@ impl CommonCommand for Set {
             return Ok(());
         };
 
-        let mut data_store_guard = db.db.write().await;
+        let mut db_guard = db.db.write().await;
         // Instead of copying key, we can create pointers to the same memory location using Arc
         let key = Arc::new(key.to_owned());
 
-        data_store_guard.insert(key.clone(), value.to_owned());
+        db_guard.insert(key.clone(), value.to_owned());
 
         if let Some(expiration) = self.expiry {
             if expiration == 0 {
