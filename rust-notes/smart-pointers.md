@@ -70,4 +70,66 @@ numbers.sort();
 (&mut numbers).sort();
 ```
 
-## Creating our own smart pointer
+## Creating a smart pointer
+
+```rs
+use std::ops::Deref;
+
+// Define a tuple struct Container that is generic over T
+// The struct have a generic type parameter T since it will hold value of any type
+struct Container<T>(T);
+
+// Container has one function (new(value: T)) which takes one parameter of type T
+// and returns an instance of Container which holds the value.
+impl<T> Container<T> {
+    fn new(value: T) -> Container<T> {
+        Container(value)
+    }
+}
+
+// In order to dereference Container, Deref needs to be implemented on Container.
+impl<T> Deref for Container<T> {
+    // Associated type needs to be defined to use Deref trait.
+    type Target = T;
+
+    // deref method is filled with &self.0 which returns a reference to the value
+    // that will be accessed using * (deref operator)
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+
+fn main() {
+    let number = Container::new(5);
+    // same as
+    // *number is the same as *(number.deref()) <--- this is due to ownership system, since ownership of T should not be taken
+    assert!(5 == *number);
+}
+```
+
+### Deref coercion
+
+This applies to types that implement the Deref built-in trait. 
+
+Auto conversions &String to &str, &Vec<u32> to &[u32], &Box<SomeType> to &SomeType. The idea behind Deref trait it to make smart pointer types behave the same as underlying structure.
+
+```rs
+fn main() {
+    let greeting = Container::new(String::from("Hello"));
+    // Here deref coercion enables Container to behave like the underlying type
+    // 
+    // Without deref coercion, it would be something like:
+    // greet(&(*greeting)[..])
+    // 1. Deref (*greeting) to into a String
+    // 2. Take a string slice of the String (whole string)
+    greet(&greeting);
+}
+
+fn greet(greeting: &str) {
+    println!("{}, stranger!");
+}
+```
+
+
+
+
