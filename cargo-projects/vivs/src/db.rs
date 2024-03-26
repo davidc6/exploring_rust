@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 
-/// To enable expirations:
+/// To enable expiries:
 ///
 /// Option 1: key and value in the same store
 /// { [key]: { [value]: "hello", [ttl]: "16736377323" } }
