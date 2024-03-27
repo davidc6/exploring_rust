@@ -6,6 +6,7 @@ use crate::{
 };
 use log::info;
 use std::{
+    borrow::Cow,
     sync::Arc,
     time::{Duration, SystemTime},
 };
@@ -83,8 +84,6 @@ impl CommonCommand for Set {
         };
 
         let mut db_guard = db.db.write().await;
-        // Instead of copying key, we can create pointers to the same memory location using Arc
-        let key = Arc::new(key.to_owned());
 
         db_guard.insert(key.clone(), value.to_owned());
 
