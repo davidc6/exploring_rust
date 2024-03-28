@@ -5,11 +5,7 @@ use crate::{
     Connection, DataStore, GenericResult,
 };
 use log::info;
-use std::{
-    borrow::Cow,
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
 
 pub const SET_CMD: &str = "set";
 
