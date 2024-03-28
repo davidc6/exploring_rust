@@ -17,47 +17,11 @@ impl Event {
     }
 }
 
-/// Count all queries that are within the boundaries of start time and ttl
-///
-/// Example:
-/// first value is start time, second is ttl
-/// data = [[1, 10], [3, 10], [5, 10]]
-/// queries = [1, 12, 14, 60]
-///
-/// 1  is within the boundaries of 1 and 1 + 10 so increment count by 1
-/// 12 is within the boundaries of 3 and 3 + 10 and 5 + 10 so increment by two
-/// 14 is withing the boundaries of 5 + 10 so increment by one
-/// 60 is not withing the boundaries so do not increment
-///
-/// So the result will be [1, 2, 1, 0]
-///
-pub fn run_ttl(data: &[[i32; 2]], queries: &[i32]) -> Vec<i32> {
-    let mut result = Vec::new();
-
-    // insert Start and End
-    for data_point in data.iter() {
-        let [start, ttl] = data_point;
-
-        let start_time = Event::new(EventType::Start, *start);
-        result.push(start_time);
-
-        let end_time = Event::new(EventType::End, start + ttl);
-        result.push(end_time);
-    }
-
-    // insert Query
-    for query in queries.iter() {
-        let query_e = Event::new(EventType::Query, *query);
-        result.push(query_e);
-    }
-
-    // sort all values (events)
-    result.sort_by(|a, b| a.value.cmp(&b.value));
-
+fn query_count(events: Vec<Event>) -> Vec<i32> {
     let mut query_count = vec![];
     let mut start_count = 0;
 
-    for res in result {
+    for res in events {
         let Event { event_type, .. } = res;
 
         if event_type == EventType::Start {
@@ -76,6 +40,54 @@ pub fn run_ttl(data: &[[i32; 2]], queries: &[i32]) -> Vec<i32> {
     }
 
     query_count
+}
+
+fn start_end_events(events: &mut Vec<Event>, data: &[[i32; 2]]) {
+    for data_point in data.iter() {
+        let [start, ttl] = data_point;
+
+        let start_time = Event::new(EventType::Start, *start);
+        events.push(start_time);
+
+        let end_time = Event::new(EventType::End, start + ttl);
+        events.push(end_time);
+    }
+}
+
+fn query_events(events: &mut Vec<Event>, queries: &[i32]) {
+    for query in queries.iter() {
+        let query_e = Event::new(EventType::Query, *query);
+        events.push(query_e);
+    }
+}
+
+/// Count all queries that are within the boundaries of start time and ttl
+///
+/// Example:
+/// first value is start time, second is ttl
+/// data = [[1, 10], [3, 10], [5, 10]]
+/// queries = [1, 12, 14, 60]
+///
+/// 1  is within the boundaries of 1 and 1 + 10 so increment count by 1
+/// 12 is within the boundaries of 3 and 3 + 10 and 5 + 10 so increment by two
+/// 14 is withing the boundaries of 5 + 10 so increment by one
+/// 60 is not withing the boundaries so do not increment
+///
+/// So the result will be [1, 2, 1, 0]
+///
+pub fn run_ttl(data: &[[i32; 2]], queries: &[i32]) -> Vec<i32> {
+    let mut events = Vec::new();
+
+    // insert Start and End events
+    start_end_events(&mut events, data);
+
+    // insert Query events
+    query_events(&mut events, queries);
+
+    // sort all values (events)
+    events.sort_by(|a, b| a.value.cmp(&b.value));
+
+    query_count(events)
 }
 
 #[cfg(test)]
