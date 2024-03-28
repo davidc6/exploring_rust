@@ -65,7 +65,6 @@ impl CommonCommand for Set {
     }
 
     async fn respond(&self, connection: &mut Connection, db: &DataStore) -> GenericResult<()> {
-        // Key missing
         let Some(key) = self.key.as_ref() else {
             connection
                 .write_error(INCORRECT_ARGS_ERR.as_bytes())
@@ -73,7 +72,6 @@ impl CommonCommand for Set {
             return Ok(());
         };
 
-        // Value missing
         let Some(value) = self.value.as_ref() else {
             connection
                 .write_error(INCORRECT_ARGS_ERR.as_bytes())
@@ -81,8 +79,9 @@ impl CommonCommand for Set {
             return Ok(());
         };
 
-        let mut data_store_guard = db.db.write().await;
-        data_store_guard.insert(key.to_owned(), value.to_owned());
+        let mut db_guard = db.db.write().await;
+
+        db_guard.insert(key.clone(), value.to_owned());
 
         if let Some(expiration) = self.expiry {
             if expiration == 0 {
@@ -91,7 +90,7 @@ impl CommonCommand for Set {
             }
 
             let mut expirations_data_store_guard = db.expirations.write().await;
-            expirations_data_store_guard.insert(key.to_owned(), expiration);
+            expirations_data_store_guard.insert(key.clone(), expiration);
         };
 
         info!(

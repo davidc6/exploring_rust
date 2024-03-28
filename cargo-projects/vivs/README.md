@@ -25,6 +25,41 @@ To run integration tests:
 cargo test --test commands
 ```
 
+### Commands
+
+Once the server and client are running, the following commands can be used:
+
+- `PING [value]` - pings the server, tests whether it's alive and can be also used to test latency
+- `GET key` - gets the value by key from the server
+- `SET key value [XS seconds]` - sets key to hold the value, optionally setting expire time
+    - `XS` option (stands for [X]Expire [S]Seconds)
+- `DELETE key` - deletes key from the store
+- `TTL key` - checks whether a key has time to live (expiry time)
+
+## TODOs
+
+- [x] Logging (.log) for all commands
+- [x] PING
+- [x] SET
+- [x] GET
+- [x] DELETE
+- [x] Save strings that contain spaces i.e. "Hello world"
+- [x] Build a REPL to test commands
+- [ ] HELLO (a command that returns instance information)
+- [X] TTL command, implement using a simple algorithm that checks if key is still valid when getting or ttling it
+- [ ] TTL (semi-active i.e. check ttl when key is being accessed AND/OR active i.e. sort keys by expiration in radix tree)
+- [ ] Build a client (connect to kv store, call get, set, delete commands)
+- [ ] GET command should only have one option for now
+- [ ] Repl EXIT command
+- [X] On DELETE remove expiration key
+- [ ] Flag any commands options that are incorrect to the user, also would be nice to have some sort of a command completion
+
+## General architecture
+
+- Client sends a frame which server parses
+- Server parses the payload by splitting it into "chunks" (Example `*1$4PING` get split into `*1`, `$4`, `PING`)
+- Server then writes back to the stream which is read by the client
+
 ### Examples (without using the repl/client)
 
 `PING` command:
@@ -65,30 +100,6 @@ printf '*2\r\n\x243\r\n\GET\r\n\x241\r\na\r\n' | nc -C -N 127.0.0.1 6379
 
 - `0xA` - newline char
 - `\x24` - hex for $ (dollar sign)
-
-## General architecture
-
-- Client sends a frame which server parses
-- Server parses the payload by splitting it into "chunks" (Example `*1$4PING` get split into `*1`, `$4`, `PING`)
-- Server then writes back to the stream which is read by the client
-
-## TODOs
-
-- [x] Logging (.log) for all commands
-- [x] PING
-- [x] SET
-- [x] GET
-- [x] DELETE
-- [x] Save strings that contain spaces i.e. "Hello world"
-- [x] Build a REPL to test commands
-- [ ] HELLO (a command that returns instance information)
-- [X] TTL command, implement using a simple algorithm that checks if key is still valid when getting or ttling it
-- [ ] TTL (semi-active i.e. check ttl when key is being accessed AND/OR active i.e. sort keys by expiration in radix tree)
-- [ ] Build a client (connect to kv store, call get, set, delete commands)
-- [ ] GET command should only have one option for now
-- [ ] Repl EXIT command
-- [X] On DELETE remove expiration key
-- [ ] Flag any commands options that are incorrect to the user, also would be nice to have some sort of a command completion
 
 ### Notes
 
