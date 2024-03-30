@@ -5,6 +5,18 @@ use std::{
 
 const BUCKETS: usize = 16;
 
+// struct Vector<T: Sized, const COUNT: usize = BUCKETS> {
+//     data: [T; COUNT],
+// }
+
+// impl<T: Copy + Clone, const COUNT: usize> Vector<T, COUNT> {
+//     fn new() -> Vector<Vec<Bucket<Key, Value>, COUNT>> {
+//         Vector {
+//             data: vec![Bucket { items: vec![] }; COUNT],
+//         }
+//     }
+// }
+
 #[derive(Debug, Clone)]
 struct Bucket<Key, Value> {
     items: Vec<(Key, Value)>,
@@ -23,10 +35,12 @@ impl<Key: Hash + Debug + Clone, Value: Debug + Clone> Default for HashTable<Key,
 }
 
 // Only put bound on implementation
-impl<Key: Hash + Debug + Clone, Value: Debug + Clone> HashTable<Key, Value> {
+impl<Key: Hash + Debug + Clone, Value: Debug + Clone, const COUNT: usize>
+    HashTable<Key, Value, COUNT>
+{
     pub fn new() -> Self {
         HashTable {
-            buckets: vec![Bucket { items: vec![] }; BUCKETS],
+            buckets: vec![Bucket { items: vec![] }; COUNT],
             items: 0,
         }
     }
@@ -58,6 +72,7 @@ impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Valu
         // hash the value and store the key
         // let mut hasher = DefaultHasher::new();
         // key.hash(&mut hasher);
+        // let r = Vector::<Bucket<_, _>, 16>::new();
 
         let bucket_index = self.bucket_index(key);
 
@@ -83,8 +98,7 @@ impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Valu
 
         // if current length is at capacity and we are inserting a new item then we need to r
         if self.buckets.len() == self.items {
-            let new_capacity = self.items * 2; // double
-                                               // let mut new_buckets = vec![Bucket { items: vec![] }; new_capacity];
+            let new_capacity = self.items * 2;
 
             for index in self.items..new_capacity {
                 self.buckets[index] = Bucket { items: vec![] }
@@ -120,7 +134,7 @@ mod tests {
 
     #[test]
     fn can_add_to_and_get_from_hashtable() {
-        let mut hash_table = HashTable::<_, _, 16>::new();
+        let mut hash_table = HashTable::<_, _>::new();
 
         hash_table.set("key", "value");
 
@@ -144,5 +158,17 @@ mod tests {
         hash_table.set("Hello", "World");
 
         assert!(hash_table.length() == 1);
+    }
+
+    #[test]
+    fn default_initial_capacity_is_16() {
+        let hash_table = HashTable::<&str, &str>::new();
+        assert!(hash_table.buckets.len() == 16);
+    }
+
+    #[test]
+    fn initialise_with_capacity_10() {
+        let hash_table = HashTable::<&str, &str, 10>::new();
+        assert!(hash_table.buckets.len() == 10);
     }
 }
