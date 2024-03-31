@@ -3,19 +3,10 @@ use std::{
     hash::{DefaultHasher, Hash, Hasher},
 };
 
-const BUCKETS: usize = 16;
+const DEFAULT_BUCKETS_NUM: usize = 16;
 
-// struct Vector<T: Sized, const COUNT: usize = BUCKETS> {
-//     data: [T; COUNT],
-// }
-
-// impl<T: Copy + Clone, const COUNT: usize> Vector<T, COUNT> {
-//     fn new() -> Vector<Vec<Bucket<Key, Value>, COUNT>> {
-//         Vector {
-//             data: vec![Bucket { items: vec![] }; COUNT],
-//         }
-//     }
-// }
+type VectorType<K, V> = Option<Bucket<K, V>>;
+type ArrayVec<K, V, const N: usize> = [VectorType<K, V>; N];
 
 #[derive(Debug, Clone)]
 struct Bucket<Key, Value> {
@@ -23,24 +14,29 @@ struct Bucket<Key, Value> {
 }
 
 #[derive(Debug)]
-pub struct HashTable<Key, Value, const DEFAULT_NUMBER_OF_BUCKETS: usize = BUCKETS> {
-    buckets: Vec<Bucket<Key, Value>>,
+pub struct HashTable<Key, Value, const BUCKETS_NUM: usize = DEFAULT_BUCKETS_NUM> {
+    buckets: ArrayVec<Key, Value, BUCKETS_NUM>,
     items: usize,
 }
 
-impl<Key: Hash + Debug + Clone, Value: Debug + Clone> Default for HashTable<Key, Value> {
+impl<Key: Hash + Debug + Clone + Copy, Value: Debug + Clone + Copy> Default
+    for HashTable<Key, Value>
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
 // Only put bound on implementation
-impl<Key: Hash + Debug + Clone, Value: Debug + Clone, const COUNT: usize>
+impl<Key: Hash + Debug + Clone + Copy, Value: Debug + Clone + Copy, const COUNT: usize>
     HashTable<Key, Value, COUNT>
 {
+    // associated constant (constant associated with a type)
+    const INITIAL_VALUE: VectorType<Key, Value> = None;
+
     pub fn new() -> Self {
         HashTable {
-            buckets: vec![Bucket { items: vec![] }; COUNT],
+            buckets: [Self::INITIAL_VALUE; COUNT],
             items: 0,
         }
     }
@@ -48,10 +44,7 @@ impl<Key: Hash + Debug + Clone, Value: Debug + Clone, const COUNT: usize>
 
 impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Value> {
     fn bucket_index(&mut self, key: Key) -> usize {
-        // if self.buckets.is_empty() {
-        // resize the underlying vector
-        // }
-
+        // we need to extend the array
         if self.buckets.len() == self.items {
             self.allocate();
         }
@@ -63,21 +56,18 @@ impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Valu
     }
 
     pub fn set(&mut self, key: Key, value: Value) -> Option<Value> {
-        // TODO: resize the hashmap
-        // if self.buckets.is_empty() {
-        //     let mut b = Vec::with_capacity(1);
-        //     b.extend((0..1).map(|_| Vec::new()));
-        // }
-
-        // hash the value and store the key
-        // let mut hasher = DefaultHasher::new();
-        // key.hash(&mut hasher);
-        // let r = Vector::<Bucket<_, _>, 16>::new();
-
         let bucket_index = self.bucket_index(key);
 
         if let Some(bucket) = self.buckets.get_mut(bucket_index) {
-            bucket.items.push((key, value))
+            let bucket_mut = bucket.as_mut();
+
+            if let Some(current_bucket_mut) = bucket_mut {
+                current_bucket_mut.items.push((key, value))
+            } else {
+                *bucket = Some(Bucket {
+                    items: vec![(key, value)],
+                });
+            }
         }
 
         self.items += 1;
@@ -90,28 +80,14 @@ impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Valu
     }
 
     fn allocate(&mut self) {
-        // for _ in 0..DEFAULT_NUMBER_OF_BUCKETS {
-        //     self.buckets.push(Bucket { items: vec![] })
-        // }
-
-        // self
-
         // if current length is at capacity and we are inserting a new item then we need to r
         if self.buckets.len() == self.items {
             let new_capacity = self.items * 2;
 
             for index in self.items..new_capacity {
-                self.buckets[index] = Bucket { items: vec![] }
+                self.buckets[index] = Some(Bucket { items: vec![] });
             }
-
-            // for (index, bucket) in self.buckets.iter_mut().enumerate() {
-            // new_buckets[index] = bucket;
-            // }
-
-            // self.buckets = new_buckets;
         }
-
-        // self
     }
 
     pub fn get(&mut self, key: Key) -> Option<&Value> {
@@ -120,8 +96,13 @@ impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Valu
 
         let bucket_index = (hasher.finish() % self.buckets.len() as u64) as usize;
 
-        if let Some(item) = self.buckets.get(bucket_index) {
-            Some(&item.items[0].1)
+        if let Some(bucket) = self.buckets.get(bucket_index) {
+            let bucket = bucket.as_ref();
+            if let Some(current_bucket) = bucket {
+                Some(&current_bucket.items[0].1)
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -134,8 +115,7 @@ mod tests {
 
     #[test]
     fn can_add_to_and_get_from_hashtable() {
-        let mut hash_table = HashTable::<_, _>::new();
-
+        let mut hash_table = HashTable::new();
         hash_table.set("key", "value");
 
         assert_eq!(hash_table.get("key"), Some(&"value"));
@@ -143,7 +123,8 @@ mod tests {
 
     #[test]
     fn allocate_16_buckets_on_initialisation_by_default() {
-        let hash_table: HashTable<_, _> = HashTable::<&str, &str>::new();
+        let mut hash_table = HashTable::new();
+        hash_table.set("key", "value");
         let buckets_len = hash_table.buckets.len();
 
         assert!(buckets_len == 16);
@@ -151,7 +132,7 @@ mod tests {
 
     #[test]
     fn get_length_of_hashtable() {
-        let mut hash_table = HashTable::<&str, &str>::new();
+        let mut hash_table = HashTable::new();
 
         assert!(hash_table.length() == 0);
 
@@ -162,7 +143,7 @@ mod tests {
 
     #[test]
     fn default_initial_capacity_is_16() {
-        let hash_table = HashTable::<&str, &str>::new();
+        let hash_table = HashTable::<&str, &str>::default();
         assert!(hash_table.buckets.len() == 16);
     }
 
@@ -171,4 +152,8 @@ mod tests {
         let hash_table = HashTable::<&str, &str, 10>::new();
         assert!(hash_table.buckets.len() == 10);
     }
+
+    // #[test]
+    // fn extend_the_capacity() {
+    //     let mut hash_tabl
 }
