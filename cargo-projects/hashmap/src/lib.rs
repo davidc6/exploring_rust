@@ -3,6 +3,10 @@ use std::{
     hash::{DefaultHasher, Hash, Hasher},
 };
 
+mod hashtable_vec;
+
+use hashtable_vec::HashtableVec;
+
 const DEFAULT_BUCKETS_NUM: usize = 16;
 
 type VectorType<K, V> = Option<Bucket<K, V>>;
@@ -15,7 +19,7 @@ struct Bucket<Key, Value> {
 
 #[derive(Debug)]
 pub struct HashTable<Key, Value, const BUCKETS_NUM: usize = DEFAULT_BUCKETS_NUM> {
-    buckets: ArrayVec<Key, Value, BUCKETS_NUM>,
+    buckets: [VectorType<Key, Value>; BUCKETS_NUM],
     items: usize,
 }
 
@@ -40,6 +44,13 @@ impl<Key: Hash + Debug + Clone + Copy, Value: Debug + Clone + Copy, const COUNT:
             items: 0,
         }
     }
+
+    // pub fn with_capacity(size: usize) -> Self {
+    //     HashTable {
+    //         buckets: [Self::INITIAL_VALUE; size],
+    //         items: 0,
+    //     }
+    // }
 }
 
 impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Value> {
@@ -82,11 +93,20 @@ impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Valu
     fn allocate(&mut self) {
         // if current length is at capacity and we are inserting a new item then we need to r
         if self.buckets.len() == self.items {
-            let new_capacity = self.items * 2;
+            // const new_capacity: usize = self.items * 2;
 
-            for index in self.items..new_capacity {
-                self.buckets[index] = Some(Bucket { items: vec![] });
-            }
+            // println!("NEW {:?}", new_capacity);
+
+            // let mut n_h = HashTable::default();
+            // n_h.set(1, 2);
+
+            // self.buckets = n_h.buckets;
+
+            // for index in self.items..new_capacity {
+            //     println!("INDEX {:?}", index);
+            //     self.buckets[index] = Some(Bucket { items: vec![] });
+            // n_h[index] =
+            // }
         }
     }
 
@@ -111,7 +131,7 @@ impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Valu
 
 #[cfg(test)]
 mod tests {
-    use crate::HashTable;
+    use crate::{HashTable, DEFAULT_BUCKETS_NUM};
 
     #[test]
     fn can_add_to_and_get_from_hashtable() {
@@ -153,7 +173,14 @@ mod tests {
         assert!(hash_table.buckets.len() == 10);
     }
 
-    // #[test]
-    // fn extend_the_capacity() {
-    //     let mut hash_tabl
+    #[test]
+    fn extend_the_capacity() {
+        let mut hash_table = HashTable::new();
+
+        for _ in 0..DEFAULT_BUCKETS_NUM + 1 {
+            hash_table.set("key", "value");
+        }
+
+        assert!(hash_table.buckets.len() == 32);
+    }
 }
