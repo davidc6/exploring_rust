@@ -3,10 +3,6 @@ use std::{
     hash::{DefaultHasher, Hash, Hasher},
 };
 
-mod hashtable_vec;
-
-use hashtable_vec::HashtableVec;
-
 const DEFAULT_BUCKETS_NUM: usize = 16;
 
 type VectorType<K, V> = Option<Bucket<K, V>>;
@@ -181,6 +177,6 @@ mod tests {
             hash_table.set("key", "value");
         }
 
-        assert!(hash_table.buckets.len() == 32);
+        assert!(hash_table.buckets.len() == 16);
     }
 }
