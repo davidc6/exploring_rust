@@ -56,11 +56,28 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
         None
     }
 
-    pub fn get(&mut self, key: Key) -> Value {
+    pub fn get(&mut self, key: Key) -> Option<Value> {
         let bucket_index = self.hash_key(key);
-        let value = self.buckets[bucket_index].items[0];
 
-        value.1
+        if bucket_index == 0 && self.items == 0 {
+            return None;
+        }
+
+        Some(self.buckets[bucket_index].items[0].1)
+    }
+
+    pub fn delete(&mut self, key: Key) -> Option<Value> {
+        let bucket_index = self.hash_key(key);
+
+        let value = self.get(key);
+
+        if value.is_some() {
+            self.buckets[bucket_index].items = vec![];
+            self.items -= 1;
+            value
+        } else {
+            None
+        }
     }
 
     fn bucket_index(&mut self, key: Key) -> usize {
@@ -106,7 +123,6 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
             }
 
             self.buckets = new_vec.buckets;
-            // self.capacity = new_vec.capacity;
         }
     }
 }
@@ -122,7 +138,7 @@ mod hashtable_tests {
         ht.set("key", "value");
         let actual = ht.get("key");
 
-        assert!(actual == "value");
+        assert!(actual == Some("value"));
         assert!(ht.capacity == 1);
         assert!(ht.items == 1);
     }
@@ -131,17 +147,17 @@ mod hashtable_tests {
     fn set_and_get_multiple_values() {
         let mut ht = HashtableVec::new();
 
-        // ht length is 1
+        // ht length is 1 (by default)
         ht.set("key", "value");
-        // ht length is 17 at this point
+        // ht length is 17 at this point after the allocation
         ht.set("key2", "value2");
         ht.set("key3", "value3");
         ht.set("key4", "value4");
 
-        assert!(ht.get("key") == "value");
-        assert!(ht.get("key2") == "value2");
-        assert!(ht.get("key3") == "value3");
-        assert!(ht.get("key4") == "value4");
+        assert!(ht.get("key") == Some("value"));
+        assert!(ht.get("key2") == Some("value2"));
+        assert!(ht.get("key3") == Some("value3"));
+        assert!(ht.get("key4") == Some("value4"));
         assert!(ht.capacity == 17);
         assert!(ht.items == 4);
     }
@@ -156,18 +172,37 @@ mod hashtable_tests {
         // Capacity changes to 2 + 16
         ht.set("key3", "value3");
 
-        assert!(ht.get("key") == "value");
-        assert!(ht.get("key2") == "value2");
-        assert!(ht.get("key3") == "value3");
+        assert!(ht.get("key") == Some("value"));
+        assert!(ht.get("key2") == Some("value2"));
+        assert!(ht.get("key3") == Some("value3"));
         assert!(ht.items == 3);
         assert!(ht.capacity == 18);
     }
 
-    // #[test]
-    // fn hashtable_allocates_more_space_when_out_of_space() {
-    //     let mut ht = HashtableVec::new();
+    #[test]
+    fn set_delete_key() {
+        let mut ht = HashtableVec::new();
 
-    //     ht,set("key", "value");
+        ht.set("key", "value");
+        assert!(ht.get("key") == Some("value"));
+        ht.delete("key");
 
-    //     assert!(ht.
+        assert!(ht.get("key").is_none());
+        assert!(ht.items == 0);
+        assert!(ht.capacity == 1);
+    }
+
+    #[test]
+    fn set_delete_key_after_allocation() {
+        let mut ht = HashtableVec::new();
+
+        ht.set("key", "value");
+        ht.set("key2", "value2");
+        assert!(ht.get("key") == Some("value"));
+        ht.delete("key");
+
+        assert!(ht.get("key").is_none());
+        assert!(ht.items == 1);
+        assert!(ht.capacity == 17);
+    }
 }
