@@ -3,6 +3,8 @@ use std::{
     hash::{DefaultHasher, Hash, Hasher},
 };
 
+pub mod hashtable_vec;
+
 const DEFAULT_BUCKETS_NUM: usize = 16;
 
 type VectorType<K, V> = Option<Bucket<K, V>>;
@@ -126,7 +128,7 @@ impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Valu
 }
 
 #[cfg(test)]
-mod tests {
+mod hashmap_tests {
     use crate::{HashTable, DEFAULT_BUCKETS_NUM};
 
     #[test]
