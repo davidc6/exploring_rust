@@ -63,6 +63,12 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
             return None;
         }
 
+        let Bucket { items } = &self.buckets[bucket_index];
+
+        if items.is_empty() {
+            return None;
+        }
+
         Some(self.buckets[bucket_index].items[0].1)
     }
 
@@ -78,6 +84,10 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
         } else {
             None
         }
+    }
+
+    pub fn length(&self) -> usize {
+        self.items
     }
 
     fn bucket_index(&mut self, key: Key) -> usize {
@@ -117,9 +127,8 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
                 }
 
                 // we need to rehash the key since capacity has changed
-                let h = self.hash_key(self.buckets[index].items[0].0);
-
-                new_vec.buckets[h] = self.buckets[index].clone();
+                let bucket_index = self.hash_key(self.buckets[index].items[0].0);
+                new_vec.buckets[bucket_index] = self.buckets[index].clone();
             }
 
             self.buckets = new_vec.buckets;
@@ -199,10 +208,42 @@ mod hashtable_tests {
         ht.set("key", "value");
         ht.set("key2", "value2");
         assert!(ht.get("key") == Some("value"));
+
         ht.delete("key");
 
         assert!(ht.get("key").is_none());
         assert!(ht.items == 1);
         assert!(ht.capacity == 17);
+    }
+
+    #[test]
+    fn length_returns_length_of_hashmap() {
+        let mut ht = HashtableVec::new();
+
+        ht.set("key", "value");
+
+        assert!(ht.length() == 1);
+    }
+
+    #[test]
+    fn length_returns_length_of_hashmap_allocated() {
+        let mut ht = HashtableVec::new();
+
+        ht.set("key", "value");
+        ht.set("key2", "value2");
+
+        assert!(ht.length() == 2);
+    }
+
+    #[test]
+    fn length_returns_length_of_hashmap_allocated_and_keys_deleted() {
+        let mut ht = HashtableVec::new();
+
+        ht.set("key", "value");
+        ht.set("key2", "value2");
+        ht.delete("key");
+        ht.delete("key2");
+
+        assert!(ht.length() == 0);
     }
 }
