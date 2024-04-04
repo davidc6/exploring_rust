@@ -1,11 +1,12 @@
 use std::{
+    borrow::Borrow,
     fmt::Debug,
     hash::{DefaultHasher, Hash, Hasher},
 };
 
 const DEFAULT_BUCKETS_NUM: usize = 1;
 
-/// HashTableVec
+/// HashTable
 ///
 /// [b] - these are buckets (a vector)
 /// [i] - these are items (a vector)
@@ -15,7 +16,7 @@ const DEFAULT_BUCKETS_NUM: usize = 1;
 /// [b3] -> [i1] -> [i2] -> [i3]
 ///
 #[derive(Debug, Default)]
-pub struct HashtableVec<Key, Value> {
+pub struct HashTable<Key, Value> {
     buckets: Vec<Bucket<Key, Value>>,
     items: usize,
     capacity: usize,
@@ -26,9 +27,9 @@ struct Bucket<Key, Value> {
     items: Vec<(Key, Value)>,
 }
 
-impl<Key: Debug, Value: Debug> HashtableVec<Key, Value> {
+impl<Key: Debug, Value: Debug> HashTable<Key, Value> {
     pub fn new() -> Self {
-        HashtableVec {
+        HashTable {
             buckets: vec![],
             items: 0,
             capacity: DEFAULT_BUCKETS_NUM,
@@ -36,9 +37,9 @@ impl<Key: Debug, Value: Debug> HashtableVec<Key, Value> {
     }
 }
 
-impl<Key: Debug + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
+impl<Key: Debug + Copy, Value: Debug + Copy> HashTable<Key, Value> {
     pub fn with_capacity(capacity: usize) -> Self {
-        HashtableVec {
+        HashTable {
             buckets: vec![Bucket { items: vec![] }; capacity],
             capacity,
             items: 0,
@@ -46,7 +47,7 @@ impl<Key: Debug + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
     }
 }
 
-impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
+impl<Key: Debug + Hash + Copy + Eq, Value: Debug + Copy> HashTable<Key, Value> {
     pub fn set(&mut self, key: Key, value: Value) -> Option<Value> {
         let bucket_index = self.bucket_index(key);
 
@@ -56,7 +57,10 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
         None
     }
 
-    pub fn get(&mut self, key: Key) -> Option<Value> {
+    pub fn get<Q: Hash + ?Sized>(&self, key: &Q) -> Option<&Value>
+    where
+        Key: Borrow<Q>,
+    {
         let bucket_index = self.hash_key(key);
 
         if bucket_index == 0 && self.items == 0 {
@@ -69,13 +73,13 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
             return None;
         }
 
-        Some(self.buckets[bucket_index].items[0].1)
+        Some(&self.buckets[bucket_index].items[0].1)
     }
 
     pub fn delete(&mut self, key: Key) -> Option<Value> {
         let bucket_index = self.hash_key(key);
 
-        let value = self.get(key);
+        let value = self.get(&key).copied();
 
         if value.is_some() {
             self.buckets[bucket_index].items = vec![];
@@ -84,6 +88,10 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
         } else {
             None
         }
+    }
+
+    pub fn has(&mut self, key: Key) -> bool {
+        self.get(&key).is_some()
     }
 
     pub fn length(&self) -> usize {
@@ -104,7 +112,7 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
         self.hash_key(key)
     }
 
-    fn hash_key(&mut self, key: Key) -> usize {
+    fn hash_key<Q: Hash>(&self, key: Q) -> usize {
         let mut hasher = DefaultHasher::new();
         key.hash(&mut hasher);
 
@@ -114,7 +122,7 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
     fn allocate(&mut self) {
         if self.capacity == self.items {
             let new_capacity = self.capacity + 16;
-            let mut new_vec = HashtableVec::with_capacity(new_capacity);
+            let mut new_vec = HashTable::with_capacity(new_capacity);
 
             self.capacity = new_capacity;
 
@@ -136,25 +144,40 @@ impl<Key: Debug + Hash + Copy, Value: Debug + Copy> HashtableVec<Key, Value> {
     }
 }
 
+// WIP
+struct HashTableIterator<Key, Value> {
+    ht: HashTable<Key, Value>,
+    bucket_index: usize,
+    bucket_at: usize,
+}
+
+impl<'a, Key, Value> Iterator for HashTableIterator<&'a Key, &'a Value> {
+    type Item = Bucket<&'a Key, &'a Value>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.ht.buckets.get(self.bucket_index).cloned()
+    }
+}
+
 #[cfg(test)]
 mod hashtable_tests {
-    use super::HashtableVec;
+    use super::HashTable;
 
     #[test]
     fn set_and_get_a_single_value() {
-        let mut ht = HashtableVec::new();
+        let mut ht = HashTable::new();
 
         ht.set("key", "value");
         let actual = ht.get("key");
 
-        assert!(actual == Some("value"));
+        assert!(actual == Some(&"value"));
         assert!(ht.capacity == 1);
         assert!(ht.items == 1);
     }
 
     #[test]
     fn set_and_get_multiple_values() {
-        let mut ht = HashtableVec::new();
+        let mut ht = HashTable::new();
 
         // ht length is 1 (by default)
         ht.set("key", "value");
@@ -163,17 +186,17 @@ mod hashtable_tests {
         ht.set("key3", "value3");
         ht.set("key4", "value4");
 
-        assert!(ht.get("key") == Some("value"));
-        assert!(ht.get("key2") == Some("value2"));
-        assert!(ht.get("key3") == Some("value3"));
-        assert!(ht.get("key4") == Some("value4"));
+        assert!(ht.get("key") == Some(&"value"));
+        assert!(ht.get("key2") == Some(&"value2"));
+        assert!(ht.get("key3") == Some(&"value3"));
+        assert!(ht.get("key4") == Some(&"value4"));
         assert!(ht.capacity == 17);
         assert!(ht.items == 4);
     }
 
     #[test]
     fn with_capacity_sets_capacity() {
-        let mut ht = HashtableVec::with_capacity(2);
+        let mut ht = HashTable::with_capacity(2);
 
         // Initial capacity is 2
         ht.set("key", "value");
@@ -181,19 +204,19 @@ mod hashtable_tests {
         // Capacity changes to 2 + 16
         ht.set("key3", "value3");
 
-        assert!(ht.get("key") == Some("value"));
-        assert!(ht.get("key2") == Some("value2"));
-        assert!(ht.get("key3") == Some("value3"));
+        assert!(ht.get("key") == Some(&"value"));
+        assert!(ht.get("key2") == Some(&"value2"));
+        assert!(ht.get("key3") == Some(&"value3"));
         assert!(ht.items == 3);
         assert!(ht.capacity == 18);
     }
 
     #[test]
     fn set_delete_key() {
-        let mut ht = HashtableVec::new();
+        let mut ht = HashTable::new();
 
         ht.set("key", "value");
-        assert!(ht.get("key") == Some("value"));
+        assert!(ht.get("key") == Some(&"value"));
         ht.delete("key");
 
         assert!(ht.get("key").is_none());
@@ -203,11 +226,11 @@ mod hashtable_tests {
 
     #[test]
     fn set_delete_key_after_allocation() {
-        let mut ht = HashtableVec::new();
+        let mut ht = HashTable::new();
 
         ht.set("key", "value");
         ht.set("key2", "value2");
-        assert!(ht.get("key") == Some("value"));
+        assert!(ht.get("key") == Some(&"value"));
 
         ht.delete("key");
 
@@ -217,8 +240,17 @@ mod hashtable_tests {
     }
 
     #[test]
+    fn has_returns_true_if_key_exists() {
+        let mut ht = HashTable::new();
+
+        ht.set("key", "value");
+
+        assert!(ht.has("key"));
+    }
+
+    #[test]
     fn length_returns_length_of_hashmap() {
-        let mut ht = HashtableVec::new();
+        let mut ht = HashTable::new();
 
         ht.set("key", "value");
 
@@ -227,7 +259,7 @@ mod hashtable_tests {
 
     #[test]
     fn length_returns_length_of_hashmap_allocated() {
-        let mut ht = HashtableVec::new();
+        let mut ht = HashTable::new();
 
         ht.set("key", "value");
         ht.set("key2", "value2");
@@ -237,7 +269,7 @@ mod hashtable_tests {
 
     #[test]
     fn length_returns_length_of_hashmap_allocated_and_keys_deleted() {
-        let mut ht = HashtableVec::new();
+        let mut ht = HashTable::new();
 
         ht.set("key", "value");
         ht.set("key2", "value2");
