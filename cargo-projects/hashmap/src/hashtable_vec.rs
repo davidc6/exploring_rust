@@ -47,7 +47,7 @@ impl<Key: Debug + Copy, Value: Debug + Copy> HashTable<Key, Value> {
     }
 }
 
-impl<Key: Debug + Hash + Copy + Eq, Value: Debug + Copy> HashTable<Key, Value> {
+impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
     pub fn set(&mut self, key: Key, value: Value) -> Option<Value> {
         let bucket_index = self.bucket_index(key);
 
@@ -57,6 +57,19 @@ impl<Key: Debug + Hash + Copy + Eq, Value: Debug + Copy> HashTable<Key, Value> {
         None
     }
 
+    /// get() is a generic method that has (accepts) a type parameter Q.
+    /// It is generic over the underlying (key) data Q which is specified in the signature of the method.
+    /// Key borrows as a Q as stated under the constraints K: Borrow<Q>.
+    ///
+    /// Both Q and and Key implement Hash and Eq that produce identical results.
+    /// Q implements Hash and is not necessarily Sized or "questionably" sized.
+    ///   - ?Sized essentially means that the type can either be sized or not (only pointed to and known at runtime).
+    ///   This can either be a slice or trait object, or an ordinary value.
+    /// These are also called type bounds, the type has to meet these trait bounds.
+    ///
+    /// Key should also implement the Borrow trait with type Q (majority of types already implement it).
+    ///
+    /// Since the compiler does not know the size of Q, we do it by reference since as the size of it is known.
     pub fn get<Q: Hash + ?Sized>(&self, key: &Q) -> Option<&Value>
     where
         Key: Borrow<Q>,
