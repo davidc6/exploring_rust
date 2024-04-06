@@ -83,13 +83,12 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
         self.buckets[bucket_index]
             .items
             .iter()
-            .find(|item| item.0.borrow() == key)
-            .map(|val| &val.1)
+            .find(|(existing_key, _)| existing_key.borrow() == key)
+            .map(|(_, existing_value)| existing_value)
     }
 
     pub fn delete(&mut self, key: Key) -> Option<Value> {
         let bucket_index = self.hash_key(key);
-
         let value = self.get(&key).copied();
 
         if value.is_some() {
