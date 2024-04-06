@@ -70,7 +70,7 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
     /// Key should also implement the Borrow trait with type Q (majority of types already implement it).
     ///
     /// Since the compiler does not know the size of Q, we do it by reference since as the size of it is known.
-    pub fn get<Q: Hash + ?Sized>(&self, key: &Q) -> Option<&Value>
+    pub fn get<Q: Hash + Eq + ?Sized>(&self, key: &Q) -> Option<&Value>
     where
         Key: Borrow<Q>,
     {
@@ -80,13 +80,11 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
             return None;
         }
 
-        let Bucket { items } = &self.buckets[bucket_index];
-
-        if items.is_empty() {
-            return None;
-        }
-
-        Some(&self.buckets[bucket_index].items[0].1)
+        self.buckets[bucket_index]
+            .items
+            .iter()
+            .find(|item| item.0.borrow() == key)
+            .map(|val| &val.1)
     }
 
     pub fn delete(&mut self, key: Key) -> Option<Value> {
@@ -177,13 +175,23 @@ mod hashtable_tests {
     use super::HashTable;
 
     #[test]
-    fn set_and_get_a_single_value() {
+    fn set_and_get_a_str() {
         let mut ht = HashTable::new();
 
         ht.set("key", "value");
-        let actual = ht.get("key");
 
-        assert!(actual == Some(&"value"));
+        assert_eq!(ht.get("key"), Some(&"value"));
+        assert!(ht.capacity == 1);
+        assert!(ht.items == 1);
+    }
+
+    #[test]
+    fn set_and_get_an_integer() {
+        let mut ht = HashTable::new();
+
+        ht.set(1, "value");
+
+        assert_eq!(ht.get(&1), Some(&"value"));
         assert!(ht.capacity == 1);
         assert!(ht.items == 1);
     }
