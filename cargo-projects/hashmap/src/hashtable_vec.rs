@@ -89,12 +89,14 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
 
     pub fn delete(&mut self, key: Key) -> Option<Value> {
         let bucket_index = self.hash_key(key);
-        let value = self.get(&key).copied();
 
-        if value.is_some() {
-            self.buckets[bucket_index].items = vec![];
+        if let Some(index) = self.buckets[bucket_index]
+            .items
+            .iter()
+            .position(|(existing_key, _)| existing_key.borrow() == &key)
+        {
             self.items -= 1;
-            value
+            Some(self.buckets[bucket_index].items.swap_remove(index).1)
         } else {
             None
         }
@@ -296,6 +298,6 @@ mod hashtable_tests {
         ht.delete("key");
         ht.delete("key2");
 
-        assert!(ht.length() == 0);
+        assert_eq!(ht.length(), 0);
     }
 }
