@@ -5,6 +5,7 @@ use std::{
 };
 
 const DEFAULT_BUCKETS_NUM: usize = 1;
+const DEFAULT_ALLOCATION_SIZE: usize = 16;
 
 /// HashTable
 ///
@@ -111,7 +112,6 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
     }
 
     fn bucket_index(&mut self, key: Key) -> usize {
-        // Initially there will be no buckets
         if self.buckets.is_empty() {
             self.buckets.push(Bucket { items: vec![] });
             return self.hash_key(key);
@@ -133,7 +133,7 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
 
     fn allocate(&mut self) {
         if self.capacity == self.items {
-            let new_capacity = self.capacity + 16;
+            let new_capacity = self.capacity + DEFAULT_ALLOCATION_SIZE;
             let mut new_vec = HashTable::with_capacity(new_capacity);
 
             self.capacity = new_capacity;
@@ -163,17 +163,36 @@ struct HashTableIterator<Key, Value> {
     bucket_at: usize,
 }
 
-impl<'a, Key, Value> Iterator for HashTableIterator<&'a Key, &'a Value> {
-    type Item = Bucket<&'a Key, &'a Value>;
+impl<'a, Key: ?Sized, Value: ?Sized> Iterator for HashTableIterator<&'a Key, &'a Value> {
+    type Item = (&'a Key, &'a Value);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.ht.buckets.get(self.bucket_index).cloned()
+        if self.bucket_index >= self.ht.capacity {
+            return None;
+        }
+
+        let current_bucket = &self.ht.buckets[self.bucket_index];
+
+        if current_bucket.items.is_empty() {
+            self.bucket_index += 1;
+            self.next()
+        } else {
+            let b = current_bucket.items[self.bucket_at];
+            if current_bucket.items.len() > 1 {
+                self.bucket_at += 1;
+            } else {
+                self.bucket_at = 0;
+                self.bucket_index += 1;
+            }
+
+            Some(b)
+        }
     }
 }
 
 #[cfg(test)]
 mod hashtable_tests {
-    use super::HashTable;
+    use super::{HashTable, HashTableIterator};
 
     #[test]
     fn set_and_get_a_str() {
@@ -208,12 +227,12 @@ mod hashtable_tests {
         ht.set("key3", "value3");
         ht.set("key4", "value4");
 
-        assert!(ht.get("key") == Some(&"value"));
-        assert!(ht.get("key2") == Some(&"value2"));
-        assert!(ht.get("key3") == Some(&"value3"));
-        assert!(ht.get("key4") == Some(&"value4"));
-        assert!(ht.capacity == 17);
-        assert!(ht.items == 4);
+        assert_eq!(ht.get("key"), Some(&"value"));
+        assert_eq!(ht.get("key2"), Some(&"value2"));
+        assert_eq!(ht.get("key3"), Some(&"value3"));
+        assert_eq!(ht.get("key4"), Some(&"value4"));
+        assert_eq!(ht.capacity, 17);
+        assert_eq!(ht.items, 4);
     }
 
     #[test]
@@ -299,5 +318,25 @@ mod hashtable_tests {
         ht.delete("key2");
 
         assert_eq!(ht.length(), 0);
+    }
+
+    #[test]
+    fn iterator() {
+        let mut ht = HashTable::new();
+
+        ht.set("key1", "value1");
+        ht.set("key2", "value2");
+        ht.set("key3", "value3");
+
+        let mut iter = HashTableIterator {
+            ht,
+            bucket_at: 0,
+            bucket_index: 0,
+        };
+
+        assert_eq!(iter.next(), Some(("key2", "value2")));
+        assert_eq!(iter.next(), Some(("key1", "value1")));
+        assert_eq!(iter.next(), Some(("key3", "value3")));
+        assert_eq!(iter.next(), None);
     }
 }
