@@ -156,14 +156,16 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
     }
 }
 
-// WIP
-struct HashTableIterator<Key, Value> {
-    ht: HashTable<Key, Value>,
+// Here 'a is declared as a generic lifetime parameter
+// to be used in the body of the struct.
+// HashTableIterator cannot outlive the reference it holds in ht field.
+pub struct HashTableIterator<'a, Key: 'a, Value: 'a> {
+    ht: &'a HashTable<Key, Value>,
     bucket_index: usize,
     bucket_at: usize,
 }
 
-impl<'a, Key: ?Sized, Value: ?Sized> Iterator for HashTableIterator<&'a Key, &'a Value> {
+impl<'a, Key, Value> Iterator for HashTableIterator<'a, Key, Value> {
     type Item = (&'a Key, &'a Value);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -177,7 +179,7 @@ impl<'a, Key: ?Sized, Value: ?Sized> Iterator for HashTableIterator<&'a Key, &'a
             self.bucket_index += 1;
             self.next()
         } else {
-            let b = current_bucket.items[self.bucket_at];
+            let b = &current_bucket.items[self.bucket_at];
             if current_bucket.items.len() > 1 {
                 self.bucket_at += 1;
             } else {
@@ -185,7 +187,45 @@ impl<'a, Key: ?Sized, Value: ?Sized> Iterator for HashTableIterator<&'a Key, &'a
                 self.bucket_index += 1;
             }
 
-            Some(b)
+            Some((&b.0, &b.1))
+        }
+    }
+}
+
+pub struct HashTableIntoIter<Key, Value> {
+    ht: HashTable<Key, Value>,
+    bucket: usize,
+}
+
+impl<Key, Value> Iterator for HashTableIntoIter<Key, Value> {
+    type Item = (Key, Value);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
+}
+
+impl<'a, Key, Value> IntoIterator for &'a HashTable<Key, Value> {
+    type Item = (&'a Key, &'a Value);
+    type IntoIter = HashTableIterator<'a, Key, Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        HashTableIterator {
+            ht: self,
+            bucket_at: 0,
+            bucket_index: 0,
+        }
+    }
+}
+
+impl<Key, Value> IntoIterator for HashTable<Key, Value> {
+    type Item = (Key, Value);
+    type IntoIter = HashTableIntoIter<Key, Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        HashTableIntoIter {
+            ht: self,
+            bucket: 0,
         }
     }
 }
@@ -321,7 +361,7 @@ mod hashtable_tests {
     }
 
     #[test]
-    fn iterator() {
+    fn hash_table_iter() {
         let mut ht = HashTable::new();
 
         ht.set("key1", "value1");
@@ -329,14 +369,33 @@ mod hashtable_tests {
         ht.set("key3", "value3");
 
         let mut iter = HashTableIterator {
-            ht,
+            ht: &ht,
             bucket_at: 0,
             bucket_index: 0,
         };
 
-        assert_eq!(iter.next(), Some(("key2", "value2")));
-        assert_eq!(iter.next(), Some(("key1", "value1")));
-        assert_eq!(iter.next(), Some(("key3", "value3")));
+        assert_eq!(iter.next(), Some((&"key2", &"value2")));
+        assert_eq!(iter.next(), Some((&"key1", &"value1")));
+        assert_eq!(iter.next(), Some((&"key3", &"value3")));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn hash_table_into_iter() {
+        let mut ht = HashTable::new();
+        ht.set("key", "value");
+        ht.set("key2", "value2");
+        ht.set("key3", "value3");
+        ht.set("key4", "value4");
+
+        for (key, value) in ht {
+            match key {
+                "key" => assert_eq!(value, "value"),
+                "key2" => assert_eq!(value, "value2"),
+                "key3" => assert_eq!(value, "value3"),
+                "key4" => assert_eq!(value, "value4"),
+                _ => unreachable!(),
+            }
+        }
     }
 }
