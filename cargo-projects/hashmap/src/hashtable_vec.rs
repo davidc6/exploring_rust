@@ -71,12 +71,23 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
     /// Key should also implement the Borrow trait with type Q (majority of types already implement it).
     ///
     /// Since the compiler does not know the size of Q, we do it by reference since as the size of it is known.
+    ///
+    /// If we can borrow a Key as &Q and the resulting reference hashes and compares just like Key then &Q is an acceptable key type.
+    ///
+    /// Q and K Hash and Eq have to be the same. These can be then considered as same type of reference and the thing pointed to,
+    /// has the same semantic meaning. If there's Q it can be used as Key. If there's a reference to Key it can be treated as a reference
+    /// to a Q, which would be the same.
+    ///
+    /// Both &Q and &Key, providing that they have the same Hash and Eq, can be both considered as the same type of reference,
+    /// and pointed to thing has the same semantic meaning. In a way Q can be used as Key or a reference to a Key can be treated as
+    /// a reference to a Q which will be the same.
+    //
+    // pub fn get(&self, key: &Key) -> Option<&Value>
     pub fn get<Q: Hash + Eq + ?Sized>(&self, key: &Q) -> Option<&Value>
     where
-        Key: Borrow<Q>,
+        Key: Borrow<Q>, // i.e. Key can be borrowed as Q (&Q), i.e. a reference to Q we can get ref to Key
     {
-        let bucket_index = self.hash_key(key);
-
+        let bucket_index = self.hash_key(key); // key here is borrowed as Q (&Key)
         if bucket_index == 0 && self.items == 0 {
             return None;
         }
@@ -89,7 +100,7 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
     }
 
     pub fn delete(&mut self, key: Key) -> Option<Value> {
-        let bucket_index = self.hash_key(key);
+        let bucket_index = self.hash_key(&key);
 
         if let Some(index) = self.buckets[bucket_index]
             .items
@@ -103,28 +114,38 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
         }
     }
 
-    pub fn has(&mut self, key: Key) -> bool {
-        self.get(&key).is_some()
+    pub fn has<Q: Hash + Eq + ?Sized>(&mut self, key: &Q) -> bool
+    where
+        Key: Borrow<Q>,
+    {
+        self.get(key).is_some()
     }
 
     pub fn length(&self) -> usize {
         self.items
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.items == 0
+    }
+
     fn bucket_index(&mut self, key: Key) -> usize {
         if self.buckets.is_empty() {
             self.buckets.push(Bucket { items: vec![] });
-            return self.hash_key(key);
+            return self.hash_key(&key);
         }
 
         if self.items == self.capacity {
             self.allocate();
         }
 
-        self.hash_key(key)
+        self.hash_key(&key)
     }
 
-    fn hash_key<Q: Hash>(&self, key: Q) -> usize {
+    fn hash_key<Q: Hash + Eq + ?Sized>(&self, key: &Q) -> usize
+    where
+        Key: Borrow<Q>, // guarantees that when Q is hashed it'll be the same as if Key gets hashed
+    {
         let mut hasher = DefaultHasher::new();
         key.hash(&mut hasher);
 
@@ -147,7 +168,7 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
                 }
 
                 // we need to rehash the key since capacity has changed
-                let bucket_index = self.hash_key(self.buckets[index].items[0].0);
+                let bucket_index = self.hash_key(&self.buckets[index].items[0].0);
                 new_vec.buckets[bucket_index] = self.buckets[index].clone();
             }
 
@@ -156,15 +177,20 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
     }
 }
 
-// Here 'a is declared as a generic lifetime parameter
+// Here 'a (lifetime) is declared as a generic lifetime parameter
 // to be used in the body of the struct.
-// HashTableIterator cannot outlive the reference it holds in ht field.
+//
+// The way to think about this is: HashTableIterator cannot outlive the reference it holds in ht field.
 pub struct HashTableIterator<'a, Key: 'a, Value: 'a> {
     ht: &'a HashTable<Key, Value>,
     bucket_index: usize,
-    bucket_at: usize,
+    in_bucket_index: usize,
 }
 
+// Implement Iterator trait on HashTableIterator struct
+// in order to iterate over buckets and the underlying values.
+// This implementation does not take ownership of the of original collection
+// but references values.
 impl<'a, Key, Value> Iterator for HashTableIterator<'a, Key, Value> {
     type Item = (&'a Key, &'a Value);
 
@@ -179,11 +205,11 @@ impl<'a, Key, Value> Iterator for HashTableIterator<'a, Key, Value> {
             self.bucket_index += 1;
             self.next()
         } else {
-            let b = &current_bucket.items[self.bucket_at];
+            let b = &current_bucket.items[self.in_bucket_index];
             if current_bucket.items.len() > 1 {
-                self.bucket_at += 1;
+                self.in_bucket_index += 1;
             } else {
-                self.bucket_at = 0;
+                self.in_bucket_index = 0;
                 self.bucket_index += 1;
             }
 
@@ -192,11 +218,31 @@ impl<'a, Key, Value> Iterator for HashTableIterator<'a, Key, Value> {
     }
 }
 
+// Implement IntoIterator for HashTable
+// which would allow to iterate over the collection by reference
+impl<'a, Key, Value> IntoIterator for &'a HashTable<Key, Value> {
+    // reference to Key and Value, which are tied to the HashTable
+    // Items cannot outlive the map and the map needs to keep on living.
+    type Item = (&'a Key, &'a Value);
+    type IntoIter = HashTableIterator<'a, Key, Value>; // type of iterator we get back
+
+    fn into_iter(self) -> Self::IntoIter {
+        HashTableIterator {
+            ht: self,
+            in_bucket_index: 0,
+            bucket_index: 0,
+        }
+    }
+}
+
+///
 pub struct HashTableIntoIter<Key, Value> {
     ht: HashTable<Key, Value>,
     bucket: usize,
 }
 
+// Implement Iterator on HashTableIntoIter
+// which takes ownership of the underlying data
 impl<Key, Value> Iterator for HashTableIntoIter<Key, Value> {
     type Item = (Key, Value);
 
@@ -205,19 +251,8 @@ impl<Key, Value> Iterator for HashTableIntoIter<Key, Value> {
     }
 }
 
-impl<'a, Key, Value> IntoIterator for &'a HashTable<Key, Value> {
-    type Item = (&'a Key, &'a Value);
-    type IntoIter = HashTableIterator<'a, Key, Value>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        HashTableIterator {
-            ht: self,
-            bucket_at: 0,
-            bucket_index: 0,
-        }
-    }
-}
-
+// Implement IntoIterator trait on HashTable struct
+// which takes ownership over the original collection.
 impl<Key, Value> IntoIterator for HashTable<Key, Value> {
     type Item = (Key, Value);
     type IntoIter = HashTableIntoIter<Key, Value>;
@@ -321,12 +356,19 @@ mod hashtable_tests {
     }
 
     #[test]
-    fn has_returns_true_if_key_exists() {
+    fn has_key_returns_true_if_key_exists() {
         let mut ht = HashTable::new();
 
         ht.set("key", "value");
 
         assert!(ht.has("key"));
+    }
+
+    #[test]
+    fn is_empty_returns_true_if_no_items_in_hash_table() {
+        let ht: HashTable<&str, &str> = HashTable::new();
+
+        assert!(ht.is_empty());
     }
 
     #[test]
@@ -370,7 +412,7 @@ mod hashtable_tests {
 
         let mut iter = HashTableIterator {
             ht: &ht,
-            bucket_at: 0,
+            in_bucket_index: 0,
             bucket_index: 0,
         };
 
@@ -381,21 +423,37 @@ mod hashtable_tests {
     }
 
     #[test]
-    fn hash_table_into_iter() {
+    fn hash_table_into_iter_by_ref() {
         let mut ht = HashTable::new();
         ht.set("key", "value");
         ht.set("key2", "value2");
         ht.set("key3", "value3");
         ht.set("key4", "value4");
 
-        for (key, value) in ht {
+        let mut count = 0;
+
+        for (&key, &value) in &ht {
             match key {
-                "key" => assert_eq!(value, "value"),
-                "key2" => assert_eq!(value, "value2"),
-                "key3" => assert_eq!(value, "value3"),
-                "key4" => assert_eq!(value, "value4"),
+                "key" => {
+                    count += 1;
+                    assert_eq!(value, "value")
+                }
+                "key2" => {
+                    count += 1;
+                    assert_eq!(value, "value2")
+                }
+                "key3" => {
+                    count += 1;
+                    assert_eq!(value, "value3")
+                }
+                "key4" => {
+                    count += 1;
+                    assert_eq!(value, "value4")
+                }
                 _ => unreachable!(),
             }
         }
+
+        assert_eq!(count, 4);
     }
 }
