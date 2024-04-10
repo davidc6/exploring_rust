@@ -247,7 +247,17 @@ impl<Key, Value> Iterator for HashTableIntoIter<Key, Value> {
     type Item = (Key, Value);
 
     fn next(&mut self) -> Option<Self::Item> {
-        None
+        match self.ht.buckets.get_mut(self.bucket) {
+            Some(bucket) => {
+                if bucket.items.is_empty() {
+                    self.bucket += 1;
+                    self.next()
+                } else {
+                    bucket.items.pop()
+                }
+            }
+            None => None,
+        }
     }
 }
 
@@ -267,6 +277,8 @@ impl<Key, Value> IntoIterator for HashTable<Key, Value> {
 
 #[cfg(test)]
 mod hashtable_tests {
+    use std::collections::HashSet;
+
     use super::{HashTable, HashTableIterator};
 
     #[test]
@@ -430,30 +442,65 @@ mod hashtable_tests {
         ht.set("key3", "value3");
         ht.set("key4", "value4");
 
-        let mut count = 0;
+        let mut count = HashSet::new();
 
         for (&key, &value) in &ht {
             match key {
                 "key" => {
-                    count += 1;
+                    count.insert(value);
                     assert_eq!(value, "value")
                 }
                 "key2" => {
-                    count += 1;
+                    count.insert(value);
                     assert_eq!(value, "value2")
                 }
                 "key3" => {
-                    count += 1;
+                    count.insert(value);
                     assert_eq!(value, "value3")
                 }
                 "key4" => {
-                    count += 1;
+                    count.insert(value);
                     assert_eq!(value, "value4")
                 }
                 _ => unreachable!(),
             }
         }
 
-        assert_eq!(count, 4);
+        assert_eq!(count.len(), 4);
+    }
+
+    #[test]
+    fn hash_table_into_iter_by_value() {
+        let mut ht = HashTable::new();
+        ht.set("key", "value");
+        ht.set("key2", "value2");
+        ht.set("key3", "value3");
+        ht.set("key4", "value4");
+
+        let mut count = HashSet::new();
+
+        for (key, value) in ht {
+            match key {
+                "key" => {
+                    count.insert(value);
+                    assert_eq!(value, "value")
+                }
+                "key2" => {
+                    count.insert(value);
+                    assert_eq!(value, "value2")
+                }
+                "key3" => {
+                    count.insert(value);
+                    assert_eq!(value, "value3")
+                }
+                "key4" => {
+                    count.insert(value);
+                    assert_eq!(value, "value4")
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        assert_eq!(count.len(), 4);
     }
 }
