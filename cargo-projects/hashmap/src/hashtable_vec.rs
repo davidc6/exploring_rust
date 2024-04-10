@@ -38,6 +38,16 @@ impl<Key: Debug, Value: Debug> HashTable<Key, Value> {
     }
 }
 
+impl<'a, Key, Value> HashTable<Key, Value> {
+    pub fn iter(&'a self) -> HashTableIterator<'a, Key, Value> {
+        HashTableIterator {
+            ht: self,
+            bucket_index: 0,
+            in_bucket_index: 0,
+        }
+    }
+}
+
 impl<Key: Debug + Copy, Value: Debug + Copy> HashTable<Key, Value> {
     pub fn with_capacity(capacity: usize) -> Self {
         HashTable {
@@ -444,7 +454,7 @@ mod hashtable_tests {
 
         let mut count = HashSet::new();
 
-        for (&key, &value) in &ht {
+        for (&key, &value) in ht.iter() {
             match key {
                 "key" => {
                     count.insert(value);
@@ -466,7 +476,8 @@ mod hashtable_tests {
             }
         }
 
-        assert_eq!(count.len(), 4);
+        assert_eq!(ht.length(), 4); // no item has been confused
+        assert_eq!(count.len(), 4); // all case has been visited
     }
 
     #[test]
@@ -479,6 +490,8 @@ mod hashtable_tests {
 
         let mut count = HashSet::new();
 
+        // "into_iter()" gets applied by default in the "for in" pattern
+        // So actually this is the same as ht.into_iter() which consumes the collection
         for (key, value) in ht {
             match key {
                 "key" => {
