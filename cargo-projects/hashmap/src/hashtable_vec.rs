@@ -7,6 +7,79 @@ use std::{
 const DEFAULT_BUCKETS_NUM: usize = 1;
 const DEFAULT_ALLOCATION_SIZE: usize = 16;
 
+pub struct Filled<'a, Key, Value> {
+    hash: u64,
+    key: Key,
+    value: Value,
+    ht: &'a mut Vec<Bucket<Key, Value>>,
+}
+
+pub struct Empty<'a, Key, Value> {
+    hash: u64,
+    key: Key,
+    ht: &'a mut Vec<Bucket<Key, Value>>,
+}
+
+// impl<'a, Key, Value> Filled<'a, Key, Value> {
+//     pub fn into_mut(self) -> &'a mut Value {
+//         unsafe { &mut self.value.as_mut().1 }
+//     }
+// }
+
+// impl<'a, Key, Value> Filled<'a, Key, Value> {
+//     pub fn into_mut(self) -> &'a mut Value {
+//         unsafe { &mut self.value }
+//     }
+// }
+
+// impl<'a, Key, Value> Filled<'a, Key, Value> {
+//     pub fn into_mut(self) -> &'a mut Value {
+//         self.ht.get_mut(index)
+//     }
+// }
+
+pub enum GetItem<'a, Key: 'a, Value: 'a> {
+    Empty(Empty<'a, Key, Value>),
+    Filled(Filled<'a, Key, Value>),
+}
+
+impl<'a, Key: Debug, Value: Debug> GetItem<'a, Key, Value> {
+    pub fn or_set(self, val: Value) -> &'a mut Value {
+        match self {
+            // If item is found, then return the mutable reference to the value
+            GetItem::Filled(filled) => {
+                let a = filled.hash as usize;
+                let res = filled.ht.get_mut(a).unwrap();
+                &mut res.items[0].1
+            }
+            // Else insert the value provided and return the mutable reference
+            GetItem::Empty(empty) => {
+                let a = empty.hash as usize;
+                let res = empty.ht.get_mut(a);
+
+                // if res.is_none() {
+                // empty.ht = vec![];
+                //     let mut aa = vec![Bucket { items: vec![] }];
+                //     *empty.ht = aa;
+                // empty.
+                // }
+
+                // if res.is_none() {
+                //     res = Some(&mut Bucket { items: vec![] });
+                // }
+
+                if let Some(v) = res {
+                    v.items.push((empty.key, val));
+                }
+
+                println!("YO {:?}", empty.ht);
+
+                &mut empty.ht.get_mut(a).unwrap().items[0].1
+            }
+        }
+    }
+}
+
 /// HashTable
 ///
 /// [b] - these are buckets (a vector)
@@ -31,7 +104,7 @@ struct Bucket<Key, Value> {
 impl<Key: Debug, Value: Debug> HashTable<Key, Value> {
     pub fn new() -> Self {
         HashTable {
-            buckets: vec![],
+            buckets: vec![Bucket { items: vec![] }],
             items: 0,
             capacity: DEFAULT_BUCKETS_NUM,
         }
@@ -137,6 +210,36 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
 
     pub fn is_empty(&self) -> bool {
         self.items == 0
+    }
+
+    // hash_table.item("number").or_set(13) -> &mut
+    pub fn item(&mut self, key: Key) -> GetItem<Key, Value> {
+        let h = self.hash_key(&key) as u64;
+        // value exists in the hashtable
+        if let Some(value) = self.get(&key) {
+            GetItem::Filled(Filled {
+                hash: h,
+                key,
+                value: *value,
+                ht: &mut self.buckets,
+            })
+        } else {
+            self.items += 1;
+            GetItem::Empty(Empty {
+                hash: h,
+                key,
+                ht: &mut self.buckets,
+            })
+        }
+
+        // match self.get(&key) {
+        //     Some(val) => Some(GetItem::Filled(Filled {
+        //         key,
+        //         value: *val,
+        //         ht: self,
+        //     })),
+        //     None => None,
+        // }
     }
 
     fn bucket_index(&mut self, key: Key) -> usize {
@@ -515,5 +618,24 @@ mod hashtable_tests {
         }
 
         assert_eq!(count.len(), 4);
+    }
+
+    #[test]
+    fn or_set_does_not_insert_value_if_value_exists_in_table() {
+        let mut ht = HashTable::new();
+        ht.set("hello", "world");
+
+        let item = ht.item("hello").or_set("world2");
+
+        assert_eq!(item, &mut "world");
+    }
+
+    #[test]
+    fn or_set_inserts_value_if_value_does_not_exist_in_table() {
+        let mut ht = HashTable::new();
+        let item = ht.item("hello").or_set("world2");
+
+        assert_eq!(item, &mut "world2");
+        assert_eq!(ht.get("hello"), Some(&"world2"));
     }
 }
