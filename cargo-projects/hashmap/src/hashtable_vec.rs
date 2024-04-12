@@ -1,3 +1,4 @@
+use crate::element_api::{Element, Empty, Filled};
 use std::{
     borrow::Borrow,
     fmt::Debug,
@@ -6,52 +7,6 @@ use std::{
 
 const DEFAULT_BUCKETS_NUM: usize = 1;
 const DEFAULT_ALLOCATION_SIZE: usize = 16;
-
-#[derive(PartialEq)]
-pub struct Filled<'a, Key, Value> {
-    hash: u64,
-    key: Key,
-    value: Value,
-    ht: &'a mut Vec<Bucket<Key, Value>>,
-}
-
-impl<'a, Key, Value> Filled<'a, Key, Value> {
-    fn key(&self) -> &Key {
-        &self.key
-    }
-}
-
-impl<Key: Debug, Value: Debug> Debug for Filled<'_, Key, Value> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("FilledElement").field(self.key()).finish()
-    }
-}
-
-#[derive(PartialEq)]
-pub struct Empty<'a, Key, Value> {
-    hash: u64,
-    key: Key,
-    ht: &'a mut Vec<Bucket<Key, Value>>,
-}
-
-impl<'a, Key, Value> Empty<'a, Key, Value> {
-    fn key(&self) -> &Key {
-        &self.key
-    }
-}
-
-// Here the compiler infers the lifetime (i.e. the lifetime is elided)
-impl<Key: Debug, Value> Debug for Empty<'_, Key, Value> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("EmptyElement").field(self.key()).finish()
-    }
-}
-
-#[derive(PartialEq)]
-pub enum Element<'a, Key: 'a, Value: 'a> {
-    Empty(Empty<'a, Key, Value>),
-    Filled(Filled<'a, Key, Value>),
-}
 
 impl<Key: Debug, Value: Debug> Debug for Element<'_, Key, Value> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -101,7 +56,7 @@ pub struct HashTable<Key, Value> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct Bucket<Key, Value> {
+pub struct Bucket<Key, Value> {
     items: Vec<(Key, Value)>,
 }
 
