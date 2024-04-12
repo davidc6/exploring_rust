@@ -7,7 +7,7 @@ use std::{
 const DEFAULT_BUCKETS_NUM: usize = 1;
 const DEFAULT_ALLOCATION_SIZE: usize = 16;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq)]
 pub struct Filled<'a, Key, Value> {
     hash: u64,
     key: Key,
@@ -15,10 +15,15 @@ pub struct Filled<'a, Key, Value> {
     ht: &'a mut Vec<Bucket<Key, Value>>,
 }
 
-// Here the compiler infers the lifetime (i.e. the lifetime is elided)
-impl<Key: Debug, Value> Debug for Empty<'_, Key, Value> {
+impl<'a, Key, Value> Filled<'a, Key, Value> {
+    fn key(&self) -> &Key {
+        &self.key
+    }
+}
+
+impl<Key: Debug, Value: Debug> Debug for Filled<'_, Key, Value> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("EmptyElement").field(self.key()).finish()
+        f.debug_tuple("FilledElement").field(self.key()).finish()
     }
 }
 
@@ -35,23 +40,12 @@ impl<'a, Key, Value> Empty<'a, Key, Value> {
     }
 }
 
-// impl<'a, Key, Value> Filled<'a, Key, Value> {
-//     pub fn into_mut(self) -> &'a mut Value {
-//         unsafe { &mut self.value.as_mut().1 }
-//     }
-// }
-
-// impl<'a, Key, Value> Filled<'a, Key, Value> {
-//     pub fn into_mut(self) -> &'a mut Value {
-//         unsafe { &mut self.value }
-//     }
-// }
-
-// impl<'a, Key, Value> Filled<'a, Key, Value> {
-//     pub fn into_mut(self) -> &'a mut Value {
-//         self.ht.get_mut(index)
-//     }
-// }
+// Here the compiler infers the lifetime (i.e. the lifetime is elided)
+impl<Key: Debug, Value> Debug for Empty<'_, Key, Value> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("EmptyElement").field(self.key()).finish()
+    }
+}
 
 #[derive(PartialEq)]
 pub enum Element<'a, Key: 'a, Value: 'a> {
@@ -405,9 +399,9 @@ impl<Key, Value> IntoIterator for HashTable<Key, Value> {
 
 #[cfg(test)]
 mod hashtable_tests {
-    use std::collections::HashSet;
-
     use super::{Element, Empty, HashTable, HashTableIterator};
+    use crate::hashtable_vec::Filled;
+    use std::collections::HashSet;
 
     #[test]
     fn set_and_get_a_str() {
@@ -639,8 +633,17 @@ mod hashtable_tests {
     fn empty_element_if_no_value_in_hash_table() {
         let mut ht: HashTable<&str, &str> = HashTable::new();
         let actual = ht.element("hello");
-        println!("{:?}", actual);
-        // assert_eq!(actual, Element::Empty("hello"));
+
+        assert!(matches!(actual, Element::Empty(Empty { .. })))
+    }
+
+    #[test]
+    fn filled_element_if_no_value_in_hash_table() {
+        let mut ht: HashTable<&str, &str> = HashTable::new();
+        ht.set("hello", "world");
+        let actual = ht.element("hello");
+
+        assert!(matches!(actual, Element::Filled(Filled { .. })))
     }
 
     #[test]
