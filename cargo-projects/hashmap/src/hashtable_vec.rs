@@ -7,6 +7,7 @@ use std::{
 const DEFAULT_BUCKETS_NUM: usize = 1;
 const DEFAULT_ALLOCATION_SIZE: usize = 16;
 
+#[derive(PartialEq, Debug)]
 pub struct Filled<'a, Key, Value> {
     hash: u64,
     key: Key,
@@ -14,10 +15,24 @@ pub struct Filled<'a, Key, Value> {
     ht: &'a mut Vec<Bucket<Key, Value>>,
 }
 
+// Here the compiler infers the lifetime (i.e. the lifetime is elided)
+impl<Key: Debug, Value> Debug for Empty<'_, Key, Value> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("EmptyElement").field(self.key()).finish()
+    }
+}
+
+#[derive(PartialEq)]
 pub struct Empty<'a, Key, Value> {
     hash: u64,
     key: Key,
     ht: &'a mut Vec<Bucket<Key, Value>>,
+}
+
+impl<'a, Key, Value> Empty<'a, Key, Value> {
+    fn key(&self) -> &Key {
+        &self.key
+    }
 }
 
 // impl<'a, Key, Value> Filled<'a, Key, Value> {
@@ -38,22 +53,32 @@ pub struct Empty<'a, Key, Value> {
 //     }
 // }
 
-pub enum GetItem<'a, Key: 'a, Value: 'a> {
+#[derive(PartialEq)]
+pub enum Element<'a, Key: 'a, Value: 'a> {
     Empty(Empty<'a, Key, Value>),
     Filled(Filled<'a, Key, Value>),
 }
 
-impl<'a, Key: Debug, Value: Debug> GetItem<'a, Key, Value> {
+impl<Key: Debug, Value: Debug> Debug for Element<'_, Key, Value> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Element::Filled(ref filled) => f.debug_tuple("Element").field(filled).finish(),
+            Element::Empty(ref empty) => f.debug_tuple("Element").field(empty).finish(),
+        }
+    }
+}
+
+impl<'a, Key: Debug, Value: Debug> Element<'a, Key, Value> {
     pub fn or_set(self, val: Value) -> &'a mut Value {
         match self {
             // If item is found, then return the mutable reference to the value
-            GetItem::Filled(filled) => {
+            Element::Filled(filled) => {
                 let a = filled.hash as usize;
                 let res = filled.ht.get_mut(a).unwrap();
                 &mut res.items[0].1
             }
             // Else insert the value provided and return the mutable reference
-            GetItem::Empty(empty) => {
+            Element::Empty(empty) => {
                 let a = empty.hash as usize;
                 let res = empty.ht.get_mut(a);
 
@@ -96,7 +121,7 @@ pub struct HashTable<Key, Value> {
     capacity: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct Bucket<Key, Value> {
     items: Vec<(Key, Value)>,
 }
@@ -212,34 +237,24 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
         self.items == 0
     }
 
-    // hash_table.item("number").or_set(13) -> &mut
-    pub fn item(&mut self, key: Key) -> GetItem<Key, Value> {
-        let h = self.hash_key(&key) as u64;
+    pub fn element(&mut self, key: Key) -> Element<Key, Value> {
+        let hash = self.hash_key(&key) as u64;
         // value exists in the hashtable
         if let Some(value) = self.get(&key) {
-            GetItem::Filled(Filled {
-                hash: h,
+            Element::Filled(Filled {
+                hash,
                 key,
                 value: *value,
                 ht: &mut self.buckets,
             })
         } else {
             self.items += 1;
-            GetItem::Empty(Empty {
-                hash: h,
+            Element::Empty(Empty {
+                hash,
                 key,
                 ht: &mut self.buckets,
             })
         }
-
-        // match self.get(&key) {
-        //     Some(val) => Some(GetItem::Filled(Filled {
-        //         key,
-        //         value: *val,
-        //         ht: self,
-        //     })),
-        //     None => None,
-        // }
     }
 
     fn bucket_index(&mut self, key: Key) -> usize {
@@ -392,7 +407,7 @@ impl<Key, Value> IntoIterator for HashTable<Key, Value> {
 mod hashtable_tests {
     use std::collections::HashSet;
 
-    use super::{HashTable, HashTableIterator};
+    use super::{Element, Empty, HashTable, HashTableIterator};
 
     #[test]
     fn set_and_get_a_str() {
@@ -621,11 +636,19 @@ mod hashtable_tests {
     }
 
     #[test]
+    fn empty_element_if_no_value_in_hash_table() {
+        let mut ht: HashTable<&str, &str> = HashTable::new();
+        let actual = ht.element("hello");
+        println!("{:?}", actual);
+        // assert_eq!(actual, Element::Empty("hello"));
+    }
+
+    #[test]
     fn or_set_does_not_insert_value_if_value_exists_in_table() {
         let mut ht = HashTable::new();
         ht.set("hello", "world");
 
-        let item = ht.item("hello").or_set("world2");
+        let item = ht.element("hello").or_set("world2");
 
         assert_eq!(item, &mut "world");
     }
@@ -633,7 +656,7 @@ mod hashtable_tests {
     #[test]
     fn or_set_inserts_value_if_value_does_not_exist_in_table() {
         let mut ht = HashTable::new();
-        let item = ht.item("hello").or_set("world2");
+        let item = ht.element("hello").or_set("world2");
 
         assert_eq!(item, &mut "world2");
         assert_eq!(ht.get("hello"), Some(&"world2"));
