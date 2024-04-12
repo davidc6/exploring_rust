@@ -8,37 +8,6 @@ use std::{
 const DEFAULT_BUCKETS_NUM: usize = 1;
 const DEFAULT_ALLOCATION_SIZE: usize = 16;
 
-impl<Key: Debug, Value: Debug> Debug for Element<'_, Key, Value> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Element::Filled(ref filled) => f.debug_tuple("Element").field(filled).finish(),
-            Element::Empty(ref empty) => f.debug_tuple("Element").field(empty).finish(),
-        }
-    }
-}
-
-impl<'a, Key: Debug, Value: Debug> Element<'a, Key, Value> {
-    pub fn or_set(self, val: Value) -> &'a mut Value {
-        match self {
-            Element::Filled(filled) => {
-                let hash = filled.hash as usize;
-                let bucket = filled.ht.get_mut(hash).unwrap();
-                &mut bucket.items[0].1
-            }
-            Element::Empty(empty) => {
-                let hash = empty.hash as usize;
-                let bucket = empty.ht.get_mut(hash);
-
-                if let Some(v) = bucket {
-                    v.items.push((empty.key, val));
-                }
-
-                &mut empty.ht.get_mut(hash).unwrap().items[0].1
-            }
-        }
-    }
-}
-
 /// HashTable
 ///
 /// [b] - these are buckets (a vector)
@@ -50,14 +19,14 @@ impl<'a, Key: Debug, Value: Debug> Element<'a, Key, Value> {
 ///
 #[derive(Debug, Default)]
 pub struct HashTable<Key, Value> {
-    buckets: Vec<Bucket<Key, Value>>,
+    pub buckets: Vec<Bucket<Key, Value>>,
     items: usize,
     capacity: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bucket<Key, Value> {
-    items: Vec<(Key, Value)>,
+    pub items: Vec<(Key, Value)>,
 }
 
 impl<Key: Debug, Value: Debug> HashTable<Key, Value> {

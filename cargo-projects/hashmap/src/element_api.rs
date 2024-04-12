@@ -1,6 +1,37 @@
 use crate::hashtable_vec::Bucket;
 use std::fmt::Debug;
 
+impl<Key: Debug, Value: Debug> Debug for Element<'_, Key, Value> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Element::Filled(ref filled) => f.debug_tuple("Element").field(filled).finish(),
+            Element::Empty(ref empty) => f.debug_tuple("Element").field(empty).finish(),
+        }
+    }
+}
+
+impl<'a, Key: Debug, Value: Debug> Element<'a, Key, Value> {
+    pub fn or_set(self, val: Value) -> &'a mut Value {
+        match self {
+            Element::Filled(filled) => {
+                let hash = filled.hash as usize;
+                let bucket = filled.ht.get_mut(hash).unwrap();
+                &mut bucket.items[0].1
+            }
+            Element::Empty(empty) => {
+                let hash = empty.hash as usize;
+                let bucket = empty.ht.get_mut(hash);
+
+                if let Some(v) = bucket {
+                    v.items.push((empty.key, val));
+                }
+
+                &mut empty.ht.get_mut(hash).unwrap().items[0].1
+            }
+        }
+    }
+}
+
 #[derive(PartialEq)]
 pub struct Filled<'a, Key, Value> {
     pub hash: u64,
