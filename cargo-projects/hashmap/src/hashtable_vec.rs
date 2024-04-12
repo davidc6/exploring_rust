@@ -65,35 +65,20 @@ impl<Key: Debug, Value: Debug> Debug for Element<'_, Key, Value> {
 impl<'a, Key: Debug, Value: Debug> Element<'a, Key, Value> {
     pub fn or_set(self, val: Value) -> &'a mut Value {
         match self {
-            // If item is found, then return the mutable reference to the value
             Element::Filled(filled) => {
-                let a = filled.hash as usize;
-                let res = filled.ht.get_mut(a).unwrap();
-                &mut res.items[0].1
+                let hash = filled.hash as usize;
+                let bucket = filled.ht.get_mut(hash).unwrap();
+                &mut bucket.items[0].1
             }
-            // Else insert the value provided and return the mutable reference
             Element::Empty(empty) => {
-                let a = empty.hash as usize;
-                let res = empty.ht.get_mut(a);
+                let hash = empty.hash as usize;
+                let bucket = empty.ht.get_mut(hash);
 
-                // if res.is_none() {
-                // empty.ht = vec![];
-                //     let mut aa = vec![Bucket { items: vec![] }];
-                //     *empty.ht = aa;
-                // empty.
-                // }
-
-                // if res.is_none() {
-                //     res = Some(&mut Bucket { items: vec![] });
-                // }
-
-                if let Some(v) = res {
+                if let Some(v) = bucket {
                     v.items.push((empty.key, val));
                 }
 
-                println!("YO {:?}", empty.ht);
-
-                &mut empty.ht.get_mut(a).unwrap().items[0].1
+                &mut empty.ht.get_mut(hash).unwrap().items[0].1
             }
         }
     }
@@ -233,7 +218,6 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
 
     pub fn element(&mut self, key: Key) -> Element<Key, Value> {
         let hash = self.hash_key(&key) as u64;
-        // value exists in the hashtable
         if let Some(value) = self.get(&key) {
             Element::Filled(Filled {
                 hash,
