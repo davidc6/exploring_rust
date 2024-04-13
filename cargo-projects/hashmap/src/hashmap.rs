@@ -4,7 +4,6 @@ use std::{
 };
 
 const DEFAULT_BUCKETS_NUM: usize = 16;
-type VectorType<K, V> = Option<Bucket<K, V>>;
 
 #[derive(Debug, Clone)]
 struct Bucket<Key, Value> {
@@ -13,7 +12,7 @@ struct Bucket<Key, Value> {
 
 #[derive(Debug)]
 pub struct HashTable<Key, Value, const BUCKETS_NUM: usize = DEFAULT_BUCKETS_NUM> {
-    buckets: [VectorType<Key, Value>; BUCKETS_NUM],
+    buckets: [Option<Bucket<Key, Value>>; BUCKETS_NUM],
     items: usize,
 }
 
@@ -29,8 +28,8 @@ impl<Key: Hash + Debug + Clone + Copy, Value: Debug + Clone + Copy> Default
 impl<Key: Hash + Debug + Clone + Copy, Value: Debug + Clone + Copy, const COUNT: usize>
     HashTable<Key, Value, COUNT>
 {
-    // associated constant (constant associated with a type)
-    const INITIAL_VALUE: VectorType<Key, Value> = None;
+    // Associated constant (constant associated with a certain type)
+    const INITIAL_VALUE: Option<Bucket<Key, Value>> = None;
 
     pub fn new() -> Self {
         HashTable {
@@ -38,13 +37,6 @@ impl<Key: Hash + Debug + Clone + Copy, Value: Debug + Clone + Copy, const COUNT:
             items: 0,
         }
     }
-
-    // pub fn with_capacity(size: usize) -> Self {
-    //     HashTable {
-    //         buckets: [Self::INITIAL_VALUE; size],
-    //         items: 0,
-    //     }
-    // }
 }
 
 impl<Key: Hash + Debug + Copy + Clone, Value: Debug + Clone> HashTable<Key, Value> {

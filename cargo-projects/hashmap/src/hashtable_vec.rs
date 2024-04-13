@@ -10,13 +10,15 @@ const DEFAULT_ALLOCATION_SIZE: usize = 16;
 
 /// HashTable
 ///
-/// [b] - these are buckets (a vector)
-/// [i] - these are items (a vector)
+/// There is one vector which holds a number of elements (buckets).
+/// Each bucket is a vector which holds items in case of collision.
 ///
-/// [b1] -> [i1] -> [i2] -> [i3]
-/// [b2] -> [i1] -> [i2] -> [i3]
-/// [b3] -> [i1] -> [i2] -> [i3]
+/// [b] - these are buckets (essentially a vector of vectors)
+/// [i] - these are items (in a bucket)
 ///
+/// [b1] [i1] [i2] [i3]
+/// [b2] [i1] [i2] [i3]
+/// [b3] [i1] [i2] [i3]
 #[derive(Debug, Default)]
 pub struct HashTable<Key, Value> {
     pub buckets: Vec<Bucket<Key, Value>>,
@@ -211,6 +213,9 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
 // to be used in the body of the struct.
 //
 // The way to think about this is: HashTableIterator cannot outlive the reference it holds in ht field.
+//
+// Each value of type HashTableIterator that gets created, gets a fresh lifetime 'a. Any reference that gets
+// stored in ht should enclose 'a and 'a must outlast the lifetime of wherever HashTableIterator stored.
 pub struct HashTableIterator<'a, Key: 'a, Value: 'a> {
     ht: &'a HashTable<Key, Value>,
     bucket_index: usize,
