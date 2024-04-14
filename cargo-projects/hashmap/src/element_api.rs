@@ -16,7 +16,9 @@ impl<'a, Key: Debug, Value: Debug> Element<'a, Key, Value> {
             Element::Filled(filled) => {
                 let hash = filled.hash as usize;
                 let bucket = filled.ht.get_mut(hash).unwrap();
-                &mut bucket.items[0].1
+                // TODO: value can be anywhere in the vector
+                let (_, value) = &mut bucket.items[0];
+                value
             }
             Element::Empty(empty) => {
                 let hash = empty.hash as usize;
@@ -25,8 +27,9 @@ impl<'a, Key: Debug, Value: Debug> Element<'a, Key, Value> {
                 if let Some(v) = bucket {
                     v.items.push((empty.key, val));
                 }
-
-                &mut empty.ht.get_mut(hash).unwrap().items[0].1
+                // TODO: value can be anywhere in the vector
+                let (_, value) = &mut empty.ht.get_mut(hash).unwrap().items[0];
+                value
             }
         }
     }
