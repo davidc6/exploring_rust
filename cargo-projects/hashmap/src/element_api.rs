@@ -1,9 +1,55 @@
-use crate::hashtable_vec::Bucket;
+use crate::hashtable_vec::HashTable;
 use std::fmt::Debug;
+
+#[derive(PartialEq)]
+pub struct Filled<'a, Key, Value> {
+    pub hash: u64,
+    pub key: Key,
+    pub value: Value,
+    pub ht: &'a mut HashTable<Key, Value>,
+}
+
+impl<'a, Key, Value> Filled<'a, Key, Value> {
+    fn key(&self) -> &Key {
+        &self.key
+    }
+}
+
+// Here the compiler infers the lifetime (i.e. the lifetime is elided)
+impl<Key: Debug, Value: Debug> Debug for Filled<'_, Key, Value> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("FilledElement").field(self.key()).finish()
+    }
+}
+
+#[derive(PartialEq)]
+pub struct Empty<'a, Key, Value> {
+    pub hash: u64,
+    pub key: Key,
+    pub ht: &'a mut HashTable<Key, Value>,
+}
+
+impl<'a, Key, Value> Empty<'a, Key, Value> {
+    fn key(&self) -> &Key {
+        &self.key
+    }
+}
+
+impl<Key: Debug, Value> Debug for Empty<'_, Key, Value> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("EmptyElement").field(self.key()).finish()
+    }
+}
+
+#[derive(PartialEq)]
+pub enum Element<'a, Key: 'a, Value: 'a> {
+    Empty(Empty<'a, Key, Value>),
+    Filled(Filled<'a, Key, Value>),
+}
 
 impl<Key: Debug, Value: Debug> Debug for Element<'_, Key, Value> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
+        match self {
             Element::Filled(ref filled) => f.debug_tuple("Element").field(filled).finish(),
             Element::Empty(ref empty) => f.debug_tuple("Element").field(empty).finish(),
         }
@@ -15,7 +61,8 @@ impl<'a, Key: Debug + Eq, Value: Debug + Eq> Element<'a, Key, Value> {
         match self {
             Element::Filled(filled) => {
                 let hash = filled.hash as usize;
-                let bucket = filled.ht.get_mut(hash).unwrap();
+                let bucket = filled.ht.buckets.get_mut(hash).unwrap();
+
                 let element = bucket
                     .items
                     .iter_mut()
@@ -26,10 +73,13 @@ impl<'a, Key: Debug + Eq, Value: Debug + Eq> Element<'a, Key, Value> {
             }
             Element::Empty(empty) => {
                 let hash = empty.hash as usize;
-                let mut bucket_mut = empty.ht.get_mut(hash);
+                let ht_mut = empty.ht;
+                let mut bucket_mut = ht_mut.buckets.get_mut(hash);
 
-                // could also use ref allows to bind by reference when pattern matching rather than consuming the value
+                // Could also use Some(mut ref bucket_mut),
+                // which allows to bind by reference when pattern matching rather than consuming the value
                 if let Some(bucket_mut) = &mut bucket_mut {
+                    ht_mut.items += 1;
                     bucket_mut.items.push((empty.key, val));
                 }
 
@@ -38,52 +88,13 @@ impl<'a, Key: Debug + Eq, Value: Debug + Eq> Element<'a, Key, Value> {
             }
         }
     }
-}
 
-#[derive(PartialEq)]
-pub struct Filled<'a, Key, Value> {
-    pub hash: u64,
-    pub key: Key,
-    pub value: Value,
-    pub ht: &'a mut Vec<Bucket<Key, Value>>,
-}
-
-impl<'a, Key, Value> Filled<'a, Key, Value> {
-    fn key(&self) -> &Key {
-        &self.key
+    pub fn key(&self) -> &Key {
+        match self {
+            Element::Empty(empty) => empty.key(),
+            Element::Filled(filled) => filled.key(),
+        }
     }
-}
-
-impl<Key: Debug, Value: Debug> Debug for Filled<'_, Key, Value> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("FilledElement").field(self.key()).finish()
-    }
-}
-
-#[derive(PartialEq)]
-pub struct Empty<'a, Key, Value> {
-    pub hash: u64,
-    pub key: Key,
-    pub ht: &'a mut Vec<Bucket<Key, Value>>,
-}
-
-impl<'a, Key, Value> Empty<'a, Key, Value> {
-    fn key(&self) -> &Key {
-        &self.key
-    }
-}
-
-// Here the compiler infers the lifetime (i.e. the lifetime is elided)
-impl<Key: Debug, Value> Debug for Empty<'_, Key, Value> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("EmptyElement").field(self.key()).finish()
-    }
-}
-
-#[derive(PartialEq)]
-pub enum Element<'a, Key: 'a, Value: 'a> {
-    Empty(Empty<'a, Key, Value>),
-    Filled(Filled<'a, Key, Value>),
 }
 
 #[cfg(test)]
@@ -107,5 +118,25 @@ mod element_api_tests {
 
         assert_eq!(item, &mut "world2");
         assert_eq!(ht.get("hello"), Some(&"world2"));
+    }
+
+    #[test]
+    fn key_returns_a_reference_to_element_key() {
+        let mut ht = HashTable::new();
+        ht.set("hello", "world");
+        ht.set("hello2", "world2");
+
+        let element = ht.element("hello");
+        assert_eq!(element.key(), &"hello");
+    }
+
+    #[test]
+    fn key_returns_a_reference_to_element_key_if_key_is_not_set() {
+        let mut ht: HashTable<&str, &str> = HashTable::new();
+
+        let element = ht.element("hello");
+
+        assert_eq!(element.key(), &"hello");
+        assert_eq!(ht.length(), 0);
     }
 }
