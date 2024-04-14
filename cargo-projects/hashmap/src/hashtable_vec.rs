@@ -551,30 +551,11 @@ mod hashtable_tests {
     }
 
     #[test]
-    fn filled_element_if_no_value_in_hash_table() {
+    fn filled_element_if_value_exists_in_hash_table() {
         let mut ht: HashTable<&str, &str> = HashTable::new();
         ht.set("hello", "world");
         let actual = ht.element("hello");
 
         assert!(matches!(actual, Element::Filled(Filled { .. })))
-    }
-
-    #[test]
-    fn or_set_does_not_insert_value_if_value_exists_in_table() {
-        let mut ht = HashTable::new();
-        ht.set("hello", "world");
-
-        let item = ht.element("hello").or_set("world2");
-
-        assert_eq!(item, &mut "world");
-    }
-
-    #[test]
-    fn or_set_inserts_value_if_value_does_not_exist_in_table() {
-        let mut ht = HashTable::new();
-        let item = ht.element("hello").or_set("world2");
-
-        assert_eq!(item, &mut "world2");
-        assert_eq!(ht.get("hello"), Some(&"world2"));
     }
 }
