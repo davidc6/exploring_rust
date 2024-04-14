@@ -19,10 +19,10 @@ const DEFAULT_ALLOCATION_SIZE: usize = 16;
 /// [b1] [i1] [i2] [i3]
 /// [b2] [i1] [i2] [i3]
 /// [b3] [i1] [i2] [i3]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct HashTable<Key, Value> {
     pub buckets: Vec<Bucket<Key, Value>>,
-    items: usize,
+    pub items: usize,
     capacity: usize,
 }
 
@@ -149,14 +149,13 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
                 hash,
                 key,
                 value: *value,
-                ht: &mut self.buckets,
+                ht: self,
             })
         } else {
-            self.items += 1;
             Element::Empty(Empty {
                 hash,
                 key,
-                ht: &mut self.buckets,
+                ht: self,
             })
         }
     }
