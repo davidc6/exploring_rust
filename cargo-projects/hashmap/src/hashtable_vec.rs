@@ -1,4 +1,4 @@
-use crate::element_api::{Element, Empty, Filled};
+use crate::element_api::{Element, EmptyElement, FilledElement};
 use std::{
     borrow::Borrow,
     fmt::Debug,
@@ -145,14 +145,14 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
     pub fn element(&mut self, key: Key) -> Element<Key, Value> {
         let hash = self.hash_key(&key) as u64;
         if let Some(value) = self.get(&key) {
-            Element::Filled(Filled {
+            Element::Filled(FilledElement {
                 hash,
                 key,
                 value: *value,
                 ht: self,
             })
         } else {
-            Element::Empty(Empty {
+            Element::Empty(EmptyElement {
                 hash,
                 key,
                 ht: self,
@@ -269,7 +269,6 @@ impl<'a, Key, Value> IntoIterator for &'a HashTable<Key, Value> {
     }
 }
 
-///
 pub struct HashTableIntoIter<Key, Value> {
     ht: HashTable<Key, Value>,
     bucket: usize,
@@ -311,8 +310,8 @@ impl<Key, Value> IntoIterator for HashTable<Key, Value> {
 
 #[cfg(test)]
 mod hashtable_tests {
-    use super::{Element, Empty, HashTable, HashTableIterator};
-    use crate::hashtable_vec::Filled;
+    use super::{Element, EmptyElement, HashTable, HashTableIterator};
+    use crate::hashtable_vec::FilledElement;
     use std::collections::HashSet;
 
     #[test]
@@ -330,9 +329,9 @@ mod hashtable_tests {
     fn set_and_get_an_integer() {
         let mut ht = HashTable::new();
 
-        ht.set(1, "value");
+        ht.set(1, 2);
 
-        assert_eq!(ht.get(&1), Some(&"value"));
+        assert_eq!(ht.get(&1), Some(&2));
         assert!(ht.capacity == 1);
         assert!(ht.items == 1);
     }
@@ -546,7 +545,7 @@ mod hashtable_tests {
         let mut ht: HashTable<&str, &str> = HashTable::new();
         let actual = ht.element("hello");
 
-        assert!(matches!(actual, Element::Empty(Empty { .. })))
+        assert!(matches!(actual, Element::Empty(EmptyElement { .. })))
     }
 
     #[test]
@@ -555,6 +554,6 @@ mod hashtable_tests {
         ht.set("hello", "world");
         let actual = ht.element("hello");
 
-        assert!(matches!(actual, Element::Filled(Filled { .. })))
+        assert!(matches!(actual, Element::Filled(FilledElement { .. })))
     }
 }

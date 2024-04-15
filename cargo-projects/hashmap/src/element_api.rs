@@ -2,40 +2,40 @@ use crate::hashtable_vec::HashTable;
 use std::fmt::Debug;
 
 #[derive(PartialEq)]
-pub struct Filled<'a, Key, Value> {
+pub struct FilledElement<'a, Key, Value> {
     pub hash: u64,
     pub key: Key,
     pub value: Value,
     pub ht: &'a mut HashTable<Key, Value>,
 }
 
-impl<'a, Key, Value> Filled<'a, Key, Value> {
+impl<'a, Key, Value> FilledElement<'a, Key, Value> {
     fn key(&self) -> &Key {
         &self.key
     }
 }
 
 // Here the compiler infers the lifetime (i.e. the lifetime is elided)
-impl<Key: Debug, Value: Debug> Debug for Filled<'_, Key, Value> {
+impl<Key: Debug, Value: Debug> Debug for FilledElement<'_, Key, Value> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("FilledElement").field(self.key()).finish()
     }
 }
 
 #[derive(PartialEq)]
-pub struct Empty<'a, Key, Value> {
+pub struct EmptyElement<'a, Key, Value> {
     pub hash: u64,
     pub key: Key,
     pub ht: &'a mut HashTable<Key, Value>,
 }
 
-impl<'a, Key, Value> Empty<'a, Key, Value> {
+impl<'a, Key, Value> EmptyElement<'a, Key, Value> {
     fn key(&self) -> &Key {
         &self.key
     }
 }
 
-impl<Key: Debug, Value> Debug for Empty<'_, Key, Value> {
+impl<Key: Debug, Value> Debug for EmptyElement<'_, Key, Value> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("EmptyElement").field(self.key()).finish()
     }
@@ -43,8 +43,8 @@ impl<Key: Debug, Value> Debug for Empty<'_, Key, Value> {
 
 #[derive(PartialEq)]
 pub enum Element<'a, Key: 'a, Value: 'a> {
-    Empty(Empty<'a, Key, Value>),
-    Filled(Filled<'a, Key, Value>),
+    Empty(EmptyElement<'a, Key, Value>),
+    Filled(FilledElement<'a, Key, Value>),
 }
 
 impl<Key: Debug, Value: Debug> Debug for Element<'_, Key, Value> {
