@@ -1,3 +1,4 @@
+use crate::element_api::{Element, EmptyElement, FilledElement};
 use std::{
     borrow::Borrow,
     fmt::Debug,
@@ -9,29 +10,31 @@ const DEFAULT_ALLOCATION_SIZE: usize = 16;
 
 /// HashTable
 ///
-/// [b] - these are buckets (a vector)
-/// [i] - these are items (a vector)
+/// There is one vector which holds a number of elements (buckets).
+/// Each bucket is a vector which holds items in case of collision.
 ///
-/// [b1] -> [i1] -> [i2] -> [i3]
-/// [b2] -> [i1] -> [i2] -> [i3]
-/// [b3] -> [i1] -> [i2] -> [i3]
+/// [b] - these are buckets (essentially a vector of vectors)
+/// [i] - these are items (in a bucket)
 ///
-#[derive(Debug, Default)]
+/// [b1] [i1] [i2] [i3]
+/// [b2] [i1] [i2] [i3]
+/// [b3] [i1] [i2] [i3]
+#[derive(Debug, Default, PartialEq)]
 pub struct HashTable<Key, Value> {
-    buckets: Vec<Bucket<Key, Value>>,
-    items: usize,
+    pub buckets: Vec<Bucket<Key, Value>>,
+    pub items: usize,
     capacity: usize,
 }
 
-#[derive(Debug, Clone)]
-struct Bucket<Key, Value> {
-    items: Vec<(Key, Value)>,
+#[derive(Debug, Clone, PartialEq)]
+pub struct Bucket<Key, Value> {
+    pub items: Vec<(Key, Value)>,
 }
 
 impl<Key: Debug, Value: Debug> HashTable<Key, Value> {
     pub fn new() -> Self {
         HashTable {
-            buckets: vec![],
+            buckets: vec![Bucket { items: vec![] }],
             items: 0,
             capacity: DEFAULT_BUCKETS_NUM,
         }
@@ -139,6 +142,24 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
         self.items == 0
     }
 
+    pub fn element(&mut self, key: Key) -> Element<Key, Value> {
+        let hash = self.hash_key(&key) as u64;
+        if let Some(value) = self.get(&key) {
+            Element::Filled(FilledElement {
+                hash,
+                key,
+                value: *value,
+                ht: self,
+            })
+        } else {
+            Element::Empty(EmptyElement {
+                hash,
+                key,
+                ht: self,
+            })
+        }
+    }
+
     fn bucket_index(&mut self, key: Key) -> usize {
         if self.buckets.is_empty() {
             self.buckets.push(Bucket { items: vec![] });
@@ -191,6 +212,9 @@ impl<Key: Debug + Copy + Eq + Hash, Value: Debug + Copy> HashTable<Key, Value> {
 // to be used in the body of the struct.
 //
 // The way to think about this is: HashTableIterator cannot outlive the reference it holds in ht field.
+//
+// Each value of type HashTableIterator that gets created, gets a fresh lifetime 'a. Any reference that gets
+// stored in ht should enclose 'a and 'a must outlast the lifetime of wherever HashTableIterator stored.
 pub struct HashTableIterator<'a, Key: 'a, Value: 'a> {
     ht: &'a HashTable<Key, Value>,
     bucket_index: usize,
@@ -245,7 +269,6 @@ impl<'a, Key, Value> IntoIterator for &'a HashTable<Key, Value> {
     }
 }
 
-///
 pub struct HashTableIntoIter<Key, Value> {
     ht: HashTable<Key, Value>,
     bucket: usize,
@@ -287,9 +310,9 @@ impl<Key, Value> IntoIterator for HashTable<Key, Value> {
 
 #[cfg(test)]
 mod hashtable_tests {
+    use super::{Element, EmptyElement, HashTable, HashTableIterator};
+    use crate::hashtable_vec::FilledElement;
     use std::collections::HashSet;
-
-    use super::{HashTable, HashTableIterator};
 
     #[test]
     fn set_and_get_a_str() {
@@ -306,9 +329,9 @@ mod hashtable_tests {
     fn set_and_get_an_integer() {
         let mut ht = HashTable::new();
 
-        ht.set(1, "value");
+        ht.set(1, 2);
 
-        assert_eq!(ht.get(&1), Some(&"value"));
+        assert_eq!(ht.get(&1), Some(&2));
         assert!(ht.capacity == 1);
         assert!(ht.items == 1);
     }
@@ -515,5 +538,22 @@ mod hashtable_tests {
         }
 
         assert_eq!(count.len(), 4);
+    }
+
+    #[test]
+    fn empty_element_if_no_value_in_hash_table() {
+        let mut ht: HashTable<&str, &str> = HashTable::new();
+        let actual = ht.element("hello");
+
+        assert!(matches!(actual, Element::Empty(EmptyElement { .. })))
+    }
+
+    #[test]
+    fn filled_element_if_value_exists_in_hash_table() {
+        let mut ht: HashTable<&str, &str> = HashTable::new();
+        ht.set("hello", "world");
+        let actual = ht.element("hello");
+
+        assert!(matches!(actual, Element::Filled(FilledElement { .. })))
     }
 }
