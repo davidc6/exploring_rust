@@ -1,6 +1,6 @@
 use crate::{counter::most_frequent_char, flag::stop_flag};
 use counter::{increment_counter, increment_counter_atomic};
-use progress_updater::{progress_updater, progress_updater_scoped};
+use progress_updater::{progress_updater, progress_updater_parking, progress_updater_scoped};
 
 mod counter;
 mod flag;
@@ -18,5 +18,7 @@ fn main() {
 
     // progress_updater();
 
-    progress_updater_scoped();
+    // progress_updater_scoped();
+
+    progress_updater_parking();
 }
