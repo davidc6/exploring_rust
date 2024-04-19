@@ -1,9 +1,11 @@
 use crate::{counter::most_frequent_char, flag::stop_flag};
 use counter::{increment_counter, increment_counter_atomic};
+use mutex::simple_mutex;
 use progress_updater::{progress_updater, progress_updater_parking, progress_updater_scoped};
 
 mod counter;
 mod flag;
+mod mutex;
 mod progress_updater;
 
 fn main() {
@@ -20,5 +22,8 @@ fn main() {
 
     // progress_updater_scoped();
 
-    progress_updater_parking();
+    // progress_updater_parking();
+
+    // Mutex
+    simple_mutex();
 }
