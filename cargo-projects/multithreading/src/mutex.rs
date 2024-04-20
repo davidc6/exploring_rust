@@ -10,5 +10,6 @@ pub fn simple_mutex() {
         });
     });
 
-    println!("{:?}", some_data);
+    // Remove Mutex protection around the String by using into_inner()
+    println!("{:?}", some_data.into_inner().unwrap());
 }
