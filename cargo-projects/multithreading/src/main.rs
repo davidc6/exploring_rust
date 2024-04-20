@@ -2,7 +2,7 @@ use std::cell::Cell;
 
 use crate::{counter::most_frequent_char, flag::stop_flag};
 use counter::{increment_counter, increment_counter_atomic};
-use interior_mutability::cell_f;
+use interior_mutability::{cell_f, SpinLock};
 use mutex::simple_mutex;
 use progress_updater::{progress_updater, progress_updater_parking, progress_updater_scoped};
 
@@ -32,7 +32,15 @@ fn main() {
     // simple_mutex();
 
     // Interior mutability
-    let first_cell = Cell::new(8);
-    let second_cell = Cell::new(2);
-    cell_f(&first_cell, &second_cell);
+    // let first_cell = Cell::new(8);
+    // let second_cell = Cell::new(2);
+    // cell_f(&first_cell, &second_cell);
+
+    // SpinLock
+    let spin_lock = SpinLock::new();
+    spin_lock.lock();
+    spin_lock.unlock();
+
+    spin_lock.lock();
+    spin_lock.unlock();
 }
