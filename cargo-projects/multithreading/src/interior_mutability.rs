@@ -1,6 +1,11 @@
 // Cell
 
-use std::{cell::Cell, marker::PhantomData, sync::atomic::AtomicBool};
+use std::{
+    borrow::Borrow,
+    cell::{Cell, RefCell, UnsafeCell},
+    marker::PhantomData,
+    sync::atomic::AtomicBool,
+};
 
 fn cell_f_test() {
     println!("Function ran");
@@ -37,18 +42,20 @@ unsafe impl Sync for SomeOtherStructure {}
 // Keeps on trying to lock an already locked Mutex.
 // This pattern works well when Mutex is locked only briefly,
 // even though it might be a bit resourceful but performant.
-pub struct SpinLock {
+pub struct SpinLock<T> {
     is_locked: AtomicBool,
+    value: UnsafeCell<T>,
 }
 
-impl SpinLock {
-    pub const fn new() -> Self {
+impl<T> SpinLock<T> {
+    pub const fn new(value: T) -> Self {
         Self {
             is_locked: AtomicBool::new(false),
+            value: UnsafeCell::new(value),
         }
     }
 
-    pub fn lock(&self) {
+    pub fn lock(&mut self) -> &mut T {
         // Check/compare if current value is false sets to true
         // Or if current value is true, keep on trying to lock it.
         while self
@@ -63,10 +70,26 @@ impl SpinLock {
         {
             std::hint::spin_loop();
         }
+        unsafe { &mut *self.value.get() }
     }
 
     pub fn unlock(&self) {
         self.is_locked
-            .store(false, std::sync::atomic::Ordering::Relaxed);
+            .store(false, std::sync::atomic::Ordering::Release);
     }
+}
+
+unsafe impl<T> Sync for SpinLock<T> where T: Send {}
+
+// RefCell
+pub fn refcell_fn() {
+    // let x = 1;
+    // this errors since we are attempting to borrow immutable as mutable
+    // let y = &mut x;
+
+    // Interior mutability is allowed using RefCell
+    let x = RefCell::new(1);
+    x.replace(7);
+
+    println!("{:?}", x.into_inner());
 }
