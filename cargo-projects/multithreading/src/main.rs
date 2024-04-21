@@ -11,6 +11,7 @@ mod flag;
 mod interior_mutability;
 mod mutex;
 mod progress_updater;
+mod refcell_example_1;
 
 fn main() {
     // let s = String::from("hello, this is a message for the future");
