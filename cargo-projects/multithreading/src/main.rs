@@ -46,5 +46,8 @@ fn main() {
     // spin_lock.unlock();
 
     // RefCell
-    refcell_fn();
+    // refcell_fn();
+
+    // Cell
+    // cell_test_1();
 }
