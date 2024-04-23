@@ -1,3 +1,6 @@
+// RefCell - a way to get safe dynamic borrowing
+//
+
 pub trait Messenger {
     fn send(&self, msg: &str);
 }

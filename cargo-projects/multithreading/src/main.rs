@@ -50,4 +50,12 @@ fn main() {
 
     // Cell
     // cell_test_1();
+
+    // Cell
+    let cell_one = Cell::new(1);
+    // Get a copy of the value
+    let cell_one_value = cell_one.get();
+    println!("{:?}", cell_one_value);
+    cell_one.set(3);
+    println!("{:?}", cell_one_value);
 }
