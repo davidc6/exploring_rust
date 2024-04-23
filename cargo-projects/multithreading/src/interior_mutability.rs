@@ -167,3 +167,66 @@ impl<T> CellType<T> {
 // a.set(String::from("2"));
 // println!("{:?}", first);
 // }
+
+#[derive(Clone, Copy)]
+pub enum RefCellTypeState {
+    NotShared,
+    Shared(usize),
+    Exclusive,
+}
+
+pub struct RefCellType<T> {
+    value: UnsafeCell<T>,
+    refs: CellType<RefCellTypeState>,
+}
+
+impl<T> RefCellType<T> {
+    pub fn new(value: T) -> Self {
+        Self {
+            value: UnsafeCell::new(value),
+            refs: CellType::new(RefCellTypeState::NotShared),
+        }
+    }
+
+    // Borrow shared reference.A
+    //
+    // If already borrowed exclusively then return None.
+    pub fn borrow(&self) -> Option<&T> {
+        match self.refs.get() {
+            RefCellTypeState::NotShared => {
+                self.refs.set(RefCellTypeState::Shared(1));
+
+                // SAFETY: Not exclusive shared hence it's safe to share the reference.
+                Some(unsafe { &*self.value.get() })
+            }
+            RefCellTypeState::Shared(shared_count) => {
+                self.refs.set(RefCellTypeState::Shared(shared_count + 1));
+
+                // SAFETY: Not exclusive shared hence it's safe to share the reference.
+                Some(unsafe { &*self.value.get() })
+            }
+            RefCellTypeState::Exclusive => None,
+        }
+    }
+
+    // Borrow mutably/exclusively.A
+    //
+    // If attempt is made to borrow exclusively once again,
+    // a None will be returned.
+    pub fn borrow_mut(&self) -> Option<&mut T> {
+        match self.refs.get() {
+            RefCellTypeState::NotShared => {
+                self.refs.set(RefCellTypeState::Exclusive);
+
+                // SAFETY: Not shared at all hence it's safe to give out an exclusive reference.
+                Some(unsafe { &mut *self.value.get() })
+            }
+            RefCellTypeState::Shared(shared_count) => {
+                self.refs.set(RefCellTypeState::Shared(shared_count + 1));
+
+                None
+            }
+            RefCellTypeState::Exclusive => None,
+        }
+    }
+}

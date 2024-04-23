@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use crate::{counter::most_frequent_char, flag::stop_flag};
+use crate::{counter::most_frequent_char, flag::stop_flag, interior_mutability::RefCellType};
 use counter::{increment_counter, increment_counter_atomic};
 use interior_mutability::{cell_f, refcell_fn, SpinLock};
 use mutex::simple_mutex;
@@ -58,4 +58,8 @@ fn main() {
     println!("{:?}", cell_one_value);
     cell_one.set(3);
     println!("{:?}", cell_one_value);
+
+    // RefCell
+    let rc = RefCellType::new(1);
+    println!("RefCell {:?}", rc.borrow());
 }
