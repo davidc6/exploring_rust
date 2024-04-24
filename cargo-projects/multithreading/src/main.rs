@@ -67,6 +67,11 @@ fn main() {
     let value = *rc.borrow();
     println!("RefCellType value deref {:?}", value);
 
+    let rc_2 = RefCellType::new(2);
+    let value = *rc_2.borrow_mut();
+
+    println!("RefCellType value deref {:?}", value);
+
     // println!("RefCell {:?}", *rc.borrow());
     // let rc_real = RefCell::new(String::from("a"));
     // let rc_real_deref = *rc_real.borrow();

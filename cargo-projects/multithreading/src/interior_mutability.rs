@@ -4,7 +4,7 @@ use std::{
     borrow::{Borrow, BorrowMut},
     cell::{Cell, RefCell, UnsafeCell},
     marker::PhantomData,
-    ops::Deref,
+    ops::{Deref, DerefMut},
     sync::atomic::AtomicBool,
 };
 
@@ -217,13 +217,14 @@ impl<T> RefCellType<T> {
     //
     // If attempt is made to borrow exclusively once again,
     // a None will be returned.
-    pub fn borrow_mut(&self) -> Option<&mut T> {
+    pub fn borrow_mut(&self) -> RefMut<'_, T> {
         match self.refs.get() {
             RefCellTypeState::NotShared => {
                 self.refs.set(RefCellTypeState::Exclusive);
 
                 // SAFETY: Not shared at all hence it's safe to give out an exclusive reference.
-                Some(unsafe { &mut *self.value.get() })
+                // Some(unsafe { &mut *self.value.get() })
+                Some(RefMut { ref_cell: self })
             }
             RefCellTypeState::Shared(shared_count) => {
                 self.refs.set(RefCellTypeState::Shared(shared_count + 1));
@@ -232,6 +233,7 @@ impl<T> RefCellType<T> {
             }
             RefCellTypeState::Exclusive => None,
         }
+        .unwrap()
     }
 }
 
@@ -258,7 +260,57 @@ impl<T> Drop for Ref<'_, T> {
 impl<T> Deref for Ref<'_, T> {
     type Target = T;
 
+    // SAFETY: Similar to DeferMut
     fn deref(&self) -> &T {
         unsafe { &*self.ref_cell.value.get() }
+    }
+}
+
+impl<T> DerefMut for Ref<'_, T> {
+    // SAFETY: Ref gets created when there are no other references.
+    //
+    // When an exclusive reference is given out and the state is set to Exclusive,
+    // no future references are given out.
+    //
+    // Since this reference is exclusive we can mutably dereference it without any problems.
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.ref_cell.value.get() }
+    }
+}
+
+pub struct RefMut<'refcell, T> {
+    ref_cell: &'refcell RefCellType<T>,
+}
+
+impl<T> Drop for RefMut<'_, T> {
+    fn drop(&mut self) {
+        match self.ref_cell.refs.get() {
+            RefCellTypeState::Exclusive => {
+                self.ref_cell.refs.set(RefCellTypeState::NotShared);
+            }
+            RefCellTypeState::NotShared => unreachable!(),
+            RefCellTypeState::Shared(n) => unreachable!(),
+        }
+    }
+}
+
+impl<T> Deref for RefMut<'_, T> {
+    type Target = T;
+
+    // SAFETY: Similar to DeferMut
+    fn deref(&self) -> &T {
+        unsafe { &*self.ref_cell.value.get() }
+    }
+}
+
+impl<T> DerefMut for RefMut<'_, T> {
+    // SAFETY: Ref gets created when there are no other references.
+    //
+    // When an exclusive reference is given out and the state is set to Exclusive,
+    // no future references are given out.
+    //
+    // Since this reference is exclusive we can mutably dereference it without any problems.
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *self.ref_cell.value.get() }
     }
 }
