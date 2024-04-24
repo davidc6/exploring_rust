@@ -245,8 +245,7 @@ pub struct Ref<'refcell, T> {
 impl<T> Drop for Ref<'_, T> {
     fn drop(&mut self) {
         match self.ref_cell.refs.get() {
-            RefCellTypeState::Exclusive => unreachable!(),
-            RefCellTypeState::NotShared => unreachable!(),
+            RefCellTypeState::Exclusive | RefCellTypeState::NotShared => unreachable!(),
             RefCellTypeState::Shared(1) => {
                 self.ref_cell.refs.set(RefCellTypeState::NotShared);
             }
@@ -288,8 +287,7 @@ impl<T> Drop for RefMut<'_, T> {
             RefCellTypeState::Exclusive => {
                 self.ref_cell.refs.set(RefCellTypeState::NotShared);
             }
-            RefCellTypeState::NotShared => unreachable!(),
-            RefCellTypeState::Shared(n) => unreachable!(),
+            RefCellTypeState::NotShared | RefCellTypeState::Shared(_) => unreachable!(),
         }
     }
 }
