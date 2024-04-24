@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use crate::{counter::most_frequent_char, flag::stop_flag, interior_mutability::RefCellType};
 use counter::{increment_counter, increment_counter_atomic};
@@ -52,14 +52,22 @@ fn main() {
     // cell_test_1();
 
     // Cell
-    let cell_one = Cell::new(1);
+    // let cell_one = Cell::new(1);
     // Get a copy of the value
-    let cell_one_value = cell_one.get();
-    println!("{:?}", cell_one_value);
-    cell_one.set(3);
-    println!("{:?}", cell_one_value);
+    // let cell_one_value = cell_one.get();
+    // println!("{:?}", cell_one_value);
+    // cell_one.set(3);
+    // println!("{:?}", cell_one_value);
 
     // RefCell
+    // Dereferencing a String won't work since String is not a Copy type
+    // let rc = RefCellType::new(String::from("hello"));
+    // Dereferencing a copyable type works fine since it's a copyable type
     let rc = RefCellType::new(1);
-    println!("RefCell {:?}", rc.borrow());
+    let value = *rc.borrow();
+    println!("RefCellType value deref {:?}", value);
+
+    // println!("RefCell {:?}", *rc.borrow());
+    // let rc_real = RefCell::new(String::from("a"));
+    // let rc_real_deref = *rc_real.borrow();
 }

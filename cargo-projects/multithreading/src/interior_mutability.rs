@@ -4,6 +4,7 @@ use std::{
     borrow::{Borrow, BorrowMut},
     cell::{Cell, RefCell, UnsafeCell},
     marker::PhantomData,
+    ops::Deref,
     sync::atomic::AtomicBool,
 };
 
@@ -118,6 +119,7 @@ pub fn cell_fn() {
 // Usually used within thread locals, local state
 // The only way in Rust to go from a a shared reference to an exclusive reference,
 // is by using an UnsafeCell, no casting is allowed.
+#[derive(Debug)]
 pub struct CellType<T> {
     value: UnsafeCell<T>,
 }
@@ -168,13 +170,14 @@ impl<T> CellType<T> {
 // println!("{:?}", first);
 // }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum RefCellTypeState {
     NotShared,
     Shared(usize),
     Exclusive,
 }
 
+#[derive(Debug)]
 pub struct RefCellType<T> {
     value: UnsafeCell<T>,
     refs: CellType<RefCellTypeState>,
@@ -191,22 +194,23 @@ impl<T> RefCellType<T> {
     // Borrow shared reference.A
     //
     // If already borrowed exclusively then return None.
-    pub fn borrow(&self) -> Option<&T> {
+    pub fn borrow(&self) -> Ref<'_, T> {
         match self.refs.get() {
             RefCellTypeState::NotShared => {
                 self.refs.set(RefCellTypeState::Shared(1));
 
                 // SAFETY: Not exclusive shared hence it's safe to share the reference.
-                Some(unsafe { &*self.value.get() })
+                Some(Ref { ref_cell: self })
             }
             RefCellTypeState::Shared(shared_count) => {
                 self.refs.set(RefCellTypeState::Shared(shared_count + 1));
 
                 // SAFETY: Not exclusive shared hence it's safe to share the reference.
-                Some(unsafe { &*self.value.get() })
+                Some(Ref { ref_cell: self })
             }
             RefCellTypeState::Exclusive => None,
         }
+        .unwrap()
     }
 
     // Borrow mutably/exclusively.A
@@ -228,5 +232,33 @@ impl<T> RefCellType<T> {
             }
             RefCellTypeState::Exclusive => None,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Ref<'refcell, T> {
+    ref_cell: &'refcell RefCellType<T>,
+}
+
+impl<T> Drop for Ref<'_, T> {
+    fn drop(&mut self) {
+        match self.ref_cell.refs.get() {
+            RefCellTypeState::Exclusive => unreachable!(),
+            RefCellTypeState::NotShared => unreachable!(),
+            RefCellTypeState::Shared(1) => {
+                self.ref_cell.refs.set(RefCellTypeState::NotShared);
+            }
+            RefCellTypeState::Shared(n) => {
+                self.ref_cell.refs.set(RefCellTypeState::Shared(n - 1));
+            }
+        }
+    }
+}
+
+impl<T> Deref for Ref<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        unsafe { &*self.ref_cell.value.get() }
     }
 }
