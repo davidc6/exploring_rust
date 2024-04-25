@@ -1,8 +1,16 @@
-use std::cell::{Cell, RefCell};
+use std::{
+    cell::{Cell, RefCell},
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
-use crate::{counter::most_frequent_char, flag::stop_flag, interior_mutability::RefCellType};
+use crate::{
+    counter::most_frequent_char, flag::stop_flag, interior_mutability::RefCellType,
+    spin_lock::SpinLock,
+};
 use counter::{increment_counter, increment_counter_atomic};
-use interior_mutability::{cell_f, refcell_fn, SpinLock};
+use interior_mutability::{cell_f, refcell_fn};
 use mutex::simple_mutex;
 use progress_updater::{progress_updater, progress_updater_parking, progress_updater_scoped};
 
@@ -12,6 +20,7 @@ mod interior_mutability;
 mod mutex;
 mod progress_updater;
 mod refcell_example_1;
+mod spin_lock;
 
 fn main() {
     // let s = String::from("hello, this is a message for the future");
@@ -37,13 +46,42 @@ fn main() {
     // let second_cell = Cell::new(2);
     // cell_f(&first_cell, &second_cell);
 
+    // ------------
+    //
     // SpinLock
-    // let mut spin_lock = SpinLock::new(6);
-    // spin_lock.lock();
-    // spin_lock.unlock();
+    //
+    // ------------
+    let spin_lock = Arc::new(SpinLock::new(6));
+    let mut handles = vec![];
 
-    // spin_lock.lock();
-    // spin_lock.unlock();
+    let spin_lock_clone = spin_lock.clone();
+    println!("Processing on {:?}", thread::current().id());
+    spin_lock_clone.lock();
+
+    let spin_lock_clone_2 = spin_lock.clone();
+    let j_1 = thread::spawn(move || {
+        spin_lock_clone_2.lock();
+        println!("Processing on {:?}", thread::current().id());
+        thread::sleep(Duration::from_secs(2));
+        spin_lock_clone_2.unlock();
+    });
+    handles.push(j_1);
+
+    let spin_lock_clone_3 = spin_lock.clone();
+    let j_2 = thread::spawn(move || {
+        spin_lock_clone_3.lock();
+        println!("Processing on {:?}", thread::current().id());
+        thread::sleep(Duration::from_secs(2));
+        spin_lock_clone_3.unlock();
+    });
+    handles.push(j_2);
+
+    thread::sleep(Duration::from_secs(2));
+    spin_lock_clone.unlock();
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
 
     // RefCell
     // refcell_fn();
@@ -63,14 +101,14 @@ fn main() {
     // Dereferencing a String won't work since String is not a Copy type
     // let rc = RefCellType::new(String::from("hello"));
     // Dereferencing a copyable type works fine since it's a copyable type
-    let rc = RefCellType::new(1);
-    let value = *rc.borrow();
-    println!("RefCellType value deref {:?}", value);
+    // let rc = RefCellType::new(1);
+    // let value = *rc.borrow();
+    // println!("RefCellType value deref {:?}", value);
 
-    let rc_2 = RefCellType::new(2);
-    let value = *rc_2.borrow_mut();
+    // let rc_2 = RefCellType::new(2);
+    // let value = *rc_2.borrow_mut();
 
-    println!("RefCellType value deref {:?}", value);
+    // println!("RefCellType value deref {:?}", value);
 
     // println!("RefCell {:?}", *rc.borrow());
     // let rc_real = RefCell::new(String::from("a"));

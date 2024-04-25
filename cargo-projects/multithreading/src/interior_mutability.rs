@@ -1,29 +1,9 @@
-// Cell
-
 use std::{
-    borrow::{Borrow, BorrowMut},
     cell::{Cell, RefCell, UnsafeCell},
     marker::PhantomData,
     ops::{Deref, DerefMut},
     sync::atomic::AtomicBool,
 };
-
-fn cell_f_test() {
-    println!("Function ran");
-}
-
-// Cell is great to use on simple copy types and cheap to copy.
-// Usually used to store some thread-local state (flag, variable etc.).
-pub fn cell_f(first_cell: &Cell<u8>, second_cell: &Cell<u8>) {
-    let initial = first_cell.get();
-    second_cell.set(second_cell.get() + 1);
-
-    let modified = first_cell.get();
-
-    if initial != modified {
-        cell_f_test();
-    }
-}
 
 // PhantomData is zero-sized and is treated as just Cell
 // Since Cell is not Sync neither is SomeStructure
@@ -41,66 +21,30 @@ struct SomeOtherStructure {
 unsafe impl Send for SomeOtherStructure {}
 unsafe impl Sync for SomeOtherStructure {}
 
-// Spin lock
-// Keeps on trying to lock an already locked Mutex.
-// This pattern works well when Mutex is locked only briefly,
-// even though it might be a bit resourceful but performant.
-pub struct SpinLock<T> {
-    is_locked: AtomicBool,
-    value: UnsafeCell<T>,
+// ------------------
+//
+// Cell
+//  - Enables to move values in and out of the cell often used for simple types
+//  - A mutable reference to the inner value cannot be obtained
+//  - A direct value cannot be obtained without replacing it with another one
+//
+// ------------------
+
+fn cell_f_test() {
+    println!("Function ran");
 }
 
-impl<T> SpinLock<T> {
-    pub const fn new(value: T) -> Self {
-        Self {
-            is_locked: AtomicBool::new(false),
-            value: UnsafeCell::new(value), //
-        }
+// Cell is great to use on simple copy types and cheap to copy.
+// Usually used to store some thread-local state (flag, variable etc.).
+pub fn cell_f(first_cell: &Cell<u8>, second_cell: &Cell<u8>) {
+    let initial = first_cell.get();
+    second_cell.set(second_cell.get() + 1);
+
+    let modified = first_cell.get();
+
+    if initial != modified {
+        cell_f_test();
     }
-
-    // On the first lock(), locks the data.
-    // On consecutive lock() spins while the the data is still locked.
-    pub fn lock(&mut self) -> &mut T {
-        // Check/compare if current value is false sets to true
-        // Or if current value is true, keep on trying to lock it.
-        while self
-            .is_locked
-            .compare_exchange_weak(
-                false,
-                true,
-                std::sync::atomic::Ordering::Acquire,
-                std::sync::atomic::Ordering::Relaxed,
-            )
-            .is_err()
-        {
-            std::hint::spin_loop();
-        }
-        unsafe { &mut *self.value.get() }
-    }
-
-    // unlock() the data
-    pub fn unlock(&self) {
-        self.is_locked
-            .store(false, std::sync::atomic::Ordering::Release);
-    }
-}
-
-// In order to share the data between threads we need to implement Sync on SpinLock.
-// By doing this we tell the compiler that it is actually safe to
-// share data between threads but we must only limit to types that are safe to send (Send).
-unsafe impl<T> Sync for SpinLock<T> where T: Send {}
-
-// RefCell
-pub fn refcell_fn() {
-    // let x = 1;
-    // this errors since we are attempting to borrow immutable as mutable
-    // let y = &mut x;
-
-    // Interior mutability is allowed using RefCell
-    let x = RefCell::new(1);
-    x.replace(7);
-
-    println!("{:?}", x.into_inner());
 }
 
 // Rust uses "inherited mutability", so that you can only mutate value
@@ -152,7 +96,28 @@ impl<T> CellType<T> {
     }
 }
 
-// We don't actually have to do this since UnsafaCell is !Sync
+// ------------------
+//
+// RefCell
+//  - A type that enables temporary, exclusive, mutable access to the inner value.
+//  - borrow()     - immutable reference to the inner value
+//  - borrow_mut() - mutable borrow
+//
+// ------------------
+
+pub fn refcell_fn() {
+    // let x = 1;
+    // this errors since we are attempting to borrow immutable as mutable
+    // let y = &mut x;
+
+    // Interior mutability is allowed using RefCell
+    let x = RefCell::new(1);
+    x.replace(7);
+
+    println!("{:?}", x.into_inner());
+}
+
+// We don't actually have to do this since UnsafeCell is !Sync
 // impl<T> !Sync for CellType<T> {}
 
 // If we use a reference instead of a Copy here's what might happen
@@ -213,7 +178,7 @@ impl<T> RefCellType<T> {
         .unwrap()
     }
 
-    // Borrow mutably/exclusively.A
+    // Borrow mutably/exclusively.
     //
     // If attempt is made to borrow exclusively once again,
     // a None will be returned.
