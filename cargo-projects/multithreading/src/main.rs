@@ -33,18 +33,16 @@ fn main() {
     // stop_flag();
 
     // progress_updater();
-
     // progress_updater_scoped();
-
     // progress_updater_parking();
 
+    // ------------
+    //
     // Mutex
-    // simple_mutex();
+    //
+    // ------------
 
-    // Interior mutability
-    // let first_cell = Cell::new(8);
-    // let second_cell = Cell::new(2);
-    // cell_f(&first_cell, &second_cell);
+    // simple_mutex();
 
     // ------------
     //
@@ -87,6 +85,11 @@ fn main() {
     // refcell_fn();
 
     // Cell
+    // Interior mutability
+    // let first_cell = Cell::new(8);
+    // let second_cell = Cell::new(2);
+    // cell_f(&first_cell, &second_cell);
+
     // cell_test_1();
 
     // Cell
