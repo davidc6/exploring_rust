@@ -5,7 +5,7 @@ use std::{
 };
 
 trait Logger {
-    fn log(&self, value: String);
+    fn log(&self, value: &str);
 }
 
 enum ErrorType {
@@ -19,7 +19,7 @@ struct LoggerCustom {
 }
 
 impl Logger for LoggerCustom {
-    fn log(&self, value: String) {
+    fn log(&self, value: &str) {
         match self.log_type {
             ErrorType::Err => {
                 println!("Error: {:?}", value);
@@ -36,12 +36,12 @@ impl Logger for LoggerCustom {
 
 #[derive(Debug)]
 struct Person<'person> {
-    name: String,
+    name: &'person str,
     connections: RefCell<Vec<&'person Person<'person>>>,
 }
 
 impl<'person> Person<'person> {
-    fn new(name: String) -> Self {
+    fn new(name: &'person str) -> Self {
         Person {
             name,
             connections: RefCell::new(vec![]),
@@ -50,7 +50,7 @@ impl<'person> Person<'person> {
 }
 
 impl<'person> Logger for Person<'person> {
-    fn log(&self, value: String) {
+    fn log(&self, value: &str) {
         println!("Printing {:?}", value);
     }
 }
@@ -67,15 +67,13 @@ impl<'person> PersonContext<'person> {
 }
 
 impl<'person> Person<'person> {
-    fn add_connection(&mut self, connection: &'person mut Person<'person>) {
-        let name = connection.name.clone();
-        self.connections.get_mut().push(connection);
-        self.log(name);
+    fn add_connection(&self, connection: &'person Person<'person>) {
+        let mut borrowed_person = self.connections.borrow_mut();
+        borrowed_person.push(connection);
     }
 
-    fn first_connection(&mut self) -> &Person<'person> {
-        // self
-        self.connections.borrow()[0]
+    fn first_connection(&self) -> Option<&Person<'person>> {
+        self.connections.borrow().first().copied()
     }
 
     fn all_connections(&mut self) -> Ref<Vec<&'person Person<'person>>> {
@@ -153,8 +151,10 @@ impl<'a> Connections<'a> {
 
     fn connect(&'a self, name: &str, with: &'a Person<'a>) -> Option<&'a Person<'a>> {
         if let Some(person) = self.connections.get(name) {
-            let mut borrowed_person = person.connections.borrow_mut();
-            borrowed_person.push(with);
+            person.add_connection(with);
+
+            self.logger
+                .log(&format!("{} connected with {}", name, with.name));
 
             Some(person)
         } else {
@@ -164,14 +164,11 @@ impl<'a> Connections<'a> {
 }
 
 fn main() {
-    let person_a = Person::new("Ann".to_owned());
-
-    // person_a.first_connection(); // TODO: out of bounds -> how to deal?
-
-    let person_b = Person::new("John".to_owned());
-    let person_c = Person::new("Mary".to_owned());
-    let person_d = Person::new("Michal".to_owned());
-    let person_e = Person::new("Kathy".to_owned());
+    let person_a = Person::new("Ann");
+    let person_b = Person::new("John");
+    let person_c = Person::new("Mary");
+    let person_d = Person::new("Micheal");
+    let person_e = Person::new("Kathy");
 
     let logger = LoggerCustom {
         log_type: ErrorType::Info,
@@ -196,9 +193,24 @@ fn main() {
         connections.connect("John", person);
     }
 
+    // Get Ann's connections and whether these are connected with Ann too
     if let Some(connections) = connections.get("Ann") {
         for connection in connections {
-            println!("{:?}", connection.name);
+            println!("Ann is connected with: {:?}", connection.name);
+
+            let borrowed_connections = connection.connections.borrow();
+            let connections_connected_with_ann: Vec<_> = borrowed_connections
+                .iter()
+                .filter(|p| p.name == "Ann")
+                .collect();
+
+            let connection_text = if connections_connected_with_ann.is_empty() {
+                "is not connected with"
+            } else {
+                "is connected with"
+            };
+
+            println!("{} {} Ann", connection.name, connection_text);
         }
     }
 }
