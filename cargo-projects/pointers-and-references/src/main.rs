@@ -199,12 +199,9 @@ fn main() {
             println!("Ann is connected with: {:?}", connection.name);
 
             let borrowed_connections = connection.connections.borrow();
-            let connections_connected_with_ann: Vec<_> = borrowed_connections
-                .iter()
-                .filter(|p| p.name == "Ann")
-                .collect();
+            let has_connected_with_ann = borrowed_connections.iter().any(|p| p.name == "Ann");
 
-            let connection_text = if connections_connected_with_ann.is_empty() {
+            let connection_text = if has_connected_with_ann {
                 "is not connected with"
             } else {
                 "is connected with"
