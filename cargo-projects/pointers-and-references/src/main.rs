@@ -1,8 +1,7 @@
 use std::{
-    borrow::BorrowMut,
     cell::{Ref, RefCell},
     collections::HashMap,
-    fmt::{Debug, Display},
+    fmt::Debug,
 };
 
 trait Logger {
@@ -34,16 +33,6 @@ impl Logger for LoggerCustom {
         }
     }
 }
-
-// impl<T: Debug> Logger<T> for LoggerCustom {
-//     fn log(&self, value: &T) {
-//         println!("{:?}", &value);
-//     }
-// }
-
-// struct Logger(Arc<dyn Logger>);
-
-// Logger(
 
 #[derive(Debug)]
 struct Person<'person> {
@@ -134,22 +123,6 @@ impl<'person> Iterator for Person<'person> {
     }
 }
 
-// impl<'person> Iterator for &Person<'person> {
-//     type Item = &'person Person<'person>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         // self.connections.borrow().pop()
-//     }
-// }
-
-// fn add_connection_and_log(person, connection, logger) {
-//     let name = person.name;
-//     let name_two = connection.name;
-
-//     person.add_connection(connection);
-//     logger.log("{:?} added {:?}", name, name_two);
-// }
-
 struct Connections<'a> {
     logger: Box<dyn Logger>,
     connections: HashMap<String, Person<'a>>,
@@ -169,19 +142,6 @@ impl<'a> Connections<'a> {
         self.connections.insert(name.to_owned(), person);
     }
 
-    // fn connect(&mut self, name: &str, connection: &'a mut Person<'a>) {
-    //     // let name_a = person.name.clone();
-    //     let name_b = connection.name.clone();
-
-    //     let person_a = self.connections.get_mut(name).unwrap();
-
-    //     person_a.add_connection(connection);
-
-    //     let l = &self.logger;
-    //     // .log(&format!("{:?} connected with {:?}", name_a, name_b));
-    //     l.log(format!("{:?} {:?}", name, name_b));
-    // }
-
     fn get_mut(&mut self, name: &str) -> &'a mut Person {
         let person_with = self.connections.get_mut(name).unwrap();
         person_with
@@ -199,9 +159,6 @@ impl<'a> Connections<'a> {
             Some(person)
         } else {
             None
-            // create person
-            // add to connections
-            // add connection to person's connection list
         }
     }
 }
@@ -210,9 +167,6 @@ fn main() {
     let person_a = Person::new("Ann".to_owned());
 
     // person_a.first_connection(); // TODO: out of bounds -> how to deal?
-    // context
-    // let l: LoggerCustomer = LoggerCustomer {};
-    // let mut person_a_new = PersonContext::new(Person::new("Ann".to_owned()));
 
     let person_b = Person::new("John".to_owned());
     let person_c = Person::new("Mary".to_owned());
