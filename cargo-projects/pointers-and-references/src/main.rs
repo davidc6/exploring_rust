@@ -34,7 +34,7 @@ impl Logger for LoggerCustom {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Person<'person> {
     name: &'person str,
     connections: RefCell<Vec<&'person Person<'person>>>,
@@ -164,22 +164,17 @@ impl<'a> Connections<'a> {
 }
 
 fn main() {
-    let person_a = Person::new("Ann");
-    let person_b = Person::new("John");
-    let person_c = Person::new("Mary");
-    let person_d = Person::new("Micheal");
-    let person_e = Person::new("Kathy");
+    let list_of_names = ["Ann", "John", "Mary", "Michael", "Kathy"];
 
     let logger = LoggerCustom {
         log_type: ErrorType::Info,
     };
     let mut connections = Connections::new(Box::new(logger));
 
-    connections.add("Ann", person_a);
-    connections.add("John", person_b);
-    connections.add("Mary", person_c);
-    connections.add("Michael", person_d);
-    connections.add("Kathy", person_e);
+    for name in list_of_names {
+        let person = Person::new(name);
+        connections.add(name, person);
+    }
 
     if let Some(person) = connections.get("John") {
         connections.connect("Ann", person);
@@ -193,6 +188,7 @@ fn main() {
         connections.connect("John", person);
     }
 
+    // Example
     // Get Ann's connections and whether these are connected with Ann too
     if let Some(connections) = connections.get("Ann") {
         for connection in connections {
@@ -209,5 +205,35 @@ fn main() {
 
             println!("{} {} Ann", connection.name, connection_text);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Connections, LoggerCustom, Person};
+
+    #[test]
+    fn add_and_connect_person() {
+        let logger = LoggerCustom {
+            log_type: crate::ErrorType::Info,
+        };
+        let mut connections = Connections::new(Box::new(logger));
+
+        let person_one = Person::new("Jim");
+        let person_one_name = person_one.name;
+
+        let person_two = Person::new("John");
+
+        connections.add(person_one_name, person_one);
+        connections.connect(person_one_name, &person_two);
+
+        assert_eq!(
+            connections
+                .get(person_one_name)
+                .unwrap()
+                .connections
+                .borrow()[0],
+            &person_two
+        );
     }
 }
