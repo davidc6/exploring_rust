@@ -8,26 +8,28 @@ trait Logger {
     fn log(&self, value: &str);
 }
 
-enum ErrorType {
+enum LogType {
     Warn,
     Info,
     Err,
 }
 
 struct LoggerCustom {
-    log_type: ErrorType,
+    log_type: LogType,
 }
 
 impl Logger for LoggerCustom {
+    // This is just an example.
+    // Ideally would expose as separate functions.
     fn log(&self, value: &str) {
         match self.log_type {
-            ErrorType::Err => {
+            LogType::Err => {
                 println!("Error: {:?}", value);
             }
-            ErrorType::Info => {
+            LogType::Info => {
                 println!("Info: {:?}", value);
             }
-            ErrorType::Warn => {
+            LogType::Warn => {
                 println!("Warn: {:?}", value);
             }
         }
@@ -167,7 +169,7 @@ fn main() {
     let list_of_names = ["Ann", "John", "Mary", "Michael", "Kathy"];
 
     let logger = LoggerCustom {
-        log_type: ErrorType::Info,
+        log_type: LogType::Info,
     };
     let mut connections = Connections::new(Box::new(logger));
 
@@ -215,7 +217,7 @@ mod tests {
     #[test]
     fn add_and_connect_person() {
         let logger = LoggerCustom {
-            log_type: crate::ErrorType::Info,
+            log_type: crate::LogType::Info,
         };
         let mut connections = Connections::new(Box::new(logger));
 
