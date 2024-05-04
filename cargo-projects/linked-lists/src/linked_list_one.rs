@@ -1,5 +1,21 @@
 #[derive(Debug)]
 pub enum List {
     Empty,
+    // To make List representable, we need to insert indirection (i.e. Box<List>).
+    // This means storing a pointer to a value instead of the value itself.
+    // Box allocates value on the heap but the pointer itself lives on the stack.
+    // This way we know the size of Box.
     Elem(i32, Box<List>),
+}
+
+#[cfg(test)]
+mod linked_list_one_tests {
+    use crate::linked_list_one::List;
+
+    #[test]
+    fn list_constructed_correctly() {
+        let ll = List::Elem(1, Box::new(List::Elem(2, Box::new(List::Empty))));
+
+        assert!(matches!(ll, List::Elem(1, _)));
+    }
 }
