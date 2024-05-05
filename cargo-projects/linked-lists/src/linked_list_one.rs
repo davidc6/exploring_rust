@@ -8,14 +8,45 @@ pub enum List {
     Elem(i32, Box<List>),
 }
 
+#[derive(Debug)]
+pub struct ListThree {
+    head: ListTwo,
+}
+
+#[derive(Debug)]
+struct ListNode {
+    elem: i32,
+    next_elem: ListTwo,
+}
+
+#[derive(Debug)]
+enum ListTwo {
+    Empty,
+    Elem(Box<ListNode>),
+}
+
 #[cfg(test)]
 mod linked_list_one_tests {
-    use crate::linked_list_one::List;
+    use crate::linked_list_one::{List, ListThree};
+
+    use super::{ListNode, ListTwo};
 
     #[test]
     fn list_constructed_correctly() {
         let ll = List::Elem(1, Box::new(List::Elem(2, Box::new(List::Empty))));
 
         assert!(matches!(ll, List::Elem(1, _)));
+    }
+
+    #[test]
+    fn list_two_constructed_correctly() {
+        let ll = ListThree {
+            head: ListTwo::Elem(Box::new(ListNode {
+                elem: 1,
+                next_elem: ListTwo::Empty,
+            })),
+        };
+
+        assert!(matches!(ll, ListThree { head: _ }));
     }
 }
