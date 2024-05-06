@@ -8,21 +8,23 @@ pub enum List {
     Elem(i32, Box<List>),
 }
 
+// Since ListThree is a single struct,
+// the size of the struct is the same as the field
 #[derive(Debug)]
 pub struct ListThree {
     head: ListTwo,
 }
 
 #[derive(Debug)]
-struct ListNode {
-    elem: i32,
-    next_elem: ListTwo,
+enum ListTwo {
+    Empty,
+    Filled(Box<ListNode>),
 }
 
 #[derive(Debug)]
-enum ListTwo {
-    Empty,
-    Elem(Box<ListNode>),
+struct ListNode {
+    elem: i32,
+    next_elem: ListTwo,
 }
 
 #[cfg(test)]
@@ -41,7 +43,7 @@ mod linked_list_one_tests {
     #[test]
     fn list_two_constructed_correctly() {
         let ll = ListThree {
-            head: ListTwo::Elem(Box::new(ListNode {
+            head: ListTwo::Filled(Box::new(ListNode {
                 elem: 1,
                 next_elem: ListTwo::Empty,
             })),
