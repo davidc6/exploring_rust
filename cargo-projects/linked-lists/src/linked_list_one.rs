@@ -15,6 +15,15 @@ pub struct ListThree {
     head: ListTwo,
 }
 
+// :: is the namespace operator which allows us to choose enum variant
+impl ListThree {
+    pub fn new() -> Self {
+        ListThree {
+            head: ListTwo::Empty,
+        }
+    }
+}
+
 #[derive(Debug)]
 enum ListTwo {
     Empty,
