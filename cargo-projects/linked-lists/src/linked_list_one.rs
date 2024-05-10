@@ -27,7 +27,7 @@ impl ListThree {
 }
 
 impl ListThree {
-    fn push(&mut self, value: i32) {
+    pub fn push(&mut self, value: i32) {
         // Move source (ListTwo::Empty) into destination (self.head)
         // and return previous destination. Here self.head temporarily gets set to ListTwo::Empty.
         let node = ListNode {
@@ -37,6 +37,16 @@ impl ListThree {
 
         // Set head to Filled list with new node. We replace the previously set self.head with the new "head".
         self.head = ListTwo::Filled(Box::new(node));
+    }
+
+    pub fn pop(&mut self) -> Option<i32> {
+        match std::mem::replace(&mut self.head, ListTwo::Empty) {
+            ListTwo::Filled(node) => {
+                self.head = node.next_elem;
+                Some(node.elem)
+            }
+            ListTwo::Empty => None,
+        }
     }
 }
 
@@ -77,6 +87,7 @@ mod linked_list_one_tests {
         assert!(matches!(ll, ListThree { head: _ }));
     }
 
+    #[test]
     fn popping_list_two_returns_valid_value() {
         let mut ll = ListThree {
             head: ListTwo::Filled(Box::new(ListNode {
@@ -87,6 +98,6 @@ mod linked_list_one_tests {
 
         ll.push(2);
 
-        // TODO, implement pop()
+        assert_eq!(ll.pop(), Some(2));
     }
 }
