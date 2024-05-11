@@ -28,6 +28,7 @@ impl ListThree {
 
 impl ListThree {
     pub fn push(&mut self, value: i32) {
+        // std::mem::replace -
         // Move source (ListTwo::Empty) into destination (self.head)
         // and return previous destination. Here self.head temporarily gets set to ListTwo::Empty.
         let node = ListNode {
@@ -97,7 +98,21 @@ mod linked_list_one_tests {
         };
 
         ll.push(2);
+        ll.push(4);
+        ll.push(6);
 
+        assert_eq!(ll.pop(), Some(6));
+        assert_eq!(ll.pop(), Some(4));
         assert_eq!(ll.pop(), Some(2));
+
+        ll.push(8);
+        ll.push(10);
+
+        assert_eq!(ll.pop(), Some(10));
+        assert_eq!(ll.pop(), Some(8));
+
+        // original value and empty linked list
+        assert_eq!(ll.pop(), Some(1));
+        assert_eq!(ll.pop(), None);
     }
 }
