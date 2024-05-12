@@ -51,6 +51,16 @@ impl ListThree {
     }
 }
 
+impl Drop for ListThree {
+    fn drop(&mut self) {
+        let mut current = std::mem::replace(&mut self.head, ListTwo::Empty);
+
+        while let ListTwo::Filled(mut node) = current {
+            current = std::mem::replace(&mut node.next_elem, ListTwo::Empty);
+        }
+    }
+}
+
 #[derive(Debug)]
 enum ListTwo {
     Empty,
