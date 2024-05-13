@@ -17,6 +17,12 @@ pub struct ListThree {
     head: ListTwo,
 }
 
+impl Default for ListThree {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // :: is the namespace operator which allows us to choose enum variant
 impl ListThree {
     pub fn new() -> Self {
@@ -28,12 +34,12 @@ impl ListThree {
 
 impl ListThree {
     pub fn push(&mut self, value: i32) {
-        // std::mem::replace -
+        // std::mem::replace - moves src (second argument) into the references dest (first argument) and returns previous dest value
         // Move source (ListTwo::Empty) into destination (self.head)
         // and return previous destination. Here self.head temporarily gets set to ListTwo::Empty.
         let node = ListNode {
             elem: value,
-            next_elem: std::mem::replace(&mut self.head, ListTwo::Empty),
+            next_elem: mem::replace(&mut self.head, ListTwo::Empty),
         };
 
         // Set head to Filled list with new node. We replace the previously set self.head with the new "head".
@@ -111,6 +117,7 @@ mod linked_list_one_tests {
         ll.push(4);
         ll.push(6);
 
+        // test order and values
         assert_eq!(ll.pop(), Some(6));
         assert_eq!(ll.pop(), Some(4));
         assert_eq!(ll.pop(), Some(2));
@@ -118,6 +125,7 @@ mod linked_list_one_tests {
         ll.push(8);
         ll.push(10);
 
+        // test some more values since previous once were popped
         assert_eq!(ll.pop(), Some(10));
         assert_eq!(ll.pop(), Some(8));
 
