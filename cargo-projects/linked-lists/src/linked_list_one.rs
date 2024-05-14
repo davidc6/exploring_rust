@@ -61,6 +61,7 @@ impl Drop for ListThree {
     fn drop(&mut self) {
         let mut current = std::mem::replace(&mut self.head, ListTwo::Empty);
 
+        // Lift ListNodes out of their Boxes
         while let ListTwo::Filled(mut node) = current {
             current = std::mem::replace(&mut node.next_elem, ListTwo::Empty);
         }
