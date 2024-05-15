@@ -1,137 +1,130 @@
 use std::mem;
 
+// #[derive(Debug)]
+// enum ListNodeConnection {
+//     Empty,
+//     Elem(i32, Box<ListNodeConnection>),
+// }
+
+// A connection between nodes in the list
 #[derive(Debug)]
-pub enum List {
+enum ListNodeConnection {
     Empty,
-    // To make List representable, we need to insert indirection (i.e. Box<List>).
+    // To make ListNodeConnection representable, we need to insert indirection (i.e. Box<ListNodeConnection>).
     // This means storing a pointer to a value instead of the value itself.
     // Box allocates value on the heap but the pointer itself lives on the stack.
     // This way we know the size of Box.
-    Elem(i32, Box<List>),
+    Filled(Box<ListNode>),
 }
 
-// Since ListThree is a single struct,
+// Node
+#[derive(Debug)]
+struct ListNode {
+    elem: i32,
+    next_elem: ListNodeConnection,
+}
+
+// Since LinkedList is a single struct,
 // the size of the struct is the same as the field
 #[derive(Debug)]
-pub struct ListThree {
-    head: ListTwo,
+pub struct LinkedList {
+    head: ListNodeConnection,
 }
 
-impl Default for ListThree {
+impl Default for LinkedList {
     fn default() -> Self {
         Self::new()
     }
 }
 
 // :: is the namespace operator which allows us to choose enum variant
-impl ListThree {
+impl LinkedList {
     pub fn new() -> Self {
-        ListThree {
-            head: ListTwo::Empty,
+        LinkedList {
+            head: ListNodeConnection::Empty,
         }
     }
 }
 
-impl ListThree {
+impl LinkedList {
     pub fn push(&mut self, value: i32) {
         // std::mem::replace - moves src (second argument) into the references dest (first argument) and returns previous dest value
-        // Move source (ListTwo::Empty) into destination (self.head)
-        // and return previous destination. Here self.head temporarily gets set to ListTwo::Empty.
+        // Move source (ListNodeConnection::Empty) into destination (self.head)
+        // and return previous destination. Here self.head temporarily gets set to ListNodeConnection::Empty.
         let node = ListNode {
             elem: value,
-            next_elem: mem::replace(&mut self.head, ListTwo::Empty),
+            next_elem: mem::replace(&mut self.head, ListNodeConnection::Empty),
         };
 
         // Set head to Filled list with new node. We replace the previously set self.head with the new "head".
-        self.head = ListTwo::Filled(Box::new(node));
+        self.head = ListNodeConnection::Filled(Box::new(node));
     }
 
     pub fn pop(&mut self) -> Option<i32> {
-        match std::mem::replace(&mut self.head, ListTwo::Empty) {
-            ListTwo::Filled(node) => {
+        match std::mem::replace(&mut self.head, ListNodeConnection::Empty) {
+            ListNodeConnection::Filled(node) => {
                 self.head = node.next_elem;
                 Some(node.elem)
             }
-            ListTwo::Empty => None,
+            ListNodeConnection::Empty => None,
         }
     }
 }
 
-impl Drop for ListThree {
+impl Drop for LinkedList {
     fn drop(&mut self) {
-        let mut current = std::mem::replace(&mut self.head, ListTwo::Empty);
+        let mut current = std::mem::replace(&mut self.head, ListNodeConnection::Empty);
 
         // Lift ListNodes out of their Boxes
-        while let ListTwo::Filled(mut node) = current {
-            current = std::mem::replace(&mut node.next_elem, ListTwo::Empty);
+        while let ListNodeConnection::Filled(mut node) = current {
+            current = std::mem::replace(&mut node.next_elem, ListNodeConnection::Empty);
         }
     }
-}
-
-#[derive(Debug)]
-enum ListTwo {
-    Empty,
-    Filled(Box<ListNode>),
-}
-
-#[derive(Debug)]
-struct ListNode {
-    elem: i32,
-    next_elem: ListTwo,
 }
 
 #[cfg(test)]
 mod linked_list_one_tests {
-    use crate::linked_list_one::{List, ListThree};
-
-    use super::{ListNode, ListTwo};
+    use super::*;
 
     #[test]
-    fn list_constructed_correctly() {
-        let ll = List::Elem(1, Box::new(List::Elem(2, Box::new(List::Empty))));
-
-        assert!(matches!(ll, List::Elem(1, _)));
-    }
-
-    #[test]
-    fn list_two_constructed_correctly() {
-        let ll = ListThree {
-            head: ListTwo::Filled(Box::new(ListNode {
+    fn linked_list_is_constructed_correctly() {
+        let ll = LinkedList {
+            head: ListNodeConnection::Filled(Box::new(ListNode {
                 elem: 1,
-                next_elem: ListTwo::Empty,
+                next_elem: ListNodeConnection::Empty,
             })),
         };
 
-        assert!(matches!(ll, ListThree { head: _ }));
+        assert!(matches!(ll, LinkedList { head: _ }));
     }
 
     #[test]
-    fn popping_list_two_returns_valid_value() {
-        let mut ll = ListThree {
-            head: ListTwo::Filled(Box::new(ListNode {
-                elem: 1,
-                next_elem: ListTwo::Empty,
-            })),
-        };
+    fn linked_list_pop_method_returns_valid_value() {
+        // Initialise new LinkedList
+        let mut ll = LinkedList::new();
 
+        // Initially the list should be empty
+        assert_eq!(ll.pop(), None);
+
+        // Push values to populate the list
         ll.push(2);
         ll.push(4);
         ll.push(6);
 
-        // test order and values
+        // Test order and values
         assert_eq!(ll.pop(), Some(6));
         assert_eq!(ll.pop(), Some(4));
         assert_eq!(ll.pop(), Some(2));
 
+        // Push more
         ll.push(8);
         ll.push(10);
 
-        // test some more values since previous once were popped
+        // Test some more values since previous once were popped
         assert_eq!(ll.pop(), Some(10));
         assert_eq!(ll.pop(), Some(8));
 
-        // original value and empty linked list
-        assert_eq!(ll.pop(), Some(1));
+        // Empty linked list
         assert_eq!(ll.pop(), None);
     }
 }
