@@ -1,11 +1,5 @@
 use std::mem;
 
-// #[derive(Debug)]
-// enum ListNodeConnection {
-//     Empty,
-//     Elem(i32, Box<ListNodeConnection>),
-// }
-
 // A connection between nodes in the list
 #[derive(Debug)]
 enum ListNodeConnection {
@@ -17,7 +11,7 @@ enum ListNodeConnection {
     Filled(Box<ListNode>),
 }
 
-// Node
+// Linked List's Node that is holding a value and link to the next node (if any)
 #[derive(Debug)]
 struct ListNode {
     elem: i32,
