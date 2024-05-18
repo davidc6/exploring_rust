@@ -1,15 +1,10 @@
-use std::mem;
-
-// A connection between nodes in the list
-#[derive(Debug)]
-enum ListNodeConnection {
-    Empty,
-    // To make ListNodeConnection representable, we need to insert indirection (i.e. Box<ListNodeConnection>).
-    // This means storing a pointer to a value instead of the value itself.
-    // Box allocates value on the heap but the pointer itself lives on the stack.
-    // This way we know the size of Box.
-    Filled(Box<ListNode>),
-}
+// Represents a connection between nodes in the list.
+//
+// To make ListNodeConnection representable, we need to insert indirection (i.e. Box<ListNodeConnection>).
+// This means storing a pointer to a value instead of the value itself.
+// Box allocates value on the heap but the pointer itself lives on the stack.
+// This way we know the size of Box.
+type ListNodeConnection = Option<Box<ListNode>>;
 
 // Linked List's Node that is holding a value and link to the next node (if any)
 #[derive(Debug)]
@@ -35,7 +30,7 @@ impl Default for LinkedList {
 impl LinkedList {
     pub fn new() -> Self {
         LinkedList {
-            head: ListNodeConnection::Empty,
+            head: ListNodeConnection::None,
         }
     }
 }
@@ -43,49 +38,51 @@ impl LinkedList {
 impl LinkedList {
     pub fn push(&mut self, value: i32) {
         // std::mem::replace - moves src (second argument) into the references dest (first argument) and returns previous dest value
-        // Move source (ListNodeConnection::Empty) into destination (self.head)
-        // and return previous destination. Here self.head temporarily gets set to ListNodeConnection::Empty.
+        // Move source (ListNodeConnection::None) into destination (self.head)
+        // and return previous destination. Here self.head temporarily gets set to ListNodeConnection::None.
         let node = ListNode {
             elem: value,
-            next_elem: mem::replace(&mut self.head, ListNodeConnection::Empty),
+            // Since mem::replace(&mut option, None) is a very common idiom, Option has a method for it: Option.take()
+            // next_elem: mem::replace(&mut self.head, ListNodeConnection::None),
+            next_elem: self.head.take(),
         };
 
-        // Set head to Filled list with new node. We replace the previously set self.head with the new "head".
-        self.head = ListNodeConnection::Filled(Box::new(node));
+        // Set head to Some list with new node. We replace the previously set self.head with the new "head".
+        self.head = ListNodeConnection::Some(Box::new(node));
     }
 
     pub fn pop(&mut self) -> Option<i32> {
-        match std::mem::replace(&mut self.head, ListNodeConnection::Empty) {
-            ListNodeConnection::Filled(node) => {
+        match self.head.take() {
+            ListNodeConnection::Some(node) => {
                 self.head = node.next_elem;
                 Some(node.elem)
             }
-            ListNodeConnection::Empty => None,
+            ListNodeConnection::None => None,
         }
     }
 }
 
 impl Drop for LinkedList {
     fn drop(&mut self) {
-        let mut current = std::mem::replace(&mut self.head, ListNodeConnection::Empty);
+        let mut current = self.head.take();
 
         // Lift ListNodes out of their Boxes
-        while let ListNodeConnection::Filled(mut node) = current {
-            current = std::mem::replace(&mut node.next_elem, ListNodeConnection::Empty);
+        while let ListNodeConnection::Some(mut node) = current {
+            current = node.next_elem.take();
         }
     }
 }
 
 #[cfg(test)]
-mod linked_list_one_tests {
+mod linked_list_two_tests {
     use super::*;
 
     #[test]
     fn linked_list_is_constructed_correctly() {
         let ll = LinkedList {
-            head: ListNodeConnection::Filled(Box::new(ListNode {
+            head: ListNodeConnection::Some(Box::new(ListNode {
                 elem: 1,
-                next_elem: ListNodeConnection::Empty,
+                next_elem: ListNodeConnection::None,
             })),
         };
 
@@ -118,7 +115,7 @@ mod linked_list_one_tests {
         assert_eq!(ll.pop(), Some(10));
         assert_eq!(ll.pop(), Some(8));
 
-        // Empty linked list
+        // None linked list
         assert_eq!(ll.pop(), None);
     }
 }
