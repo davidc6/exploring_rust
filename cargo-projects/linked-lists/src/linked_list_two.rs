@@ -52,13 +52,10 @@ impl LinkedList {
     }
 
     pub fn pop(&mut self) -> Option<i32> {
-        match self.head.take() {
-            ListNodeConnection::Some(node) => {
-                self.head = node.next_elem;
-                Some(node.elem)
-            }
-            ListNodeConnection::None => None,
-        }
+        self.head.take().map(|node| {
+            self.head = node.next_elem;
+            node.elem
+        })
     }
 }
 
