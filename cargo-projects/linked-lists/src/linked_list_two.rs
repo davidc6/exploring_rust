@@ -4,39 +4,37 @@
 // This means storing a pointer to a value instead of the value itself.
 // Box allocates value on the heap but the pointer itself lives on the stack.
 // This way we know the size of Box.
-type ListNodeConnection = Option<Box<ListNode>>;
+type ListNodeConnection<T> = Option<Box<ListNode<T>>>;
 
 // Linked List's Node that is holding a value and link to the next node (if any)
 #[derive(Debug)]
-struct ListNode {
-    elem: i32,
-    next_elem: ListNodeConnection,
+struct ListNode<T> {
+    elem: T,
+    next_elem: ListNodeConnection<T>,
 }
 
 // Since LinkedList is a single struct,
 // the size of the struct is the same as the field
 #[derive(Debug)]
-pub struct LinkedList {
-    head: ListNodeConnection,
+pub struct LinkedList<T> {
+    head: ListNodeConnection<T>,
 }
 
-impl Default for LinkedList {
+impl<T> Default for LinkedList<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-// :: is the namespace operator which allows us to choose enum variant
-impl LinkedList {
+impl<T> LinkedList<T> {
+    // :: is the namespace operator which allows us to choose enum variant
     pub fn new() -> Self {
         LinkedList {
             head: ListNodeConnection::None,
         }
     }
-}
 
-impl LinkedList {
-    pub fn push(&mut self, value: i32) {
+    pub fn push(&mut self, value: T) {
         // std::mem::replace - moves src (second argument) into the references dest (first argument) and returns previous dest value
         // Move source (ListNodeConnection::None) into destination (self.head)
         // and return previous destination. Here self.head temporarily gets set to ListNodeConnection::None.
@@ -51,7 +49,7 @@ impl LinkedList {
         self.head = ListNodeConnection::Some(Box::new(node));
     }
 
-    pub fn pop(&mut self) -> Option<i32> {
+    pub fn pop(&mut self) -> Option<T> {
         self.head.take().map(|node| {
             self.head = node.next_elem;
             node.elem
@@ -59,7 +57,7 @@ impl LinkedList {
     }
 }
 
-impl Drop for LinkedList {
+impl<T> Drop for LinkedList<T> {
     fn drop(&mut self) {
         let mut current = self.head.take();
 
