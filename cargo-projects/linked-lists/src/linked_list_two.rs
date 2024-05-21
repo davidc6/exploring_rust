@@ -34,6 +34,18 @@ impl<T> LinkedList<T> {
         }
     }
 
+    pub fn peek(&self) -> Option<&T> {
+        // map() takes self by value
+        // by using as_ref(), it provides an Option to a ref to its internals which is what in required here.
+        self.head.as_ref().map(|node| &node.elem)
+    }
+
+    pub fn peek_mut(&mut self) -> Option<&mut T> {
+        // map() takes self by value
+        // by using as_ref(), it provides an Option to a ref to its internals which is what in required here.
+        self.head.as_mut().map(|node| &mut node.elem)
+    }
+
     pub fn push(&mut self, value: T) {
         // std::mem::replace - moves src (second argument) into the references dest (first argument) and returns previous dest value
         // Move source (ListNodeConnection::None) into destination (self.head)
@@ -112,5 +124,40 @@ mod linked_list_two_tests {
 
         // None linked list
         assert_eq!(ll.pop(), None);
+    }
+
+    #[test]
+    fn linked_list_peek_works() {
+        let mut ll = LinkedList::new();
+        assert_eq!(ll.peek(), None);
+        assert_eq!(ll.peek_mut(), None);
+
+        // Push some values
+        ll.push(1);
+        ll.push(2);
+        ll.push(3);
+
+        assert_eq!(ll.peek(), Some(&3));
+        assert_eq!(ll.peek_mut(), Some(&mut 3));
+    }
+
+    #[test]
+    fn linked_list_peek_mut_allows_mutation() {
+        let mut ll = LinkedList::new();
+
+        assert_eq!(ll.peek(), None);
+        assert_eq!(ll.peek_mut(), None);
+
+        // Push some values
+        ll.push(1);
+        ll.push(2);
+        ll.push(3);
+
+        if let Some(val) = ll.peek_mut() {
+            *val = 100;
+        }
+
+        assert_eq!(ll.peek(), Some(&100));
+        assert_eq!(ll.pop(), Some(100));
     }
 }
