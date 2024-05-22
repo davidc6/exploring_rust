@@ -80,6 +80,14 @@ impl<T> Drop for LinkedList<T> {
     }
 }
 
+impl<T> Iterator for LinkedList<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.pop()
+    }
+}
+
 #[cfg(test)]
 mod linked_list_two_tests {
     use super::*;
@@ -159,5 +167,20 @@ mod linked_list_two_tests {
 
         assert_eq!(ll.peek(), Some(&100));
         assert_eq!(ll.pop(), Some(100));
+    }
+
+    #[test]
+    fn linked_list_iterator_next() {
+        let mut ll = LinkedList::new();
+        ll.push(1);
+        ll.push(2);
+        ll.push(3);
+
+        // Don't have to do this but just to be a bit verbose in this example
+        let mut ll_iter = ll.into_iter();
+        assert_eq!(ll_iter.next(), Some(3));
+        assert_eq!(ll_iter.next(), Some(2));
+        assert_eq!(ll_iter.next(), Some(1));
+        assert_eq!(ll_iter.next(), None);
     }
 }
