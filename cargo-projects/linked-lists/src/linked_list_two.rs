@@ -80,11 +80,27 @@ impl<T> Drop for LinkedList<T> {
     }
 }
 
-impl<T> Iterator for LinkedList<T> {
+// Using tuple struct here to wrap around LinkedList type
+pub struct LinkedListIter<T>(LinkedList<T>);
+
+// Implement Iterator on the wrapped type
+impl<T> Iterator for LinkedListIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.pop()
+        // 0 is essentially the wrapped type i.e. LinkedList<T>
+        self.0.pop()
+    }
+}
+
+// Implementing into_iter method on LinkedList type
+// to define how to create an iterator
+impl<T> IntoIterator for LinkedList<T> {
+    type Item = T;
+    type IntoIter = LinkedListIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        LinkedListIter(self)
     }
 }
 
@@ -176,11 +192,25 @@ mod linked_list_two_tests {
         ll.push(2);
         ll.push(3);
 
-        // Don't have to do this but just to be a bit verbose in this example
         let mut ll_iter = ll.into_iter();
         assert_eq!(ll_iter.next(), Some(3));
         assert_eq!(ll_iter.next(), Some(2));
         assert_eq!(ll_iter.next(), Some(1));
         assert_eq!(ll_iter.next(), None);
+    }
+
+    #[test]
+    fn linked_list_iterator_next_loop() {
+        let mut ll = LinkedList::new();
+        ll.push(1);
+        ll.push(2);
+        ll.push(3);
+
+        let mut expected_val = 3;
+
+        for val in ll {
+            assert_eq!(val, expected_val);
+            expected_val -= 1;
+        }
     }
 }
