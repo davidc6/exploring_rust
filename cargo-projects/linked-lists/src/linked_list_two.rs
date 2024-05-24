@@ -104,6 +104,33 @@ impl<T> IntoIterator for LinkedList<T> {
     }
 }
 
+// Iter struct is required to implement Iterator on.
+pub struct Iter<'a, T> {
+    next: Option<&'a ListNode<T>>,
+}
+
+// iter() return Iter which implements Iterator.
+impl<T> LinkedList<T> {
+    pub fn iter(&self) -> Iter<T> {
+        Iter {
+            next: self.head.as_deref(),
+        }
+    }
+}
+
+// Actual Iterator implementation.
+impl<'a, T> Iterator for Iter<'a, T> {
+    // Item type is a reference to T item
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next.map(|node| {
+            self.next = node.next_elem.as_deref();
+            &node.elem
+        })
+    }
+}
+
 #[cfg(test)]
 mod linked_list_two_tests {
     use super::*;
@@ -212,5 +239,18 @@ mod linked_list_two_tests {
             assert_eq!(val, expected_val);
             expected_val -= 1;
         }
+    }
+
+    #[test]
+    fn linked_list_iterator_iter() {
+        let mut ll = LinkedList::new();
+        ll.push(1);
+        ll.push(2);
+        ll.push(3);
+
+        let mut iter = ll.iter();
+        assert_eq!(iter.next(), Some(&3));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&1));
     }
 }
