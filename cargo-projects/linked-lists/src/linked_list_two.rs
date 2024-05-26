@@ -148,6 +148,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // take() the Option and have exclusive access to the mutable reference
         self.next.take().map(|node| {
             self.next = node.next_elem.as_deref_mut();
             &mut node.elem
