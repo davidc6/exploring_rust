@@ -35,14 +35,14 @@ impl<T> LinkedList<T> {
     }
 
     pub fn peek(&self) -> Option<&T> {
-        // map() takes self by value
+        // map() takes self by value (consumes it)
         // by using as_ref(), it provides an Option to a ref to its internals which is what in required here.
         self.head.as_ref().map(|node| &node.elem)
     }
 
     pub fn peek_mut(&mut self) -> Option<&mut T> {
         // map() takes self by value
-        // by using as_ref(), it provides an Option to a ref to its internals which is what in required here.
+        // by using as_mut(), it provides an Option to a ref to its internals which is what in required here.
         self.head.as_mut().map(|node| &mut node.elem)
     }
 
@@ -63,7 +63,9 @@ impl<T> LinkedList<T> {
 
     pub fn pop(&mut self) -> Option<T> {
         self.head.take().map(|node| {
+            // Sets head to the next elem / next element becomes head
             self.head = node.next_elem;
+            // Return current element
             node.elem
         })
     }
@@ -95,6 +97,8 @@ impl<T> Iterator for LinkedListIter<T> {
 
 // Implementing into_iter method on LinkedList type
 // to define how to create an iterator
+//
+// Ref: https://doc.rust-lang.org/nomicon/vec/vec-into-iter.html
 impl<T> IntoIterator for LinkedList<T> {
     type Item = T;
     type IntoIter = LinkedListIter<T>;
@@ -112,6 +116,9 @@ pub struct Iter<'a, T> {
 // iter() return Iter which implements Iterator.
 impl<T> LinkedList<T> {
     pub fn iter(&self) -> Iter<T> {
+        // as_deref() leaves leaves the origin Option in-place,
+        // creates new one with the reference to the original one
+        // getting the contents via Deref.
         Iter {
             next: self.head.as_deref(),
         }
