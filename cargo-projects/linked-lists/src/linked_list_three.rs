@@ -17,6 +17,12 @@ impl<T> LinkedList<T> {
             })),
         }
     }
+
+    pub fn tail(&self) -> LinkedList<T> {
+        LinkedList {
+            head: self.head.as_ref().and_then(|node| node.next_node.clone()),
+        }
+    }
 }
 
 struct LinkedListNode<T> {
