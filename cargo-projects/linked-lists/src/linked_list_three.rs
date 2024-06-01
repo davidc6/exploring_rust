@@ -9,6 +9,17 @@ impl<T> LinkedList<T> {
         LinkedList { head: None }
     }
 
+    /// Prepends new node to the list and return s a new list.
+    ///
+    /// Current head becomes next node of the new node.
+    ///
+    /// Example:
+    ///
+    /// (before prepend)
+    /// [Current head] -> [Next node (if any)]
+    ///
+    /// (after prepend)
+    /// [New (prepended) Node] -> [Previous Head] -> [Next node (if any)]
     pub fn prepend(&self, node: T) -> LinkedList<T> {
         LinkedList {
             head: Some(Rc::new(LinkedListNode {
@@ -36,6 +47,13 @@ struct LinkedListNode<T> {
 
 type LinkedListNodeConnection<T> = Option<Rc<LinkedListNode<T>>>;
 
+// Iterator - returns each value
+// impl<T> Iterator for LinkedList<T> {
+//     type Item = T;
+
+//     fn next(&mut self) -> Option<Self::Item> {}
+// }
+
 #[cfg(test)]
 mod linked_list_three_tests {
     use super::*;
@@ -52,6 +70,8 @@ mod linked_list_three_tests {
         assert_eq!(ll.head(), Some(&1));
 
         let ll = ll.tail();
+        assert_eq!(ll.head(), None);
+
         assert_eq!(ll.head(), None);
     }
 }
