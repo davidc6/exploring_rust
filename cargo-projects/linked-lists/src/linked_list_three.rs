@@ -41,8 +41,13 @@ impl<T> LinkedList<T> {
 }
 
 impl<T> LinkedList<T> {
+    /// iter() method instantiates IteratorState struct,
+    /// which allows us to then iterate over the linked list.
+    /// '_ - the compiler infers the lifetime
     pub fn iter(&self) -> IteratorState<'_, T> {
         IteratorState {
+            // as_deref() leaves the original option in-place,
+            // and creates a new one with the reference to the original one.
             next: self.head.as_deref(),
         }
     }
@@ -92,7 +97,7 @@ mod linked_list_three_tests {
     }
 
     #[test]
-    fn linked_list_iterator() {
+    fn linked_list_iter_method_iterates_over_reference_of_type_t() {
         let ll = LinkedList::new().prepend(1).prepend(2).prepend(3);
         let mut iter = ll.iter();
 
