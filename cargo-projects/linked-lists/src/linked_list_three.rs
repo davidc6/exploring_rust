@@ -69,9 +69,33 @@ impl<'a, T> Iterator for IteratorState<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next.map(|node| {
+            // Creates a reference to the next Option LinkedListNode (keeping it in-place),
+            // coercing the contents via Deref trait.
             self.next = node.next_node.as_deref();
+            // Return a reference to the current LinkedListNode
             &node.current_node
         })
+    }
+}
+
+///
+impl<T> Drop for LinkedList<T> {
+    fn drop(&mut self) {
+        // take() - take value of head (Option) and leave None in place
+        let mut head = self.head.take();
+
+        // While head is a valid Node (i.e. it is Some and not None),
+        // set head to the next Node (until we can't hoist out of node anymore)
+        while let Some(node) = head {
+            // If we know that we are the last list that knows about this node,
+            // we can move LinkedListNode out of Rc
+            if let Ok(mut node) = Rc::try_unwrap(node) {
+                // take next Node and replace with None
+                head = node.next_node.take();
+            } else {
+                break;
+            }
+        }
     }
 }
 
