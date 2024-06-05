@@ -38,29 +38,15 @@ fn some_devec() -> VecDeque<i32> {
     v
 }
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
 pub fn run_all() {
     let longest_str = some_str();
     println!("{:?}", longest_str);
 
-    let a = some_vec();
+    let ordinary_vec = some_vec();
+    println!("{:?}", ordinary_vec);
 
-    println!("{:?}", a);
-
-    // for val in a {
-    //     println!("{:?}", val);
-    // }
-
-    let b = some_devec().pop_front();
-
-    // for val in b.iter() {
-    //     println!("{:?}", val);
-    // }
-
-    println!("{:?}", b);
+    let deq_vec = some_devec().pop_front();
+    println!("{:?}", deq_vec);
 }
 
 #[cfg(test)]
@@ -69,9 +55,6 @@ mod tests {
 
     #[test]
     fn it_works() {
-        // let result = add(2, 2);
-        // assert_eq!(result, 4);
-
         run_all();
     }
 }
