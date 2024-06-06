@@ -54,6 +54,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn simple_str_works() {
+        assert_eq!(some_str(), "four");
+    }
+
+    #[test]
+    fn simple_vec_works() {
+        assert_eq!(some_vec(), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn simple_devec_works() {
+        assert_eq!(some_devec(), vec![1, 2]);
+    }
+
+    #[test]
     fn it_works() {
         run_all();
     }
