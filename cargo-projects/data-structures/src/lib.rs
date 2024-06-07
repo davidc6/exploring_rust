@@ -1,5 +1,11 @@
 use std::collections::VecDeque;
 
+fn from_string_to_slice_and_back() -> String {
+    let string = String::from("hey");
+    let string_slice = &string[1..3];
+    string_slice.to_owned()
+}
+
 fn some_str<'a>() -> &'a str {
     let result;
 
@@ -47,6 +53,9 @@ pub fn run_all() {
 
     let deq_vec = some_devec().pop_front();
     println!("{:?}", deq_vec);
+
+    let other_str = from_string_to_slice_and_back();
+    println!("{:?}", other_str);
 }
 
 #[cfg(test)]
