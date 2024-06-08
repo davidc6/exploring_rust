@@ -70,8 +70,22 @@ to it is stored in the stack
 - Stack - static memory allocation (we can't modify context of this area; fixed size; high memory addresses; allocation is quicker)
 - Heap - dynamic memory allocation (not fixed and can vary at runtime; size is dependent on the system; lower memory addresses; allocation is slower as have to find first)
 
-- RAII (Resource Aqcquisition Is Initialization) - sometimes referred to as scope-bound resource management, resources being file handles, network sockets, which usage need to be controlled. The lifetime of the object is dependent on it's variable scope, when the variable goes out of scope the destructor will be called and the resource will be released. 
+- RAII (Resource Acquisition Is Initialization) - sometimes referred to as scope-bound resource management, resources being file handles, network sockets, which usage need to be controlled. The lifetime of the object is dependent on it's variable scope, when the variable goes out of scope the destructor will be called and the resource will be released. Variables hold data in stack but also own resources (e.g. String owns memory on the heap). When an object goes out of scope, a destructor is called and owned resources are freed. 
 
+```rs
+fn main() {
+  let str_outer = String::from("outer");
+
+  {
+    let str_inner = String::from("inner");
+
+    // str_inner is dropped / destroyed at this point
+  }
+
+  // str_outer is dropped / destroyed at this point
+}
+```
+   
 - clone() - to deeply copy heap data
 - copy() - to copy stack data
 
