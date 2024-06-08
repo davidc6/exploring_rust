@@ -1,4 +1,12 @@
+mod errors;
+
+use crate::errors::run_error;
 use std::collections::VecDeque;
+
+fn some_errors(variant: u8) {
+    let val = run_error(variant);
+    println!("{:?}", val);
+}
 
 fn from_string_to_slice_and_back() -> String {
     let string = String::from("hey");
@@ -77,8 +85,13 @@ mod tests {
         assert_eq!(some_devec(), vec![1, 2]);
     }
 
+    // #[test]
+    // fn it_works() {
+    //     run_all();
+    // }
+
     #[test]
-    fn it_works() {
-        run_all();
+    fn it_errors() {
+        some_errors(1);
     }
 }
