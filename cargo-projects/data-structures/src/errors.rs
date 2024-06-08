@@ -1,5 +1,3 @@
-// two different error types union
-
 type CustomErrorResult<T> = std::result::Result<T, CustomErrors>;
 
 impl From<SecondCustomErrors> for CustomErrors {
@@ -15,24 +13,24 @@ impl From<FirstCustomErrors> for CustomErrors {
 }
 
 pub fn run_error(variant: u8) -> CustomErrorResult<usize> {
-    let result = first_fn(variant)?;
+    let _ = first_fn(variant)?;
     let second = second_fn(variant)?;
     Ok(second)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CustomErrors {
     FirstCustomErrors(FirstCustomErrors),
     SecondCustomErrors(SecondCustomErrors),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FirstCustomErrors {
     First,
     Second,
 }
 
-fn first_fn(variant: u8) -> Result<usize, FirstCustomErrors> {
+pub fn first_fn(variant: u8) -> Result<usize, FirstCustomErrors> {
     if variant == 0 {
         Err(FirstCustomErrors::First)
     } else if variant == 1 {
@@ -42,7 +40,7 @@ fn first_fn(variant: u8) -> Result<usize, FirstCustomErrors> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum SecondCustomErrors {
     First,
     Second,

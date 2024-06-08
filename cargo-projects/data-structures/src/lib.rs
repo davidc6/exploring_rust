@@ -3,11 +3,6 @@ mod errors;
 use crate::errors::run_error;
 use std::collections::VecDeque;
 
-fn some_errors(variant: u8) {
-    let val = run_error(variant);
-    println!("{:?}", val);
-}
-
 fn from_string_to_slice_and_back() -> String {
     let string = String::from("hey");
     let string_slice = &string[1..3];
@@ -64,10 +59,15 @@ pub fn run_all() {
 
     let other_str = from_string_to_slice_and_back();
     println!("{:?}", other_str);
+
+    let some_err = run_error(1);
+    println!("{:?}", some_err);
 }
 
 #[cfg(test)]
 mod tests {
+    use errors::{FirstCustomErrors, SecondCustomErrors};
+
     use super::*;
 
     #[test]
@@ -85,13 +85,13 @@ mod tests {
         assert_eq!(some_devec(), vec![1, 2]);
     }
 
-    // #[test]
-    // fn it_works() {
-    //     run_all();
-    // }
-
     #[test]
-    fn it_errors() {
-        some_errors(1);
+    fn simple_error_works() {
+        assert_eq!(
+            run_error(1),
+            Err(errors::CustomErrors::FirstCustomErrors(
+                FirstCustomErrors::Second
+            ))
+        );
     }
 }
