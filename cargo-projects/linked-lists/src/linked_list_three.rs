@@ -4,6 +4,12 @@ pub struct LinkedList<T> {
     head: LinkedListNodeConnection<T>,
 }
 
+impl<T> Default for LinkedList<T> {
+    fn default() -> Self {
+        LinkedList::new()
+    }
+}
+
 impl<T> LinkedList<T> {
     pub fn new() -> Self {
         LinkedList { head: None }
