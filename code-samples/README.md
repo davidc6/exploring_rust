@@ -72,6 +72,8 @@ to it is stored in the stack
 
 - RAII (Resource Acquisition Is Initialization) - sometimes referred to as scope-bound resource management, resources being file handles, network sockets, which usage need to be controlled. The lifetime of the object is dependent on it's variable scope, when the variable goes out of scope the destructor will be called and the resource will be released. Variables hold data in stack but also own resources (e.g. String owns memory on the heap). When an object goes out of scope, a destructor is called and owned resources are freed. 
 
+Destructors are implemented via the Drop trait in Rust. When a resource goes out of scope the destructor is called. If a type requires its own destruction logic, a Drop trait would have to be implemented for it. 
+
 ```rs
 fn main() {
   let str_outer = String::from("outer");
