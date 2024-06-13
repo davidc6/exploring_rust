@@ -70,6 +70,6 @@ mod permutation_tests {
 
         let actual = is_permutation(vec_one, vec_two);
 
-        assert_eq!(actual, true);
+        assert!(actual);
     }
 }
