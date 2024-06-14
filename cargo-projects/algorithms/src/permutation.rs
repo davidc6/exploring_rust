@@ -1,5 +1,9 @@
 use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
+// T is bound by Debug, Hash and Eq
+// Debug allows to debug by printing using println!() and {:?} specifier
+// Hash allows values to be hashed using the instance of Hasher
+// Eq provides full equivalence relationship comparison
 pub fn is_permutation<T: Debug + Eq + Hash>(vec_one: Vec<T>, vec_two: Vec<T>) -> bool {
     if vec_one.len() != vec_two.len() {
         return false;
@@ -64,7 +68,7 @@ mod permutation_tests {
     }
 
     #[test]
-    fn vec_pernutation() {
+    fn vec_permutation() {
         let vec_one = vec!["a", "b", "c"];
         let vec_two = vec!["c", "b", "a"];
 
