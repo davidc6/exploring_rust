@@ -58,7 +58,7 @@ mod permutation_tests {
     }
 
     #[test]
-    fn vec_contains_() {
+    fn vecs_are_not_permutations_2() {
         let vec_one = vec!["a", "b", "c"];
         let vec_two = vec!["b", "b", "a"];
 
