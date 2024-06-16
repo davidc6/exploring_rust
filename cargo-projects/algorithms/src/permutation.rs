@@ -11,23 +11,26 @@ pub fn is_permutation<T: Debug + Eq + Hash>(vec_one: Vec<T>, vec_two: Vec<T>) ->
 
     let mut char_count = HashMap::new();
 
-    for character in vec_one {
-        let _ = *char_count
+    // Create a consuming Iterator from vec_one
+    // and build a HashMap out of it by inserting and modifying
+    vec_one.into_iter().for_each(|character| {
+        char_count
             .entry(character)
             .and_modify(|val| *val += 1)
             .or_insert(1);
-    }
+    });
 
     for character in vec_two {
-        let entry = char_count.get_mut(&character);
+        if let Some(val) = char_count.get_mut(&character) {
+            if val == &mut 0 {
+                return false;
+            }
 
-        if entry.is_none() || entry == Some(&mut 0) {
-            return false;
-        }
-
-        if let Some(val) = entry {
             *val -= 1;
+            continue;
         }
+
+        return false;
     }
 
     true
