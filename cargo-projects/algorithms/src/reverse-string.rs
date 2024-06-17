@@ -7,8 +7,7 @@ pub fn reverse_string_v1(string: &str) -> String {
         .chars()
         .for_each(|c| reversed_str.push_front(c.to_string()));
 
-    let s = reversed_str.into_iter().map(|c| c.to_owned()).collect();
-    s
+    reversed_str.into_iter().map(|c| c.to_owned()).collect()
 }
 
 pub fn reverse_string_v2(string: String) -> String {
@@ -20,6 +19,27 @@ pub fn reverse_string_v2(string: String) -> String {
     }
 
     rev_string
+}
+
+pub fn reverse_string_v3(string: &mut String) -> String {
+    let mut bytes = std::mem::take(string).into_bytes();
+
+    let mut pos = bytes.len();
+    let mut f = 0;
+
+    while pos > f {
+        pos -= 1;
+
+        let first = bytes[f];
+        let last = bytes[pos];
+
+        bytes[pos] = first;
+        bytes[f] = last;
+
+        f += 1;
+    }
+
+    String::from_utf8(bytes).expect("conversion failed")
 }
 
 #[cfg(test)]
@@ -36,6 +56,13 @@ mod reverse_string_tests {
     #[test]
     fn string_is_reversed_v2() {
         let actual = reverse_string_v2("hello".to_owned());
+
+        assert_eq!(actual, "olleh".to_owned());
+    }
+
+    #[test]
+    fn string_is_reversed_v3() {
+        let actual = reverse_string_v3(&mut "hello".to_owned());
 
         assert_eq!(actual, "olleh".to_owned());
     }
