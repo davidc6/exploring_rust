@@ -11,7 +11,16 @@ pub fn reverse_string_v1(string: &str) -> String {
     s
 }
 
-// pub fn reverse_string_v2(string: String) -> String {}
+pub fn reverse_string_v2(string: String) -> String {
+    let mut rev_string = String::new();
+    let mut chars = string;
+
+    while let Some(char) = chars.pop() {
+        rev_string.push(char);
+    }
+
+    rev_string
+}
 
 #[cfg(test)]
 mod reverse_string_tests {
@@ -20,6 +29,13 @@ mod reverse_string_tests {
     #[test]
     fn string_is_reversed() {
         let actual = reverse_string_v1("hello");
+
+        assert_eq!(actual, "olleh".to_owned());
+    }
+
+    #[test]
+    fn string_is_reversed_v2() {
+        let actual = reverse_string_v2("hello".to_owned());
 
         assert_eq!(actual, "olleh".to_owned());
     }
