@@ -24,19 +24,15 @@ pub fn reverse_string_v2(string: String) -> String {
 pub fn reverse_string_v3(string: &mut String) -> String {
     let mut bytes = std::mem::take(string).into_bytes();
 
-    let mut pos = bytes.len();
-    let mut f = 0;
+    let mut last = bytes.len();
+    let mut first = 0;
 
-    while pos > f {
-        pos -= 1;
+    while last > first {
+        last -= 1;
 
-        let first = bytes[f];
-        let last = bytes[pos];
+        bytes.swap(first, last);
 
-        bytes[pos] = first;
-        bytes[f] = last;
-
-        f += 1;
+        first += 1;
     }
 
     String::from_utf8(bytes).expect("conversion failed")
