@@ -1,5 +1,9 @@
 use std::collections::VecDeque;
 
+pub fn reverse_str_v0(input: &str) -> String {
+    input.chars().rev().collect()
+}
+
 pub fn reverse_string_v1(string: &str) -> String {
     let mut reversed_str = VecDeque::new();
 
@@ -10,9 +14,9 @@ pub fn reverse_string_v1(string: &str) -> String {
     reversed_str.into_iter().map(|c| c.to_owned()).collect()
 }
 
-pub fn reverse_string_v2(string: String) -> String {
+pub fn reverse_string_v2(string: &str) -> String {
     let mut rev_string = String::new();
-    let mut chars = string;
+    let mut chars = String::from(string);
 
     while let Some(char) = chars.pop() {
         rev_string.push(char);
@@ -43,6 +47,13 @@ mod reverse_string_tests {
     use super::*;
 
     #[test]
+    fn string_is_reversed_v0() {
+        let actual = reverse_str_v0("hello");
+
+        assert_eq!(actual, "olleh".to_owned());
+    }
+
+    #[test]
     fn string_is_reversed() {
         let actual = reverse_string_v1("hello");
 
@@ -51,7 +62,7 @@ mod reverse_string_tests {
 
     #[test]
     fn string_is_reversed_v2() {
-        let actual = reverse_string_v2("hello".to_owned());
+        let actual = reverse_string_v2("hello");
 
         assert_eq!(actual, "olleh".to_owned());
     }
