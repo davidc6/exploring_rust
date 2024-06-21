@@ -1,3 +1,4 @@
+pub mod clock;
 pub mod gigaseconds;
 pub mod permutation;
 #[path = "./reverse-string.rs"]
