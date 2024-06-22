@@ -17,22 +17,9 @@ impl fmt::Display for Clock {
             hh = "00".to_owned();
         }
 
-        // e.g. 25:01 =>
-        // if h > &24 {
-        //     let o = &(h - &24);
-        //     hh = if o < &10 {
-        //         format!("0{}", o)
-        //     } else {
-        //         format!("{}", o)
-        //     };
-        // }
         if h < &10 {
             hh = format!("0{}", h);
         }
-
-        // if h < &10 {
-        //     hh = format!("0{}", h);
-        // }
 
         // minutes
         let m = &self.minutes;
