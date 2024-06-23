@@ -12,11 +12,6 @@ impl fmt::Display for Clock {
         let h = &self.hours;
         let mut hh = format!("{}", h);
 
-        // e.g. 24:01 => 00:01
-        if h == &24 {
-            hh = "00".to_owned();
-        }
-
         if h < &10 {
             hh = format!("0{}", h);
         }
@@ -24,9 +19,11 @@ impl fmt::Display for Clock {
         // minutes
         let m = &self.minutes;
         let mut mm = format!("{}", m);
+
         if m < &10 {
             mm = format!("0{}", m);
         }
+
         write!(f, "{}:{}", hh, mm)
     }
 }
@@ -92,7 +89,7 @@ impl Clock {
 
         let minutes = total_minutes - (total_hours * 60);
 
-        if total_hours > 24 {
+        if total_hours >= 24 {
             let temp_hours = total_hours / 24;
             total_hours -= temp_hours * 24;
         }
