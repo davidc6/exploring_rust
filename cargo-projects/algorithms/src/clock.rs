@@ -31,8 +31,12 @@ impl fmt::Display for Clock {
 struct Hours(i32);
 
 impl Hours {
-    fn new(hours: i32) -> Self {
-        let mut hours = hours;
+    fn new(hours: i32, minutes_hours: i32) -> Self {
+        let mut hours = if hours >= 0 {
+            hours + minutes_hours
+        } else {
+            hours
+        };
 
         if hours > 24 {
             let whole_hours = hours / 24;
@@ -41,6 +45,17 @@ impl Hours {
 
         if hours == 24 {
             hours = 0;
+        }
+
+        if hours < 0 {
+            let whole_hours = hours / 24;
+            let diff = if whole_hours == -1 {
+                24 + (24 + hours)
+            } else {
+                24 + (hours + whole_hours * 24)
+            };
+            dbg!(diff);
+            hours = diff;
         }
 
         Hours(hours)
@@ -70,6 +85,17 @@ impl Minutes {
             };
         }
 
+        // if minutes <= 60 {
+        //     let u_minutes = minutes as i32;
+        //     let whole_hours = u_minutes / 60;
+        //     minutes += whole_hours * 60;
+
+        //     return Minutes {
+        //         minutes,
+        //         hours: whole_hours,
+        //     };
+        // }
+
         Minutes { minutes, hours: 0 }
     }
 }
@@ -77,10 +103,13 @@ impl Minutes {
 impl Clock {
     pub fn new(hours: i32, minutes: i32) -> Self {
         let minutes_s = Minutes::new(minutes);
-        let hours = Hours::new(hours + minutes_s.hours).value();
-        let minutes = minutes_s.minutes;
 
-        Clock { hours, minutes }
+        let hours = Hours::new(hours, minutes_s.hours).value();
+
+        Clock {
+            hours,
+            minutes: minutes_s.minutes,
+        }
     }
 
     pub fn add_minutes(&self, minutes: i32) -> Self {
@@ -410,6 +439,9 @@ mod clock_tests {
     #[test]
 
     fn compare_clocks_with_negative_hour() {
+        // dbg!("FINAL");
+        // dbg!(Clock::new(-2, 40));
+        // dbg!(Clock::new(22, 40));
         assert_eq!(Clock::new(-2, 40), Clock::new(22, 40));
     }
 
