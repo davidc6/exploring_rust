@@ -36,10 +36,16 @@ struct Hours(i32);
 impl Hours {
     fn new(hours: i32) -> Self {
         let mut hours = hours;
+
         if hours > 24 {
             let whole_hours = hours / 24;
             hours -= whole_hours * 24;
         }
+
+        if hours == 24 {
+            hours = 0;
+        }
+
         Hours(hours)
     }
 
@@ -57,13 +63,13 @@ impl Minutes {
     fn new(minutes: i32) -> Self {
         let mut minutes = minutes;
 
-        if minutes > 60 {
-            let whole_minutes = minutes / 60;
-            minutes -= whole_minutes * 60;
+        if minutes >= 60 {
+            let whole_hours = minutes / 60;
+            minutes -= whole_hours * 60;
 
             return Minutes {
                 minutes,
-                hours: whole_minutes,
+                hours: whole_hours,
             };
         }
 
@@ -74,7 +80,7 @@ impl Minutes {
 impl Clock {
     pub fn new(hours: i32, minutes: i32) -> Self {
         let minutes_s = Minutes::new(minutes);
-        let hours = Hours::new(hours).value() + minutes_s.hours;
+        let hours = Hours::new(hours + minutes_s.hours).value();
         let minutes = minutes_s.minutes;
 
         Clock { hours, minutes }
