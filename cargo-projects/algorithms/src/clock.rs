@@ -72,7 +72,7 @@ struct Minutes {
 }
 
 impl Minutes {
-    fn new(minutes: i32) -> Self {
+    fn new(minutes: i32, hours: i32) -> Self {
         let mut minutes = minutes;
 
         if minutes >= 60 {
@@ -86,18 +86,26 @@ impl Minutes {
         }
 
         // negative
-        if minutes < 0 {
-            let mut whole_hours = minutes / 60;
+        //        assert_eq!(Clock::new(3, -20), Clock::new(2, 40));
 
-            whole_hours = if whole_hours == 0 {
-                1
-            } else {
-                whole_hours + (-1)
-            };
+        if minutes < 0 {
+            let mut minutes_day = 24 * 60;
+            minutes_day += (hours * 60) + minutes;
+
+            // hours
+            let mut total_hours = minutes_day / 60;
+            let diff_minutes = minutes_day - total_hours * 60;
+            // let diff = minutes_day - 24 * 60;
+
+            if total_hours > 24 {
+                total_hours -= 24;
+            }
+
+            dbg!(total_hours);
 
             return Minutes {
-                minutes,
-                hours: 24 - whole_hours,
+                minutes: diff_minutes,
+                hours: total_hours - 1,
             };
         }
 
@@ -107,7 +115,7 @@ impl Minutes {
 
 impl Clock {
     pub fn new(hours: i32, minutes: i32) -> Self {
-        let minutes_s = Minutes::new(minutes);
+        let minutes_s = Minutes::new(minutes, hours);
 
         let hours = Hours::new(hours, minutes_s.hours).value();
 
