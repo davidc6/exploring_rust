@@ -85,16 +85,21 @@ impl Minutes {
             };
         }
 
-        // if minutes <= 60 {
-        //     let u_minutes = minutes as i32;
-        //     let whole_hours = u_minutes / 60;
-        //     minutes += whole_hours * 60;
+        // negative
+        if minutes < 0 {
+            let mut whole_hours = minutes / 60;
 
-        //     return Minutes {
-        //         minutes,
-        //         hours: whole_hours,
-        //     };
-        // }
+            whole_hours = if whole_hours == 0 {
+                1
+            } else {
+                whole_hours + (-1)
+            };
+
+            return Minutes {
+                minutes,
+                hours: 24 - whole_hours,
+            };
+        }
 
         Minutes { minutes, hours: 0 }
     }
