@@ -85,9 +85,6 @@ impl Minutes {
             };
         }
 
-        // negative
-        //        assert_eq!(Clock::new(3, -20), Clock::new(2, 40));
-
         if minutes < 0 {
             let mut minutes_day = 24 * 60;
             minutes_day += (hours * 60) + minutes;
@@ -100,8 +97,6 @@ impl Minutes {
             if total_hours > 24 {
                 total_hours -= 24;
             }
-
-            dbg!(total_hours);
 
             return Minutes {
                 minutes: diff_minutes,
