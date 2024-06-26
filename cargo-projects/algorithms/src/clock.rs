@@ -130,7 +130,7 @@ impl Clock {
         if total_hours >= 24 {
             let temp_hours = total_hours / 24;
             total_hours -= temp_hours * 24;
-        } else if (minutes < 0) {
+        } else if minutes < 0 {
             let total_minutes = 60 * 24 + minutes;
             let total_hours = total_minutes / 60; // 23
             let diff_minutes = 60 - (60 * 24 - total_minutes);
