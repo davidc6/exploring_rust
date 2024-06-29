@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{cmp::Ordering, fmt};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Clock {
@@ -50,9 +50,20 @@ impl Clock {
             ((round_hours * 60) - (24 * days * 60)) / 60
         };
 
-        if minutes_leftover == 60 {
-            time += 1;
-            minutes_leftover = 0
+        match minutes_leftover.cmp(&60) {
+            Ordering::Equal => {
+                time += 1;
+                minutes_leftover = 0;
+            }
+            Ordering::Greater => {
+                time += 1;
+                minutes_leftover -= 60;
+            }
+            Ordering::Less => {}
+        }
+
+        if time == 24 {
+            time = 0;
         }
 
         // -hours: -100 | minutes: -1000
