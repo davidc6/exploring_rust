@@ -30,6 +30,14 @@ impl fmt::Display for Clock {
 
 impl Clock {
     pub fn new(hours: i32, minutes: i32) -> Self {
+        // full clock
+        if hours == 24 && minutes == 0 {
+            return Clock {
+                hours: 0,
+                minutes: 0,
+            };
+        }
+
         // 100 1000                 | example hours and minutes
         // 100 * 60 = 6000 minutes  | total hours to minutes
         let hours_to_minutes = hours * 60;
@@ -102,19 +110,23 @@ impl Clock {
     }
 
     pub fn add_minutes(&self, minutes: i32) -> Self {
-        println!("{:?} {:?}", self.minutes, self.hours);
         let total_minutes = self.hours * 60 + self.minutes + minutes; // -1
         let mut total_hours = total_minutes / 60; // rounded
-
-        let minutes = total_minutes - (total_hours * 60);
+        let minutes_leftover = total_minutes - (total_hours * 60);
 
         if total_hours >= 24 {
             let temp_hours = total_hours / 24;
             total_hours -= temp_hours * 24;
-        } else if minutes < 0 {
-            let total_minutes = 60 * 24 + minutes;
-            let total_hours = total_minutes / 60; // 23
+        } else if minutes_leftover < 0 {
+            let total_minutes = 60 * 24 + minutes_leftover;
+            let mut total_hours = total_minutes / 60 + total_hours;
             let diff_minutes = 60 - (60 * 24 - total_minutes);
+
+            // total_hours = if total_hours == 23 && minutes_leftover < 60 {
+            //     23
+            // } else {
+            //     total_hours - 2
+            // };
 
             return Clock {
                 hours: total_hours,
@@ -124,7 +136,7 @@ impl Clock {
 
         Clock {
             hours: total_hours,
-            minutes,
+            minutes: minutes_leftover,
         }
     }
 }
