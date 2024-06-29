@@ -30,11 +30,6 @@ impl fmt::Display for Clock {
 
 impl Clock {
     pub fn new(hours: i32, minutes: i32) -> Self {
-        // let minutes_s = Minutes::new(minutes, hours);
-        // let hours = Hours::new(hours, minutes_s.hours).value();
-
-        // let day_minutes = 24 * 60;
-
         // 100 1000                 | example hours and minutes
         // 100 * 60 = 6000 minutes  | total hours to minutes
         let hours_to_minutes = hours * 60;
@@ -43,20 +38,48 @@ impl Clock {
         // 7000 / 60 = 116 (hours)  | round hours
         let round_hours = total_minutes / 60;
         // 7000 - 116 * 60 = 40     | minutes leftover
-        let minutes_leftover = total_minutes - round_hours * 60;
+        let mut minutes_leftover = total_minutes - round_hours * 60;
         // 116 / 24 = 4                | work out days
         let days = round_hours / 24;
         // 116 * 60 - 24 * 4 * 60 = 6960 -  5760 = 1200 / 60 = 20 | hours
-        let time = ((round_hours * 60) - (24 * days * 60)) / 60;
-        // 20:40
+        let mut time = if round_hours <= 0 {
+            minutes_leftover += 60;
+            let t = ((round_hours * 60) - (24 * days * 60)) / 60;
+            24 + t - 1
+        } else {
+            ((round_hours * 60) - (24 * days * 60)) / 60
+        };
 
-        // -1 -20
-        // -1 * 60 = -60 minutes
+        if minutes_leftover == 60 {
+            time += 1;
+            minutes_leftover = 0
+        }
+
+        // -hours: -100 | minutes: -1000
+        //
+        // -100 * 60 = -6000 minutes
         // let hours_to_minutes = hours * 60;
-        // -20 + -60 = -80
-        // let total_minutes = minutes + hours;
-        // -80 / 60 = -1
+        //
+        // -1000 + -6000 = -7000
+        // let total_minutes = minutes + hours_to_minutes;
+        //
+        // -7000 / 60 = -116
+        // let round_hours = total_minutes / 60
+        //
+        // -7000 - (-116 * 60) = -40
+
+        // days negative
+        // let days = round_hours / 24 = -4
+
+        // let time = if round_hours < 0 {
+        // 24 + (round_hours - 1)
+        // (round_hours * 60) - (24
+        // ((-6960) - (-5760)) / 60
+        // 24 - 20
+        //
+
         // -80 + (-1 * 60) = -20
+        //
         // 24 + (-1 + (-1)) = 22
         //  60 - 20
         // 22:40
