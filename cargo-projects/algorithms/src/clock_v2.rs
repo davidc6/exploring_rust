@@ -9,22 +9,22 @@ pub struct Clock {
 impl fmt::Display for Clock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // hours
-        let h = &self.hours;
-        let mut hh = format!("{}", h);
+        let hours = &self.hours;
+        let mut formatted_hours = format!("{}", hours);
 
-        if h < &10 {
-            hh = format!("0{}", h);
+        if hours < &10 {
+            formatted_hours = format!("0{}", hours);
         }
 
         // minutes
-        let m = &self.minutes;
-        let mut mm = format!("{}", m);
+        let minutes = &self.minutes;
+        let mut formatted_minutes = format!("{}", minutes);
 
-        if m < &10 {
-            mm = format!("0{}", m);
+        if minutes < &10 {
+            formatted_minutes = format!("0{}", self.minutes);
         }
 
-        write!(f, "{}:{}", hh, mm)
+        write!(f, "{}:{}", formatted_hours, formatted_minutes)
     }
 }
 
@@ -81,32 +81,32 @@ impl Clock {
     }
 
     pub fn add_minutes(&self, minutes: i32) -> Self {
-        let total_minutes = self.hours * 60 + self.minutes + minutes; // -1
-        let mut total_hours = total_minutes / 60; // rounded
-        let minutes_leftover = total_minutes - (total_hours * 60);
+        let total_minutes = self.hours * 60 + self.minutes + minutes;
+        let mut round_hours = total_minutes / 60; // rounded
+        let minutes_leftover = total_minutes - (round_hours * 60);
 
-        if total_hours >= 24 {
-            let temp_hours = total_hours / 24;
-            total_hours -= temp_hours * 24;
+        if round_hours >= 24 {
+            let temp_hours = round_hours / 24;
+            round_hours -= temp_hours * 24;
         } else if minutes_leftover < 0 {
             let total_minutes = 60 * 24 + minutes_leftover;
-            let mut total_hours = total_minutes / 60 + total_hours;
+            let mut round_hours = total_minutes / 60 + round_hours;
             let diff_minutes = 60 - (60 * 24 - total_minutes);
 
-            total_hours = if total_hours == 24 || total_hours == -24 {
+            round_hours = if round_hours == 24 || round_hours == -24 {
                 0
             } else {
-                total_hours
+                round_hours
             };
 
             return Clock {
-                hours: total_hours,
+                hours: round_hours,
                 minutes: diff_minutes,
             };
         }
 
         Clock {
-            hours: total_hours,
+            hours: round_hours,
             minutes: minutes_leftover,
         }
     }
