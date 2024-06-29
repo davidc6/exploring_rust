@@ -74,35 +74,6 @@ impl Clock {
             time = 0;
         }
 
-        // -hours: -100 | minutes: -1000
-        //
-        // -100 * 60 = -6000 minutes
-        // let hours_to_minutes = hours * 60;
-        //
-        // -1000 + -6000 = -7000
-        // let total_minutes = minutes + hours_to_minutes;
-        //
-        // -7000 / 60 = -116
-        // let round_hours = total_minutes / 60
-        //
-        // -7000 - (-116 * 60) = -40
-
-        // days negative
-        // let days = round_hours / 24 = -4
-
-        // let time = if round_hours < 0 {
-        // 24 + (round_hours - 1)
-        // (round_hours * 60) - (24
-        // ((-6960) - (-5760)) / 60
-        // 24 - 20
-        //
-
-        // -80 + (-1 * 60) = -20
-        //
-        // 24 + (-1 + (-1)) = 22
-        //  60 - 20
-        // 22:40
-
         Clock {
             hours: time,
             minutes: minutes_leftover,
@@ -122,11 +93,11 @@ impl Clock {
             let mut total_hours = total_minutes / 60 + total_hours;
             let diff_minutes = 60 - (60 * 24 - total_minutes);
 
-            // total_hours = if total_hours == 23 && minutes_leftover < 60 {
-            //     23
-            // } else {
-            //     total_hours - 2
-            // };
+            total_hours = if total_hours == 24 || total_hours == -24 {
+                0
+            } else {
+                total_hours
+            };
 
             return Clock {
                 hours: total_hours,
