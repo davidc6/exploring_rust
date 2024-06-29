@@ -8,23 +8,15 @@ pub struct Clock {
 
 impl fmt::Display for Clock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // hours
-        let hours = &self.hours;
-        let mut formatted_hours = format!("{}", hours);
-
-        if hours < &10 {
-            formatted_hours = format!("0{}", hours);
-        }
-
-        // minutes
-        let minutes = &self.minutes;
-        let mut formatted_minutes = format!("{}", minutes);
-
-        if minutes < &10 {
-            formatted_minutes = format!("0{}", self.minutes);
-        }
-
-        write!(f, "{}:{}", formatted_hours, formatted_minutes)
+        write!(
+            f,
+            "{}",
+            format_args!(
+                "{}:{}",
+                format!("{:0>2}", &self.hours),
+                format!("{:0>2}", &self.minutes)
+            )
+        )
     }
 }
 
