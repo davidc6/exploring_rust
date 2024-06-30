@@ -35,19 +35,17 @@ impl Clock {
         let hours_to_minutes = hours * 60;
         // 1000 + 6000 = 7000       | total minutes
         let total_minutes = minutes + hours_to_minutes;
-        // 7000 / 60 = 116 (hours)  | round hours
-        let round_hours = total_minutes / 60;
+        let round_hours = total_minutes.div_euclid(60);
         // 7000 - 116 * 60 = 40     | minutes leftover
         let mut minutes_leftover = total_minutes - round_hours * 60;
-        // 116 / 24 = 4                | work out days
-        let days = round_hours / 24;
-        // 116 * 60 - 24 * 4 * 60 = 6960 -  5760 = 1200 / 60 = 20 | hours
+        let days = round_hours.div_euclid(24);
+
         let mut time = if round_hours <= 0 {
             minutes_leftover += 60;
-            let t = ((round_hours * 60) - (24 * days * 60)) / 60;
+            let t = ((round_hours * 60) - (24 * days * 60)).div_euclid(60);
             24 + t - 1
         } else {
-            ((round_hours * 60) - (24 * days * 60)) / 60
+            ((round_hours * 60) - (24 * days * 60)).div_euclid(60)
         };
 
         match minutes_leftover.cmp(&60) {
@@ -64,6 +62,8 @@ impl Clock {
 
         if time == 24 {
             time = 0;
+        } else if time > 24 {
+            time -= 24;
         }
 
         Clock {
@@ -74,15 +74,15 @@ impl Clock {
 
     pub fn add_minutes(&self, minutes: i32) -> Self {
         let total_minutes = self.hours * 60 + self.minutes + minutes;
-        let mut round_hours = total_minutes / 60; // rounded
+        let mut round_hours = total_minutes.div_euclid(60); // rounded
         let minutes_leftover = total_minutes - (round_hours * 60);
 
         if round_hours >= 24 {
-            let temp_hours = round_hours / 24;
+            let temp_hours = round_hours.div_euclid(24);
             round_hours -= temp_hours * 24;
         } else if minutes_leftover < 0 {
             let total_minutes = 60 * 24 + minutes_leftover;
-            let mut round_hours = total_minutes / 60 + round_hours;
+            let mut round_hours = total_minutes.div_euclid(60) + round_hours;
             let diff_minutes = 60 - (60 * 24 - total_minutes);
 
             round_hours = if round_hours == 24 || round_hours == -24 {
@@ -95,6 +95,14 @@ impl Clock {
                 hours: round_hours,
                 minutes: diff_minutes,
             };
+        }
+
+        if round_hours < 0 {
+            round_hours += 24;
+
+            if round_hours == -24 {
+                round_hours = 0;
+            }
         }
 
         Clock {
