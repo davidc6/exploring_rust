@@ -38,14 +38,16 @@ impl Clock {
         let round_hours = total_minutes.div_euclid(60);
         // 7000 - 116 * 60 = 40     | minutes leftover
         let mut minutes_leftover = total_minutes - round_hours * 60;
-        let days = round_hours.div_euclid(24);
+        let days: i32 = round_hours.div_euclid(24);
 
         let mut time = if round_hours <= 0 {
             minutes_leftover += 60;
             let t = ((round_hours * 60) - (24 * days * 60)).div_euclid(60);
             24 + t - 1
         } else {
-            ((round_hours * 60) - (24 * days * 60)).div_euclid(60)
+            let diff = (round_hours * 60) - (24 * days * 60);
+            let minutes_left = diff.rem_euclid(60);
+            diff.div_euclid(60) + minutes_left
         };
 
         match minutes_leftover.cmp(&60) {
@@ -78,8 +80,8 @@ impl Clock {
         let minutes_leftover = total_minutes - (round_hours * 60);
 
         if round_hours >= 24 {
-            let temp_hours = round_hours.div_euclid(24);
-            round_hours -= temp_hours * 24;
+            let temp_days = round_hours.div_euclid(24);
+            round_hours -= temp_days * 24;
         } else if minutes_leftover < 0 {
             let total_minutes = 60 * 24 + minutes_leftover;
             let mut round_hours = total_minutes.div_euclid(60) + round_hours;
