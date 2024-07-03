@@ -62,11 +62,15 @@ impl Clock {
             Ordering::Less => {}
         }
 
-        if time == 24 {
-            time = 0;
-        } else if time > 24 {
-            time -= 24;
-        }
+        match time.cmp(&24) {
+            Ordering::Equal => {
+                time = 0;
+            }
+            Ordering::Greater => {
+                time -= 24;
+            }
+            Ordering::Less => {}
+        };
 
         Clock {
             hours: time,
