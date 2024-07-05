@@ -1,10 +1,5 @@
-use crate::{
-    commands::{ping::PONG, DataType},
-    data_chunk::DataChunk,
-    parser::Parser,
-    GenericResult,
-};
-use bytes::{Bytes, BytesMut};
+use crate::{commands::DataType, data_chunk::DataChunk, parser::Parser, GenericResult};
+use bytes::BytesMut;
 use std::{
     fmt::Display,
     io::{self, Cursor},

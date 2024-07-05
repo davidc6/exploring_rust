@@ -77,13 +77,11 @@ async fn main() -> GenericResult<()> {
             .write_complete_frame(&data_chunk_frame_as_str)
             .await?;
 
-        // stream.write_all(data_chunk_frame_as_str.as_bytes()).await?;
-        // stream.flush().await?;
-        let mut data_chunk = connection.process_stream().await?;
-        let data_chunk = DataChunk::read_chunk(&mut data_chunk).unwrap();
-        let mut data_chunk = Parser::new(data_chunk).unwrap();
-
-        let bytes_read = DataChunk::read_chunk_frame(&mut data_chunk).await.unwrap();
+        // read in the response
+        let mut buffer = connection.process_stream().await?;
+        let data_chunk = DataChunk::read_chunk(&mut buffer).unwrap();
+        let mut parser = Parser::new(data_chunk).unwrap();
+        let bytes_read = DataChunk::read_chunk_frame(&mut parser).await.unwrap();
 
         stdout().write_all(&bytes_read)?;
         stdout().write_all(b"\r\n")?;

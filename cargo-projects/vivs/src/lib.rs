@@ -1,7 +1,6 @@
 #![deny(clippy::unwrap_in_result)]
 
 pub mod data_chunk;
-// use client::read_chunk_frame;
 use data_chunk::DataChunk;
 
 pub mod listener;
@@ -76,7 +75,7 @@ impl Client {
         let frame = format!("*2\r\n$3\r\nGET\r\n${}\r\n{}\r\n", value.len(), value);
         let _ = self.connection.write_complete_frame(&frame).await;
 
-        let mut cursored_buffer = self.connection.process_stream().await;
+        let cursored_buffer = self.connection.process_stream().await;
         let processed_stream = DataChunk::read_chunk(&mut cursored_buffer.unwrap());
         let processed_stream = Parser::new(processed_stream.unwrap());
 
