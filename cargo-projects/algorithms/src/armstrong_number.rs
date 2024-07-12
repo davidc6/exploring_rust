@@ -24,12 +24,12 @@ pub fn is_armstrong_number(num: u32) -> bool {
         println!(
             "NUM {:?} {} {:?}",
             i,
-            // ((num as f64 / base as f64).fract() * 10.0),
-            num / 10,
+            // ((num as f64 / base as f64).fract()),
+            // (num as f64 * 100.0).round() / 100.0,
+            num as f64 / 10.0,
+            // Decimal::from_f64_retain(n).unwrap();
             digit
         );
-
-        // base /= 10;
 
         sum += digit.pow(digit_count as u32);
     }
