@@ -1,38 +1,20 @@
 pub fn is_armstrong_number(num: u32) -> bool {
-    let mut base = 10;
-    let mut digit_count = 1;
+    let mut digits: Vec<u32> = Vec::with_capacity(20);
+    let mut number = num;
 
-    while num / base != 0 {
-        let r = base.checked_mul(10);
-
-        if r.is_none() {
-            break;
+    while number > 0 {
+        let n = number % 10;
+        number /= 10;
+        digits.push(n);
+    }
+    let digits_count = digits.len() as u32;
+    let sum = digits.into_iter().fold(0, |acc: u32, v| {
+        if let Some(result) = acc.checked_add(v.pow(digits_count)) {
+            result
+        } else {
+            acc
         }
-
-        base = r.unwrap();
-        digit_count += 1;
-    }
-
-    base = 1;
-    let mut sum = 0;
-
-    for i in 0..digit_count {
-        base *= 10;
-
-        let digit = ((num as f64 / base as f64).fract() * 10.0) as u32;
-
-        println!(
-            "NUM {:?} {} {:?}",
-            i,
-            // ((num as f64 / base as f64).fract()),
-            // (num as f64 * 100.0).round() / 100.0,
-            num as f64 / 10.0,
-            // Decimal::from_f64_retain(n).unwrap();
-            digit
-        );
-
-        sum += digit.pow(digit_count as u32);
-    }
+    });
 
     if sum == num {
         return true;
