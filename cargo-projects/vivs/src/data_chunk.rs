@@ -3,7 +3,7 @@ use atoi::atoi;
 use bytes::{Buf, Bytes};
 use std::{fmt, io::Cursor, num::TryFromIntError, str::Utf8Error, vec::IntoIter};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DataChunkError {
     Insufficient,
     Unknown(String),
@@ -67,9 +67,10 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, Da
 fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChunkError> {
     // get current position and total length
     let current_position = cursored_buffer.position() as usize;
+    // get the number of elements in the underlying slice
     let length = cursored_buffer.get_ref().len();
 
-    for position in current_position..length + 1 {
+    for position in current_position..length {
         // checks current and next bytes
         if cursored_buffer.get_ref()[position] == b'\r'
             && cursored_buffer.get_ref()[position + 1] == b'\n'
@@ -310,5 +311,51 @@ impl DataChunk {
                 n
             ))),
         }
+    }
+}
+
+#[cfg(test)]
+mod data_chunk_tests {
+    use super::*;
+
+    #[test]
+    fn number_of_oks() {
+        let c = [49, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&c[..]);
+        let actual = number_of(&mut cursored_buffer);
+
+        assert_eq!(actual, Ok(1));
+    }
+
+    #[test]
+    fn number_of_oks_with_digit_and_chars() {
+        let c = [50, 111, 112, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&c[..]);
+        let actual = number_of(&mut cursored_buffer);
+
+        assert_eq!(actual, Ok(2));
+    }
+
+    #[test]
+    fn number_of_picks_the_first_number() {
+        let c = [49, 111, 112, 57, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&c[..]);
+        let actual = number_of(&mut cursored_buffer);
+
+        assert_eq!(actual, Ok(1));
+    }
+
+    #[test]
+    fn number_of_errors_when_no_digits() {
+        let c = [111, 112, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&c[..]);
+        let actual = number_of(&mut cursored_buffer);
+
+        assert_eq!(
+            actual,
+            Err(DataChunkError::Parse(
+                "Failed to parse an integer from a slice".to_owned()
+            ))
+        );
     }
 }
