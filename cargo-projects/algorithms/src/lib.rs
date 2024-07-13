@@ -1,4 +1,6 @@
 pub mod armstrong_number;
+pub mod armstrong_number_no_conversion;
+
 pub mod clock;
 pub mod clock_v2;
 pub mod gigaseconds;
