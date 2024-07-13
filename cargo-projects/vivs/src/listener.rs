@@ -7,12 +7,15 @@ pub struct Listener {
     pub db: DataStore,
 }
 
-/// Constructs, listens to incoming connections and assembles their processing
 impl Listener {
+    /// Creates a `Listener`.
+    ///
+    /// `TcpListener` and `DataStore` get injected via the two parameters.
     pub fn new(tcp_listener: TcpListener, db: DataStore) -> Self {
         Listener { tcp_listener, db }
     }
 
+    /// Starts listening to the incoming connections and processes these connections accordingly.
     pub async fn run(self) -> GenericResult<()> {
         info!("Server initialised");
         info!("Listening for connections");
