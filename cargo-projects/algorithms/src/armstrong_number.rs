@@ -3,10 +3,11 @@ pub fn is_armstrong_number(num: u32) -> bool {
     let mut number = num;
 
     while number > 0 {
-        let n = number % 10;
+        let current_digit = number % 10;
         number /= 10;
-        digits.push(n);
+        digits.push(current_digit);
     }
+
     let digits_count = digits.len() as u32;
     let sum = digits.into_iter().fold(0, |acc: u32, v| {
         if let Some(result) = acc.checked_add(v.pow(digits_count)) {
