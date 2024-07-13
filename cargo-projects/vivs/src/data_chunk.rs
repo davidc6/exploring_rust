@@ -358,4 +358,23 @@ mod data_chunk_tests {
             ))
         );
     }
+
+    #[test]
+    fn line_returns_data_before_eol() {
+        let c = [50, 111, 112, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&c[..]);
+        let actual = line(&mut cursored_buffer);
+
+        let expected = [50, 111, 112];
+        assert_eq!(actual, Ok(&expected[0..]));
+    }
+
+    #[test]
+    fn line_returns_err_if_no_eol() {
+        let c = [50, 111, 112];
+        let mut cursored_buffer = Cursor::new(&c[..]);
+        let actual = line(&mut cursored_buffer);
+
+        assert_eq!(actual, Err(DataChunkError::Insufficient));
+    }
 }
