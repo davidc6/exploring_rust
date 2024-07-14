@@ -103,7 +103,7 @@ mod server {
     }
 
     #[tokio::test]
-    async fn set_and_delete_key() {
+    async fn set_delete_and_attempt_to_get_key() {
         let addr = init_server().await;
 
         let mut stream = TcpStream::connect(addr)
