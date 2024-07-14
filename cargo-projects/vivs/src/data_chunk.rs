@@ -70,6 +70,10 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChun
     // get the number of elements in the underlying slice
     let length = cursored_buffer.get_ref().len();
 
+    if length == 0 {
+        return Err(DataChunkError::Insufficient);
+    }
+
     for position in current_position..length {
         // checks current and next bytes
         if cursored_buffer.get_ref()[position] == b'\r'
@@ -319,38 +323,39 @@ mod data_chunk_tests {
     use super::*;
 
     #[test]
-    fn number_of_oks() {
-        let c = [49, b'\r', b'\n'];
-        let mut cursored_buffer = Cursor::new(&c[..]);
+    fn number_of_works() {
+        let cursor_inner = [49, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
+
         let actual = number_of(&mut cursored_buffer);
 
         assert_eq!(actual, Ok(1));
     }
 
     #[test]
-    fn number_of_oks_with_digit_and_chars() {
-        let c = [50, 111, 112, b'\r', b'\n'];
-        let mut cursored_buffer = Cursor::new(&c[..]);
-        let actual = number_of(&mut cursored_buffer);
+    fn number_of_works_with_digit_and_chars() {
+        let cursor_inner = [50, 111, 112, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
 
+        let actual = number_of(&mut cursored_buffer);
         assert_eq!(actual, Ok(2));
     }
 
     #[test]
     fn number_of_picks_the_first_number() {
-        let c = [49, 111, 112, 57, b'\r', b'\n'];
-        let mut cursored_buffer = Cursor::new(&c[..]);
-        let actual = number_of(&mut cursored_buffer);
+        let cursor_inner = [49, 111, 112, 57, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
 
+        let actual = number_of(&mut cursored_buffer);
         assert_eq!(actual, Ok(1));
     }
 
     #[test]
-    fn number_of_errors_when_no_digits() {
-        let c = [111, 112, b'\r', b'\n'];
-        let mut cursored_buffer = Cursor::new(&c[..]);
-        let actual = number_of(&mut cursored_buffer);
+    fn number_of_returns_err_when_no_digits_in_value() {
+        let cursor_inner = [111, 112, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
 
+        let actual = number_of(&mut cursored_buffer);
         assert_eq!(
             actual,
             Err(DataChunkError::Parse(
@@ -361,20 +366,30 @@ mod data_chunk_tests {
 
     #[test]
     fn line_returns_data_before_eol() {
-        let c = [50, 111, 112, b'\r', b'\n'];
-        let mut cursored_buffer = Cursor::new(&c[..]);
-        let actual = line(&mut cursored_buffer);
+        let cursor_inner = [50, 111, 112, b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
 
+        let actual = line(&mut cursored_buffer);
         let expected = [50, 111, 112];
         assert_eq!(actual, Ok(&expected[0..]));
     }
 
     #[test]
     fn line_returns_err_if_no_eol() {
-        let c = [50, 111, 112];
-        let mut cursored_buffer = Cursor::new(&c[..]);
-        let actual = line(&mut cursored_buffer);
+        let cursor_inner = [50, 111, 112];
+        let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
 
+        let actual = line(&mut cursored_buffer);
         assert_eq!(actual, Err(DataChunkError::Insufficient));
+    }
+
+    #[test]
+    fn line_returns_err_if_no_values_before_eol() {
+        let cursor_inner = [b'\r', b'\n'];
+        let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
+
+        let actual = line(&mut cursored_buffer);
+        let expected = [];
+        assert_eq!(actual, Ok(&expected[..]));
     }
 }
