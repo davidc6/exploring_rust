@@ -372,6 +372,7 @@ mod data_chunk_tests {
         let actual = line(&mut cursored_buffer);
         let expected = [50, 111, 112];
         assert_eq!(actual, Ok(&expected[0..]));
+        assert_eq!(cursored_buffer.position(), 5);
     }
 
     #[test]
@@ -381,15 +382,26 @@ mod data_chunk_tests {
 
         let actual = line(&mut cursored_buffer);
         assert_eq!(actual, Err(DataChunkError::Insufficient));
+        assert_eq!(cursored_buffer.position(), 0);
     }
 
     #[test]
-    fn line_returns_err_if_no_values_before_eol() {
+    fn line_returns_empty_slice_if_no_values_before_eol() {
         let cursor_inner = [b'\r', b'\n'];
         let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
 
         let actual = line(&mut cursored_buffer);
         let expected = [];
         assert_eq!(actual, Ok(&expected[..]));
+        assert_eq!(cursored_buffer.position(), 2);
+    }
+
+    #[test]
+    fn line_returns_err_if_no_values_in_buffer() {
+        let cursor_inner = [];
+        let mut cursored_buffer = Cursor::new(&cursor_inner[..]);
+
+        let actual = line(&mut cursored_buffer);
+        assert_eq!(actual, Err(DataChunkError::Insufficient));
     }
 }
