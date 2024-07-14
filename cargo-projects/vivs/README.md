@@ -13,7 +13,7 @@ To run:
 cargo run --bin vivs
 
 # server with logs
-RUST_LOG=vivs --bin vivs
+RUST_LOG=vivs cargo run --bin vivs
 
 # client / repl, to execute commands
 cargo run --bin vivs-repl

@@ -58,7 +58,7 @@ impl Connection {
         }
     }
 
-    /// Reads and processes a stream of bytes from the TCP stream
+    /// Reads and processes a stream of bytes from the TCP stream.
     pub async fn read_and_process_stream(&mut self) -> GenericResult<DataChunkFrame> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared, it will be just appending to the buffer
