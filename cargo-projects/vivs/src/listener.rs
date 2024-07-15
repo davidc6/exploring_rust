@@ -15,7 +15,7 @@ impl Listener {
         Listener { tcp_listener, db }
     }
 
-    /// Starts listening to the incoming connections and processes these connections accordingly.
+    /// Starts listening to the incoming connections and processes accordingly.
     pub async fn run(self) -> GenericResult<()> {
         info!("Server initialised");
         info!("Listening for connections");

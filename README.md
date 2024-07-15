@@ -26,6 +26,6 @@ This repo contains a collection of Rust projects, exercises and notes.
 - GCD - [Greatest common divisor](./cargo-projects/greatest-common-divisor/)
 - String splitter and most repeated character identifier - [StrSplit](./cargo-projects/strsplit/)
 
-### Interesting reads / resources
+#### Interesting reads / resources
 
 - The Rust Programming Language (in HFTs) - https://markrbest.github.io/hft-and-rust/
