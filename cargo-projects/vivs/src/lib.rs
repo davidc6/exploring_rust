@@ -57,13 +57,17 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn new() -> Result<Self, core::fmt::Error> {
-        let address = format!("127.0.0.1:{}", PORT);
-        let stream = TcpStream::connect(address).await;
-        let connection = Connection::new(stream.unwrap());
+    pub async fn new() -> GenericResult<Self> {
+        let stream = TcpStream::connect(format!("127.0.0.1:{}", PORT)).await?;
+        let connection = Connection::new(stream);
         Ok(Client { connection })
     }
 
+    /// TODO(IMPROVEMENT)
+    ///
+    /// Current implementation is very manual and basic.
+    /// The idea is to eventually move to something like:
+    /// client::command.set("get").set("key").conn(self.connection)?;
     pub async fn get(&mut self, value: String) -> Option<String> {
         // e.g. *2\r\n$3\r\GET\r\n$4\r\nMary\r\n
         let frame = format!("*2\r\n$3\r\nGET\r\n${}\r\n{}\r\n", value.len(), value);
@@ -76,6 +80,9 @@ impl Client {
         }
     }
 
+    /// TODO(IMPROVEMENT)
+    ///
+    /// Same as get()
     pub async fn set(&mut self, key: String, value: String) -> String {
         // e.g. *3\r\n$3\r\nSET\r\n$4\r\nname\r\n$4\r\nMary\r\n
         let frame = format!(
