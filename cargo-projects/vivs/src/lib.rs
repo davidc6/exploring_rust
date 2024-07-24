@@ -97,4 +97,33 @@ impl Client {
         let frame_utf8 = std::str::from_utf8(&frame);
         frame_utf8.unwrap().to_owned()
     }
+
+    pub async fn delete(&mut self, key: String) -> String {
+        let frame = format!("*2\r\n$6\r\nDELETE\r\n${}\r\n{}\r\n", key.len(), key);
+        let _ = self.connection.write_complete_frame(&frame).await;
+        let mut frame = self.connection.read_and_process_stream().await.unwrap();
+
+        let frame_utf8 = match frame.next() {
+            Some(DataChunk::Null) => "0".to_owned(),
+            Some(DataChunk::Integer(val)) => {
+                // convert Bytes to bytes array
+                // then determine endianness to create u64 integer value from the bytes array
+                // and return integer as string
+                let bytes_slice = val.slice(0..8);
+
+                // converts the slice to an array of u8 elements (since u64 is 8 bytes)
+                let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
+                let integer_as_string = if cfg!(target_endian = "big") {
+                    u64::from_be_bytes(arr_u8)
+                } else {
+                    u64::from_le_bytes(arr_u8)
+                }
+                .to_string();
+                integer_as_string
+            }
+            _ => "0".to_owned(),
+        };
+
+        frame_utf8
+    }
 }
