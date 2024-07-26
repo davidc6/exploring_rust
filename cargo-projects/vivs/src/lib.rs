@@ -63,7 +63,7 @@ impl Client {
         Ok(Client { connection })
     }
 
-    /// TODO(IMPROVEMENT)
+    /// TODO: IMPROVEMENT
     ///
     /// Current implementation is very manual and basic.
     /// The idea is to eventually move to something like:
@@ -80,7 +80,7 @@ impl Client {
         }
     }
 
-    /// TODO(IMPROVEMENT)
+    /// TODO: IMPROVEMENT
     ///
     /// Same as get()
     pub async fn set(&mut self, key: String, value: String) -> String {
@@ -101,27 +101,31 @@ impl Client {
     pub async fn delete(&mut self, key: String) -> String {
         let frame = format!("*2\r\n$6\r\nDELETE\r\n${}\r\n{}\r\n", key.len(), key);
         let _ = self.connection.write_complete_frame(&frame).await;
-        let mut frame = self.connection.read_and_process_stream().await.unwrap();
+        let frame = self.connection.read_and_process_stream().await;
 
-        match frame.next() {
-            Some(DataChunk::Null) => "0".to_owned(),
-            Some(DataChunk::Integer(val)) => {
-                // convert Bytes to bytes array
-                // then determine endianness to create u64 integer value from the bytes array
-                // and return integer as string
-                let bytes_slice = val.slice(0..8);
+        if let Ok(mut frame) = frame {
+            return match frame.next() {
+                Some(DataChunk::Null) => "0".to_owned(),
+                Some(DataChunk::Integer(val)) => {
+                    // convert Bytes to bytes array
+                    // then determine endianness to create u64 integer value from the bytes array
+                    // and return integer as string
+                    let bytes_slice = val.slice(0..8);
 
-                // converts the slice to an array of u8 elements (since u64 is 8 bytes)
-                let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
+                    // converts the slice to an array of u8 elements (since u64 is 8 bytes)
+                    let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
 
-                if cfg!(target_endian = "big") {
-                    u64::from_be_bytes(arr_u8)
-                } else {
-                    u64::from_le_bytes(arr_u8)
+                    if cfg!(target_endian = "big") {
+                        u64::from_be_bytes(arr_u8)
+                    } else {
+                        u64::from_le_bytes(arr_u8)
+                    }
+                    .to_string()
                 }
-                .to_string()
-            }
-            _ => "0".to_owned(),
+                _ => "0".to_owned(),
+            };
         }
+
+        "0".to_owned()
     }
 }
