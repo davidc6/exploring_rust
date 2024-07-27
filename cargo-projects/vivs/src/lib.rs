@@ -1,3 +1,5 @@
+#![deny(clippy::unwrap_in_result)]
+
 // include the code found in src/listener.rs
 pub mod listener;
 use data_chunk::DataChunk;

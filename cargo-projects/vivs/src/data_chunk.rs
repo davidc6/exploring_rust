@@ -41,10 +41,10 @@ impl From<TryFromIntError> for DataChunkError {
 impl fmt::Display for DataChunkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DataChunkError::Parse(e) => format!("protocol error: {:?}", e).fmt(f),
+            DataChunkError::Parse(e) => format!("Protocol error: {:?}", e).fmt(f),
             DataChunkError::Unknown(err) => err.fmt(f),
-            DataChunkError::Insufficient => "error".fmt(f),
-            DataChunkError::NonExistent => "no next value in the iterator".fmt(f),
+            DataChunkError::Insufficient => "Error".fmt(f),
+            DataChunkError::NonExistent => "No next value in the iterator".fmt(f),
             DataChunkError::Other(val) => val.fmt(f),
         }
     }
@@ -52,7 +52,7 @@ impl fmt::Display for DataChunkError {
 
 // Gets number of either elements in array or string char count
 // TODO - need to stop parsing at the end of the line
-fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> std::result::Result<u64, DataChunkError> {
+fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> Result<u64, DataChunkError> {
     let slice = line(cursored_buffer)?;
 
     atoi::<u64>(slice).ok_or(DataChunkError::Parse(
@@ -290,14 +290,16 @@ impl DataChunk {
             b'+' => {
                 // up to \r\n
                 let str_line = line(cursored_buffer);
-                let len = str_line.as_ref().unwrap().len();
-                let bulk_str_data = Bytes::copy_from_slice(&str_line.unwrap().chunk()[..len]);
+                let default = [];
+                let len = str_line.as_ref().unwrap_or(&&default[0..]).len();
+                let bulk_str_data =
+                    Bytes::copy_from_slice(&str_line.unwrap_or_default().chunk()[..len]);
                 Ok(DataChunk::Bulk(bulk_str_data))
             }
             // e.g. :1
             b':' => {
                 let n = line(cursored_buffer);
-                let integer = Bytes::copy_from_slice(n.unwrap());
+                let integer = Bytes::copy_from_slice(n.unwrap_or_default());
                 Ok(DataChunk::Integer(integer))
             }
             // null value
@@ -305,7 +307,7 @@ impl DataChunk {
             // error value
             b'-' => {
                 let err = line(cursored_buffer);
-                let copied_err = Bytes::copy_from_slice(err.unwrap());
+                let copied_err = Bytes::copy_from_slice(err.unwrap_or_default());
                 Ok(DataChunk::SimpleError(copied_err))
             }
             // everything else, catch-all case
