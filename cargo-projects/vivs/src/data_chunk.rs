@@ -61,6 +61,7 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> Result<u64, DataChunkError>
 }
 
 /// Tries to find EOL i.e. end of line (\r\n - carriage return(CR) and line feed (LF)).
+///
 /// Returns a slice before EOL and advances (increments by 2) the Cursor to the next position
 /// which is after EOL. The return value is a slice of bytes if parsed
 /// correctly or Err otherwise.
@@ -175,13 +176,21 @@ impl DataChunk {
     }
 
     /// Splits a string slice by whitespace,
-    /// and then builds a String of commands and values.
-    /// Additionally, this method takes into account strings with spaces,
-    /// that are surrounded by " or '.
+    /// and builds a String of commands and values.
+    /// Additionally, this method takes into account strings with spaces
+    /// that are surrounded by " (double quotes) or ' (single quotes).
     ///
     /// This associated function is used by the REPL implementation,
     /// to convert commands to a parsable String which then
     /// gets written as bytes to the tcp stream.
+    ///
+    /// # Example
+    ///
+    /// The following string received from the REPL:
+    /// SET some-key some-value
+    ///
+    /// will get transformed into this string:
+    /// *3\r\n$3\r\nSET\r\$8\r\nsome-key\r\n$10\r\nsome-value\r\n
     pub fn from_string(value: &str) -> String {
         let mut elements: Vec<String> = vec![];
         let mut start_position = 0;
@@ -235,7 +244,7 @@ impl DataChunk {
     }
 
     /// Parses the data type (first byte sign like +, :, $ etc)
-    /// then get the value that comes after it.
+    /// then gets the value that comes after it.
     ///
     /// This can be the number of elements in the array (in the case of *)
     /// or the string size (in the case of $).
