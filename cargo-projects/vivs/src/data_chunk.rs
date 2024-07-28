@@ -14,6 +14,7 @@ pub enum DataChunkError {
 
 impl std::error::Error for DataChunkError {}
 
+// For next_as_str() method
 impl From<Utf8Error> for DataChunkError {
     fn from(e: Utf8Error) -> Self {
         DataChunkError::Other(e)
@@ -97,17 +98,19 @@ pub struct DataChunkFrame {
 // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
 impl DataChunkFrame {
     #[allow(clippy::should_implement_trait)]
-    /// Tries to return the next element in the collection.
-    /// Returns an error otherwise
+    /// Tries to return the next element in the collection,
+    /// returns an error otherwise.
     pub fn next(&mut self) -> Option<DataChunk> {
         self.segments.next()
     }
 
-    /// Tries to return next element in the collection/segments.
-    /// If the element exists then a String type gets returned.
-    /// Other an Error is returned.
-    /// The reason the error is returned is because we attempt to convert a
-    /// slice of bytes to string slice in the match expression.
+    /// Tries to get next element in the collection/segments.
+    ///
+    /// If the element exists then a String type gets returned,
+    /// otherwise an error is returned.
+    ///
+    /// The reason for the Result return type is because we attempt to convert a
+    /// slice of bytes to a string slice in the match expression if it can potentially error.
     pub fn next_as_str(&mut self) -> Result<Option<String>, DataChunkError> {
         let Some(segment) = self.segments.next() else {
             return Ok(None);
@@ -134,13 +137,13 @@ impl DataChunkFrame {
         self.segments.len()
     }
 
-    pub fn push_bulk_str(mut self, b: Bytes) -> Self {
-        // TODO - this is a hack (for now).
+    pub fn push_bulk_str(mut self, bytes: Bytes) -> Self {
+        // TODO: this is a hack (for now).
         // Convert iterator to vector in order to push data chunks into it.
         // This functionality is part of the so called "client encoder".
-        let mut v: Vec<DataChunk> = self.segments.collect();
-        v.push(DataChunk::Bulk(b));
-        self.segments = v.into_iter();
+        let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
+        data_chunks_collection.push(DataChunk::Bulk(bytes));
+        self.segments = data_chunks_collection.into_iter();
         self
     }
 }
