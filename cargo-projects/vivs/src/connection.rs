@@ -74,7 +74,8 @@ impl Connection {
             let mut cursored_buffer = Cursor::new(&self.buffer[..]);
 
             // Data frame parsed and structured
-            return DataChunk::new(&mut cursored_buffer);
+            // return DataChunk::new(&mut cursored_buffer);
+            return DataChunkFrame::new(&mut cursored_buffer);
         }
 
         // 0 read bytes usually indicates end of stream/connection closed status and could be because:

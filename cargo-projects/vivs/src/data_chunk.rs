@@ -98,11 +98,23 @@ pub struct DataChunkFrame {
 
 // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
 impl DataChunkFrame {
-    #[allow(clippy::should_implement_trait)]
-    /// Tries to return the next element in the collection,
-    /// returns an error otherwise.
-    pub fn next(&mut self) -> Option<DataChunk> {
-        self.segments.next()
+    #![allow(clippy::new_ret_no_self)]
+    /// Constructs DataChunkFrame by parsing the incoming buffer
+    pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> GenericResult<Self> {
+        let commands = DataChunk::parse(cursored_buffer);
+
+        let data_chunks_vec = match commands {
+            Ok(DataChunk::Array(val)) => val,
+            Ok(DataChunk::Bulk(value)) => vec![DataChunk::Bulk(value)],
+            Ok(DataChunk::Null) => vec![DataChunk::Null],
+            Ok(DataChunk::Integer(value)) => vec![DataChunk::Integer(value)],
+            Ok(DataChunk::SimpleError(value)) => vec![DataChunk::SimpleError(value)],
+            Err(e) => return Err(e.into()),
+        };
+
+        let segments = data_chunks_vec.into_iter();
+
+        Ok(DataChunkFrame { segments })
     }
 
     /// Tries to get next element in the collection/segments.
@@ -149,6 +161,14 @@ impl DataChunkFrame {
     }
 }
 
+impl Iterator for DataChunkFrame {
+    type Item = DataChunk;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.segments.next()
+    }
+}
+
 #[derive(Debug, Default)]
 pub enum DataChunk {
     Array(Vec<DataChunk>),
@@ -160,25 +180,6 @@ pub enum DataChunk {
 }
 
 impl DataChunk {
-    #![allow(clippy::new_ret_no_self)]
-    /// Constructs DataChunkFrame by parsing the incoming buffer
-    pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> GenericResult<DataChunkFrame> {
-        let commands = DataChunk::parse(cursored_buffer);
-
-        let data_chunks_vec = match commands {
-            Ok(DataChunk::Array(val)) => val,
-            Ok(DataChunk::Bulk(value)) => vec![DataChunk::Bulk(value)],
-            Ok(DataChunk::Null) => vec![DataChunk::Null],
-            Ok(DataChunk::Integer(value)) => vec![DataChunk::Integer(value)],
-            Ok(DataChunk::SimpleError(value)) => vec![DataChunk::SimpleError(value)],
-            Err(e) => return Err(e.into()),
-        };
-
-        let segments = data_chunks_vec.into_iter();
-
-        Ok(DataChunkFrame { segments })
-    }
-
     /// Splits a string slice by whitespace,
     /// and builds a String of commands and values.
     /// Additionally, this method takes into account strings with spaces
