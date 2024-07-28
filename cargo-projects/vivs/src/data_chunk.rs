@@ -246,6 +246,66 @@ impl DataChunk {
         format!("*{commands_count}{commands}")
     }
 
+    fn parse_array(cursored_buffer: &mut Cursor<&[u8]>) -> Result<DataChunk, DataChunkError> {
+        // Using range expression ( .. ) which implements Iterator trait,
+        // enables to map over each element then collect iterator into a vector.
+        let number = number_of(cursored_buffer)?;
+        let commands = (0..number)
+            .map(|_| {
+                DataChunk::parse(cursored_buffer).unwrap_or_else(|_| panic!("Could not parse"))
+            })
+            .collect::<Vec<DataChunk>>();
+
+        Ok(DataChunk::Array(commands))
+    }
+
+    fn parse_bulk_strings(
+        cursored_buffer: &mut Cursor<&[u8]>,
+    ) -> Result<DataChunk, DataChunkError> {
+        // Not parsing, just getting length of string.
+        let str_len = number_of(cursored_buffer)?.try_into()?;
+
+        // TODO: handle the case where we haven't received CR and LF
+
+        // Compare if indicated ($[4]) and actual lengths are the same,
+        // since string length cannot be more that the length of the buffer itself.
+        if str_len > cursored_buffer.chunk().len() {
+            return Err(DataChunkError::Insufficient);
+        }
+
+        // cursored_buffer.chunk().len() is the length of the whole buffer
+        let bulk_str_data = Bytes::copy_from_slice(&cursored_buffer.chunk()[..str_len]);
+        // advance the interval position (+2 because of \r and \n) as we've now gotten the needed bulk string
+        cursored_buffer.advance(str_len + 2);
+
+        Ok(DataChunk::Bulk(bulk_str_data))
+    }
+
+    fn parse_simple_string(
+        cursored_buffer: &mut Cursor<&[u8]>,
+    ) -> Result<DataChunk, DataChunkError> {
+        // up to \r\n
+        let str_line = line(cursored_buffer);
+        let default = [];
+        let len = str_line.as_ref().unwrap_or(&&default[0..]).len();
+        let bulk_str_data = Bytes::copy_from_slice(&str_line.unwrap_or_default().chunk()[..len]);
+        Ok(DataChunk::Bulk(bulk_str_data))
+    }
+
+    fn parse_integer(cursored_buffer: &mut Cursor<&[u8]>) -> Result<DataChunk, DataChunkError> {
+        let n = line(cursored_buffer);
+        let integer = Bytes::copy_from_slice(n.unwrap_or_default());
+        Ok(DataChunk::Integer(integer))
+    }
+
+    fn parse_simple_errors(
+        cursored_buffer: &mut Cursor<&[u8]>,
+    ) -> Result<DataChunk, DataChunkError> {
+        let err = line(cursored_buffer);
+        let copied_err = Bytes::copy_from_slice(err.unwrap_or_default());
+        Ok(DataChunk::SimpleError(copied_err))
+    }
+
     /// Parses the data type (first byte sign like +, :, $ etc)
     /// then gets the value that comes after it.
     ///
@@ -264,64 +324,20 @@ impl DataChunk {
         let n = cursored_buffer.get_u8();
 
         match n {
-            // e.g. *1
-            b'*' => {
-                // Using range expression ( .. ) which implements Iterator trait,
-                // enables to map over each element then collect iterator into a vector.
-                let number = number_of(cursored_buffer)?;
-                let commands = (0..number)
-                    .map(|_| {
-                        DataChunk::parse(cursored_buffer)
-                            .unwrap_or_else(|_| panic!("Could not parse"))
-                    })
-                    .collect::<Vec<DataChunk>>();
-
-                Ok(DataChunk::Array(commands))
-            }
-            // e.g. $4
-            b'$' => {
-                // Not parsing, just getting length of string.
-                let str_len = number_of(cursored_buffer)?.try_into()?;
-
-                // TODO: handle the case where we haven't received CR and LF
-
-                // Compare if indicated ($[4]) and actual lengths are the same,
-                // since string length cannot be more that the length of the buffer itself.
-                if str_len > cursored_buffer.chunk().len() {
-                    return Err(DataChunkError::Insufficient);
-                }
-
-                // cursored_buffer.chunk().len() is the length of the whole buffer
-                let bulk_str_data = Bytes::copy_from_slice(&cursored_buffer.chunk()[..str_len]);
-                // advance the interval position (+2 because of \r and \n) as we've now gotten the needed bulk string
-                cursored_buffer.advance(str_len + 2);
-
-                Ok(DataChunk::Bulk(bulk_str_data))
-            }
-            // e.g. +PING
-            b'+' => {
-                // up to \r\n
-                let str_line = line(cursored_buffer);
-                let default = [];
-                let len = str_line.as_ref().unwrap_or(&&default[0..]).len();
-                let bulk_str_data =
-                    Bytes::copy_from_slice(&str_line.unwrap_or_default().chunk()[..len]);
-                Ok(DataChunk::Bulk(bulk_str_data))
-            }
-            // e.g. :1
-            b':' => {
-                let n = line(cursored_buffer);
-                let integer = Bytes::copy_from_slice(n.unwrap_or_default());
-                Ok(DataChunk::Integer(integer))
-            }
+            // e.g. *1 (denotes the number of elements in the commands / values array: 1 element)
+            b'*' => Self::parse_array(cursored_buffer),
+            // e.g. $4 (denotes the length of the next element in the array: 4 bytes)
+            b'$' => Self::parse_bulk_strings(cursored_buffer),
+            // e.g. +PING (generally used as a response to a command,
+            // for example is the incoming command is PING, the response would be +PONG)
+            b'+' => Self::parse_simple_string(cursored_buffer),
+            // e.g. :1 (denotes integer response type,
+            // for example DELETE <key> will return :1 if one record was deleted)
+            b':' => Self::parse_integer(cursored_buffer),
             // null value
             b'_' => Ok(DataChunk::Null),
             // error value
-            b'-' => {
-                let err = line(cursored_buffer);
-                let copied_err = Bytes::copy_from_slice(err.unwrap_or_default());
-                Ok(DataChunk::SimpleError(copied_err))
-            }
+            b'-' => Self::parse_simple_errors(cursored_buffer),
             // everything else, catch-all case
             // potentially, when we are trying to parse something that does not exist
             _ => Err(DataChunkError::Parse(format!(
