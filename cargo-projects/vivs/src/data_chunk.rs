@@ -14,7 +14,7 @@ pub enum DataChunkError {
 
 impl std::error::Error for DataChunkError {}
 
-// For next_as_str() method
+// To convert utf8 error in next_as_str() method
 impl From<Utf8Error> for DataChunkError {
     fn from(e: Utf8Error) -> Self {
         DataChunkError::Other(e)
@@ -33,9 +33,10 @@ impl From<&str> for DataChunkError {
     }
 }
 
+// To convert the output of number_of to usize to compare with buffer chunk length
 impl From<TryFromIntError> for DataChunkError {
     fn from(_src: TryFromIntError) -> DataChunkError {
-        "invalid data chunk".into()
+        "Invalid data chunk".into()
     }
 }
 
@@ -237,11 +238,10 @@ impl DataChunk {
             end_position += 1;
         }
 
-        let parsed_commands = elements.iter().fold(("\r\n".to_owned(), 0), |acc, val| {
-            (format!("{}${}\r\n{}\r\n", acc.0, val.len(), val), acc.1 + 1)
-        });
-
-        let (commands, commands_count) = parsed_commands;
+        let (commands, commands_count) =
+            elements.iter().fold(("\r\n".to_owned(), 0), |acc, val| {
+                (format!("{}${}\r\n{}\r\n", acc.0, val.len(), val), acc.1 + 1)
+            });
 
         format!("*{commands_count}{commands}")
     }
@@ -262,7 +262,7 @@ impl DataChunk {
     fn parse_bulk_strings(
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> Result<DataChunk, DataChunkError> {
-        // Not parsing, just getting length of string.
+        // Not parsing, just getting length of string and converting to usize
         let str_len = number_of(cursored_buffer)?.try_into()?;
 
         // TODO: handle the case where we haven't received CR and LF
@@ -321,9 +321,9 @@ impl DataChunk {
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> std::result::Result<DataChunk, DataChunkError> {
         // TODO - add cursored_buffer.has_remaining() check
-        let n = cursored_buffer.get_u8();
+        let first_byte = cursored_buffer.get_u8();
 
-        match n {
+        match first_byte {
             // e.g. *1 (denotes the number of elements in the commands / values array: 1 element)
             b'*' => Self::parse_array(cursored_buffer),
             // e.g. $4 (denotes the length of the next element in the array: 4 bytes)
@@ -342,7 +342,7 @@ impl DataChunk {
             // potentially, when we are trying to parse something that does not exist
             _ => Err(DataChunkError::Parse(format!(
                 "Failed to parse unknown data type {:?}",
-                n
+                first_byte
             ))),
         }
     }
