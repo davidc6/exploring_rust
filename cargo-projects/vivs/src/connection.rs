@@ -52,10 +52,10 @@ impl Connection {
     pub fn connected_peer_addr(&self) -> String {
         let address = self.stream.get_ref().peer_addr();
         if let Ok(addr) = address {
-            addr.to_string()
-        } else {
-            "".to_owned()
+            return addr.to_string();
         }
+
+        "".to_owned()
     }
 
     /// Reads and processes a stream of bytes from the TCP stream.
@@ -74,7 +74,6 @@ impl Connection {
             let mut cursored_buffer = Cursor::new(&self.buffer[..]);
 
             // Data frame parsed and structured
-            // return DataChunk::new(&mut cursored_buffer);
             return DataChunkFrame::new(&mut cursored_buffer);
         }
 
