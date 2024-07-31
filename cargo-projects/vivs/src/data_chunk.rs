@@ -1,7 +1,6 @@
-use crate::GenericResult;
 use atoi::atoi;
 use bytes::{Buf, Bytes};
-use std::{fmt, io::Cursor, num::TryFromIntError, str::Utf8Error, vec::IntoIter};
+use std::{fmt, io::Cursor, num::TryFromIntError, str::Utf8Error};
 
 #[derive(Debug, PartialEq)]
 pub enum DataChunkError {
@@ -88,85 +87,6 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChun
     }
 
     Err(DataChunkError::Insufficient)
-}
-
-#[derive(Debug, Default)]
-pub struct DataChunkFrame {
-    /// Iterator of DataChunk type
-    segments: IntoIter<DataChunk>,
-}
-
-// The iterator should contain all the necessary commands and values e.g. [SET, key, value]
-impl DataChunkFrame {
-    #![allow(clippy::new_ret_no_self)]
-    /// Constructs DataChunkFrame by parsing the incoming buffer
-    pub fn new(cursored_buffer: &mut Cursor<&[u8]>) -> GenericResult<Self> {
-        let commands = DataChunk::parse(cursored_buffer);
-
-        let data_chunks_vec = match commands {
-            Ok(DataChunk::Array(val)) => val,
-            Ok(DataChunk::Bulk(value)) => vec![DataChunk::Bulk(value)],
-            Ok(DataChunk::Null) => vec![DataChunk::Null],
-            Ok(DataChunk::Integer(value)) => vec![DataChunk::Integer(value)],
-            Ok(DataChunk::SimpleError(value)) => vec![DataChunk::SimpleError(value)],
-            Err(e) => return Err(e.into()),
-        };
-
-        let segments = data_chunks_vec.into_iter();
-
-        Ok(DataChunkFrame { segments })
-    }
-
-    /// Tries to get next element in the collection/segments.
-    ///
-    /// If the element exists then a String type gets returned,
-    /// otherwise an error is returned.
-    ///
-    /// The reason for the Result return type is because we attempt to convert a
-    /// slice of bytes to a string slice in the match expression if it can potentially error.
-    pub fn next_as_str(&mut self) -> Result<Option<String>, DataChunkError> {
-        let Some(segment) = self.segments.next() else {
-            return Ok(None);
-        };
-
-        match segment {
-            DataChunk::Bulk(value) => {
-                let value = std::str::from_utf8(value.chunk())?;
-                Ok(Some(value.to_owned()))
-            }
-            _ => unimplemented!(),
-        }
-    }
-
-    pub fn enumerate(self) -> std::iter::Enumerate<IntoIter<DataChunk>> {
-        self.segments.enumerate()
-    }
-
-    pub fn iter(self) -> IntoIter<DataChunk> {
-        self.segments
-    }
-
-    pub fn size(&self) -> usize {
-        self.segments.len()
-    }
-
-    pub fn push_bulk_str(mut self, bytes: Bytes) -> Self {
-        // TODO: this is a hack (for now).
-        // Convert iterator to vector in order to push data chunks into it.
-        // This functionality is part of the so called "client encoder".
-        let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
-        data_chunks_collection.push(DataChunk::Bulk(bytes));
-        self.segments = data_chunks_collection.into_iter();
-        self
-    }
-}
-
-impl Iterator for DataChunkFrame {
-    type Item = DataChunk;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.segments.next()
-    }
 }
 
 #[derive(Debug, Default)]

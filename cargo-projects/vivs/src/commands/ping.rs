@@ -1,4 +1,4 @@
-use crate::{data_chunk::DataChunkFrame, Connection, GenericResult};
+use crate::{parser::Parser, Connection, GenericResult};
 use bytes::Bytes;
 use log::info;
 
@@ -15,7 +15,7 @@ impl Ping {
         Ping { message }
     }
 
-    pub fn parse(mut data: DataChunkFrame) -> Self {
+    pub fn parse(mut data: Parser) -> Self {
         match data.next_as_str() {
             Ok(value) => Ping::new(value),
             Err(_) => Ping::default(),
@@ -48,12 +48,12 @@ impl Ping {
     }
 
     /// Pushes optional PING [message] to the segments array if it exists.
-    /// In order to do this, a default DataChunkFrame gets created which
+    /// In order to do this, a default Parser gets created which
     /// takes is a command first and then the optional message.
-    /// This is a bit of a hack since DataChunkFrame and DataChunk are
+    /// This is a bit of a hack since Parser and DataChunk are
     /// different structs (even though potentially get could be one in the future).
-    pub fn into_chunk(self) -> DataChunkFrame {
-        let data_chunk_frame = DataChunkFrame::default();
+    pub fn into_chunk(self) -> Parser {
+        let data_chunk_frame = Parser::default();
         let cmd = format!("{}\r\n", PING_CMD);
         let mut data_chunk_frame = data_chunk_frame.push_bulk_str(Bytes::from(cmd));
 

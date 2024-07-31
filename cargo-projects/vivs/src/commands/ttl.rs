@@ -1,5 +1,5 @@
 use super::CommonCommand;
-use crate::data_chunk::DataChunkFrame;
+use crate::parser::Parser;
 use crate::utils::{u64_as_bytes, INCORRECT_ARGS_ERR};
 use crate::{Connection, DataStore, GenericResult};
 use log::info;
@@ -12,7 +12,7 @@ pub struct Ttl {
 }
 
 impl CommonCommand for Ttl {
-    fn parse(mut data: DataChunkFrame) -> Self {
+    fn parse(mut data: Parser) -> Self {
         let Ok(key) = data.next_as_str() else {
             return Self { key: None };
         };

@@ -3,7 +3,8 @@ use self::get::GET_CMD;
 use self::ping::PING_CMD;
 use self::set::SET_CMD;
 use self::ttl::TTL_CMD;
-use crate::data_chunk::{DataChunkError, DataChunkFrame};
+use crate::data_chunk::DataChunkError;
+use crate::parser::Parser;
 use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
 use crate::{Connection, DataStore, GenericError, GenericResult};
 use delete::Delete;
@@ -67,7 +68,7 @@ impl From<&str> for ParseCommandErr {
 }
 
 pub trait CommonCommand {
-    fn parse(data: DataChunkFrame) -> Self;
+    fn parse(data: Parser) -> Self;
     fn respond(
         &self,
         connection: &mut Connection,
@@ -76,7 +77,7 @@ pub trait CommonCommand {
 }
 
 impl Command {
-    pub fn parse_cmd(mut data_chunk: DataChunkFrame) -> Result<Command, ParseCommandErr> {
+    pub fn parse_cmd(mut data_chunk: Parser) -> Result<Command, ParseCommandErr> {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
         // The first value is the command itself
         let Some(command) = data_chunk.next_as_str()?.map(|val| val.to_lowercase()) else {
