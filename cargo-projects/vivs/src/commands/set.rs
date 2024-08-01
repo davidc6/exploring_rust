@@ -1,6 +1,6 @@
 use super::CommonCommand;
 use crate::{
-    data_chunk::DataChunkFrame,
+    parser::Parser,
     utils::{INCORRECT_ARGS_ERR, VALUE_NOT_INT_ERR},
     Connection, DataStore, GenericResult,
 };
@@ -21,7 +21,7 @@ pub struct Set {
 }
 
 impl CommonCommand for Set {
-    fn parse(mut data: DataChunkFrame) -> Self {
+    fn parse(mut data: Parser) -> Self {
         // Get the key first
         let Ok(key) = data.next_as_str() else {
             return Self::default();

@@ -1,6 +1,7 @@
 use crate::{
     commands::{ping::PONG, DataType},
-    data_chunk::{DataChunk, DataChunkFrame},
+    data_chunk::DataChunk,
+    parser::Parser,
     GenericResult,
 };
 use bytes::{Bytes, BytesMut};
@@ -59,7 +60,7 @@ impl Connection {
     }
 
     /// Reads and processes a stream of bytes from the TCP stream.
-    pub async fn read_and_process_stream(&mut self) -> GenericResult<DataChunkFrame> {
+    pub async fn read_and_process_stream(&mut self) -> GenericResult<Parser> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared, it will be just appending to the buffer
         self.buffer.clear();
@@ -74,14 +75,16 @@ impl Connection {
             let mut cursored_buffer = Cursor::new(&self.buffer[..]);
 
             // Data frame parsed and structured
-            return DataChunkFrame::new(&mut cursored_buffer);
+
+            let data_chunk = DataChunk::parse(&mut cursored_buffer)?;
+            return Parser::new(data_chunk);
         }
 
         // 0 read bytes usually indicates end of stream/connection closed status and could be because:
         // 1. the reader reached end of file and most likely won't produce more bytes
         // 2. buffer has remaining capacity of zero
         if self.buffer.is_empty() {
-            Ok(DataChunkFrame::default())
+            Ok(Parser::default())
         } else {
             Err(Box::new(ConnectionError::TcpClosed))
         }
@@ -128,7 +131,7 @@ impl Connection {
         self.stream.flush().await
     }
 
-    pub async fn write_chunk_frame(&mut self, data: DataChunkFrame) -> io::Result<()> {
+    pub async fn write_chunk_frame(&mut self, data: Parser) -> io::Result<()> {
         self.stream.write_all(b"*").await?; // *
         self.stream
             .write_all(data.size().to_string().as_bytes())

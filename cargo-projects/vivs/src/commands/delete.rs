@@ -1,6 +1,6 @@
 use super::CommonCommand;
 use crate::{
-    data_chunk::DataChunkFrame,
+    parser::Parser,
     utils::{u64_as_bytes, INCORRECT_ARGS_ERR},
     Connection, DataStore, GenericResult,
 };
@@ -14,7 +14,7 @@ pub struct Delete {
 }
 
 impl CommonCommand for Delete {
-    fn parse(mut data: DataChunkFrame) -> Self {
+    fn parse(mut data: Parser) -> Self {
         let Ok(key) = data.next_as_str() else {
             return Self { key: None };
         };

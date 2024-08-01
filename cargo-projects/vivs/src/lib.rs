@@ -24,6 +24,8 @@ use tokio::net::TcpStream;
 
 pub mod data_chunk;
 
+pub mod parser;
+
 pub mod utils;
 
 // Boxing errors is a good starting point but would need to be reconsidered.
