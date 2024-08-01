@@ -11,7 +11,6 @@ pub struct Parser {
 }
 
 impl Parser {
-    #![allow(clippy::new_ret_no_self)]
     /// Constructs Parser by parsing the incoming buffer
     pub fn new(data_chunk: DataChunk) -> GenericResult<Self> {
         let data_chunks_vec = match data_chunk {
