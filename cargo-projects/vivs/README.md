@@ -30,11 +30,11 @@ cargo test --test commands
 Once the server and client are running, the following commands can be used:
 
 - `PING [value]` - pings the server, tests whether it's alive and can be also used to test latency
-- `GET key` - gets the value by key from the server
-- `SET key value [XS seconds]` - sets key to hold the value, optionally setting expire time
+- `GET <key>` - gets the value by key from the server
+- `SET <key> <value> [XS <seconds>]` - sets key to hold the value, optionally setting expire time
     - `XS` option (stands for [X]Expire [S]Seconds)
-- `DELETE key` - deletes key from the store
-- `TTL key` - checks whether a key has time to live (expiry time)
+- `DELETE <key>` - deletes key from the store
+- `TTL <key>` - checks whether a key has time to live (expiry time)
 
 ## TODOs
 
