@@ -33,7 +33,7 @@ impl Handler {
         // read a frame, should probably live in connection
         // read bits that host/client can send (frame)
         // this should return array of commands which will later parse
-        let payload = self.connection.read_and_process_stream().await?;
+        let payload = self.connection.process_stream().await?;
 
         let command = Command::parse_cmd(payload)?;
         command.run(&mut self.connection, &self.db).await?;

@@ -173,7 +173,7 @@ impl DataChunk {
         let number = number_of(cursored_buffer)?;
         let commands = (0..number)
             .map(|_| {
-                DataChunk::parse(cursored_buffer).unwrap_or_else(|_| panic!("Could not parse"))
+                DataChunk::read_chunk(cursored_buffer).unwrap_or_else(|_| panic!("Could not parse"))
             })
             .collect::<Vec<DataChunk>>();
 
@@ -238,7 +238,7 @@ impl DataChunk {
     /// For instance command SET "greeting" "hi" which looks like
     /// (*3/r/n$3/r/nSET/r/n$8/r/ngreeting/r/n$2/r/nhi/r/n), will translate to something like
     /// [SET, "greeting", "hi"].
-    pub fn parse(
+    pub fn read_chunk(
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> std::result::Result<DataChunk, DataChunkError> {
         // TODO - add cursored_buffer.has_remaining() check

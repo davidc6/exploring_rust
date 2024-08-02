@@ -60,7 +60,7 @@ impl Connection {
     }
 
     /// Reads and processes a stream of bytes from the TCP stream.
-    pub async fn read_and_process_stream(&mut self) -> GenericResult<Parser> {
+    pub async fn process_stream(&mut self) -> GenericResult<Parser> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared, it will be just appending to the buffer
         self.buffer.clear();
@@ -74,9 +74,7 @@ impl Connection {
             // In this case self.buffer refers to the slice (full range) of the buffer (BytesMut).
             let mut cursored_buffer = Cursor::new(&self.buffer[..]);
 
-            // Data frame parsed and structured
-
-            let data_chunk = DataChunk::parse(&mut cursored_buffer)?;
+            let data_chunk = DataChunk::read_chunk(&mut cursored_buffer)?;
             return Parser::new(data_chunk);
         }
 
@@ -167,7 +165,7 @@ impl Connection {
     /// The last _ (fall through / catch-all case)
     pub async fn read_chunk_frame(&mut self) -> GenericResult<Bytes> {
         // read response
-        let mut data_chunk = self.read_and_process_stream().await?;
+        let mut data_chunk = self.process_stream().await?;
 
         match data_chunk.next() {
             Some(DataChunk::Bulk(data_bytes)) => {
