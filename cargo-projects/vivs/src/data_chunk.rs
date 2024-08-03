@@ -51,8 +51,9 @@ impl fmt::Display for DataChunkError {
     }
 }
 
-// Gets number of either elements in array or string char count
-// TODO - need to stop parsing at the end of the line
+/// Depending on the context, tries to extract either:
+///     1. number of elements in the array
+///     2. string character count
 fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> Result<u64, DataChunkError> {
     let slice = line(cursored_buffer)?;
 
@@ -107,7 +108,7 @@ impl DataChunk {
     ///
     /// This associated function is used by the REPL implementation,
     /// to convert commands to a parsable String which then
-    /// gets written as bytes to the tcp stream.
+    /// gets converted to bytes and written to the tcp stream.
     ///
     /// # Example
     ///
@@ -118,6 +119,7 @@ impl DataChunk {
     /// *3\r\n$3\r\nSET\r\$8\r\nsome-key\r\n$10\r\nsome-value\r\n
     pub fn from_string(value: &str) -> String {
         let mut elements: Vec<String> = vec![];
+
         let mut start_position = 0;
         let mut end_position = 0;
 
@@ -129,8 +131,10 @@ impl DataChunk {
             if (char == '"' || char == '\'') && in_range {
                 let value = value[start_position..end_position].to_owned();
                 elements.push(value);
+
                 end_position += 1;
                 start_position = end_position;
+
                 in_range = false;
                 continue;
             }
