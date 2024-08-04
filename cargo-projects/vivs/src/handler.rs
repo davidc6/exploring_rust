@@ -1,4 +1,9 @@
-use crate::{commands::ParseCommandErr, Command, Connection, DataStore, GenericError};
+use crate::{
+    commands::ParseCommandErr, data_chunk::DataChunk, parser::Parser, Connection, DataStore,
+    GenericError,
+};
+
+use crate::commands::Command;
 
 #[derive(Debug)]
 pub enum HandlerError {
@@ -33,9 +38,13 @@ impl Handler {
         // read a frame, should probably live in connection
         // read bits that host/client can send (frame)
         // this should return array of commands which will later parse
-        let payload = self.connection.process_stream().await?;
+        let mut cursored_buffer = self.connection.process_stream().await?;
 
-        let command = Command::parse_cmd(payload)?;
+        // read chunk
+        let data = DataChunk::read_chunk(&mut cursored_buffer);
+        let data = Parser::new(data.unwrap());
+
+        let command = Command::parse_cmd(data.unwrap())?;
         command.run(&mut self.connection, &self.db).await?;
 
         Ok(())

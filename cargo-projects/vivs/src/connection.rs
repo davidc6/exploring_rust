@@ -60,7 +60,7 @@ impl Connection {
     }
 
     /// Reads and processes a stream of bytes from the TCP stream.
-    pub async fn process_stream(&mut self) -> GenericResult<Parser> {
+    pub async fn process_stream(&mut self) -> GenericResult<Cursor<&[u8]>> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
         // and unless cleared, it will be just appending to the buffer
         self.buffer.clear();
@@ -68,24 +68,27 @@ impl Connection {
         // Pull bytes from the source/tcp stream into the buffer
         let bytes_read = self.stream.read_buf(&mut self.buffer).await?;
 
-        if bytes_read != 0 {
+        if bytes_read != 0 || self.buffer.is_empty() {
             // Cursor enables to track location in the buffer by providing seek functionality.
             // It wraps the underlying buffer (in our case BytesMut).
             // In this case self.buffer refers to the slice (full range) of the buffer (BytesMut).
-            let mut cursored_buffer = Cursor::new(&self.buffer[..]);
+            let cursored_buffer = Cursor::new(&self.buffer[..]);
 
-            let data_chunk = DataChunk::read_chunk(&mut cursored_buffer)?;
-            return Parser::new(data_chunk);
+            return Ok(cursored_buffer);
+
+            // let data_chunk = DataChunk::read_chunk(&mut cursored_buffer)?;
+            // return Parser::new(data_chunk);
         }
 
-        // 0 read bytes usually indicates end of stream/connection closed status and could be because:
-        // 1. the reader reached end of file and most likely won't produce more bytes
-        // 2. buffer has remaining capacity of zero
-        if self.buffer.is_empty() {
-            Ok(Parser::default())
-        } else {
-            Err(Box::new(ConnectionError::TcpClosed))
-        }
+        // "0" read bytes usually indicates end of stream/connection closed status and could be because:
+        //      1. the reader reached end of file and most likely won't produce more bytes
+        //      2. buffer has remaining capacity of zero
+        // if self.buffer.is_empty() {
+        //     Ok(Parser::default())
+
+        // } else {
+        Err(Box::new(ConnectionError::TcpClosed))
+        // }
     }
 
     // Write chunk of data / frame to the stream
@@ -159,50 +162,5 @@ impl Connection {
     pub async fn write_complete_frame(&mut self, data: &str) -> io::Result<()> {
         self.stream.write_all(data.as_bytes()).await?;
         self.stream.flush().await
-    }
-
-    /// TODO: need to rethink this since clients should potentially handle this
-    /// The last _ (fall through / catch-all case)
-    pub async fn read_chunk_frame(&mut self) -> GenericResult<Bytes> {
-        // read response
-        let mut data_chunk = self.process_stream().await?;
-
-        match data_chunk.next() {
-            Some(DataChunk::Bulk(data_bytes)) => {
-                // This is a hack in order to write consistently formatted values to stdout.
-                // Since val without quotes can also be written back to stdout without quotes
-                // it is not desirable and therefore we want to add extra quotes to the output value.
-                // We need to think about allocations here as it will affect performance in the long run.
-                // 34 is "
-                if data_bytes.first() != Some(&34) && data_bytes != *PONG {
-                    let quotes_bytes = Bytes::from("\"");
-                    let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
-                    Ok(Bytes::from(concat_bytes))
-                } else {
-                    Ok(data_bytes)
-                }
-            }
-            Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
-            Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
-            Some(DataChunk::Integer(val)) => {
-                // convert Bytes to bytes array
-                // then determine endianness to create u64 integer value from the bytes array
-                // and return integer as string
-                let bytes_slice = val.slice(0..8);
-
-                // converts the slice to an array of u8 elements (since u64 is 8 bytes)
-                let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
-                let integer_as_string = if cfg!(target_endian = "big") {
-                    u64::from_be_bytes(arr_u8)
-                } else {
-                    u64::from_le_bytes(arr_u8)
-                }
-                .to_string();
-
-                Ok(Bytes::from(format!("(integer) {}", integer_as_string)))
-            }
-            None => Ok(Bytes::from("Unknown")),
-            _ => Ok(Bytes::from("(nil)")), // catch all case
-        }
     }
 }

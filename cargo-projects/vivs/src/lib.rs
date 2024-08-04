@@ -1,6 +1,7 @@
 #![deny(clippy::unwrap_in_result)]
 
 pub mod data_chunk;
+// use client::read_chunk_frame;
 use data_chunk::DataChunk;
 
 pub mod listener;
@@ -22,6 +23,7 @@ pub mod parser;
 pub mod server;
 pub mod utils;
 
+use parser::Parser;
 use tokio::net::TcpStream;
 
 // Boxing errors is a good starting point but would need to be reconsidered.
@@ -73,7 +75,10 @@ impl Client {
         // e.g. *2\r\n$3\r\GET\r\n$4\r\nMary\r\n
         let frame = format!("*2\r\n$3\r\nGET\r\n${}\r\n{}\r\n", value.len(), value);
         let _ = self.connection.write_complete_frame(&frame).await;
-        let processed_stream = self.connection.process_stream().await;
+
+        let mut cursored_buffer = self.connection.process_stream().await;
+        let processed_stream = DataChunk::read_chunk(&mut cursored_buffer.unwrap());
+        let processed_stream = Parser::new(processed_stream.unwrap());
 
         let Ok(mut stream) = processed_stream else {
             return None;
@@ -99,7 +104,12 @@ impl Client {
             value
         );
         let _ = self.connection.write_complete_frame(&frame).await;
-        let frame = self.connection.read_chunk_frame().await.unwrap();
+
+        let mut data_chunk = self.connection.process_stream().await.unwrap();
+        let data_chunk = Parser::new(DataChunk::read_chunk(&mut data_chunk).unwrap());
+        let frame = DataChunk::read_chunk_frame(&mut data_chunk.unwrap())
+            .await
+            .unwrap();
         let frame_utf8 = std::str::from_utf8(&frame);
         frame_utf8.unwrap().to_owned()
     }
@@ -107,7 +117,10 @@ impl Client {
     pub async fn delete(&mut self, key: String) -> String {
         let frame = format!("*2\r\n$6\r\nDELETE\r\n${}\r\n{}\r\n", key.len(), key);
         let _ = self.connection.write_complete_frame(&frame).await;
+
         let frame = self.connection.process_stream().await;
+        let processed_stream = DataChunk::read_chunk(&mut frame.unwrap());
+        let frame = Parser::new(processed_stream.unwrap());
 
         if let Ok(mut frame) = frame {
             return match frame.next() {

@@ -2,6 +2,8 @@ use atoi::atoi;
 use bytes::{Buf, Bytes};
 use std::{fmt, io::Cursor, num::TryFromIntError, str::Utf8Error};
 
+use crate::{commands::ping::PONG, parser::Parser};
+
 #[derive(Debug, PartialEq)]
 pub enum DataChunkError {
     Insufficient,
@@ -228,6 +230,7 @@ impl DataChunk {
     ) -> Result<DataChunk, DataChunkError> {
         let err = line(cursored_buffer);
         let copied_err = Bytes::copy_from_slice(err.unwrap_or_default());
+
         Ok(DataChunk::SimpleError(copied_err))
     }
 
@@ -269,6 +272,46 @@ impl DataChunk {
                 "Failed to parse unknown data type {:?}",
                 first_byte
             ))),
+        }
+    }
+
+    pub async fn read_chunk_frame(data_chunk: &mut Parser) -> Result<Bytes, DataChunkError> {
+        match data_chunk.next() {
+            Some(DataChunk::Bulk(data_bytes)) => {
+                // This is a hack in order to write consistently formatted values to stdout.
+                // Since val without quotes can also be written back to stdout without quotes
+                // it is not desirable and therefore we want to add extra quotes to the output value.
+                // We need to think about allocations here as it will affect performance in the long run.
+                // 34 is "
+                if data_bytes.first() != Some(&34) && data_bytes != *PONG {
+                    let quotes_bytes = Bytes::from("\"");
+                    let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
+                    Ok(Bytes::from(concat_bytes))
+                } else {
+                    Ok(data_bytes)
+                }
+            }
+            Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
+            Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
+            Some(DataChunk::Integer(val)) => {
+                // convert Bytes to bytes array
+                // then determine endianness to create u64 integer value from the bytes array
+                // and return integer as string
+                let bytes_slice = val.slice(0..8);
+
+                // converts the slice to an array of u8 elements (since u64 is 8 bytes)
+                let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
+                let integer_as_string = if cfg!(target_endian = "big") {
+                    u64::from_be_bytes(arr_u8)
+                } else {
+                    u64::from_le_bytes(arr_u8)
+                }
+                .to_string();
+
+                Ok(Bytes::from(format!("(integer) {}", integer_as_string)))
+            }
+            None => Ok(Bytes::from("Unknown")),
+            _ => Ok(Bytes::from("(nil)")), // catch all case
         }
     }
 }
