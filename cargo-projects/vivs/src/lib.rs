@@ -76,14 +76,14 @@ impl Client {
         let _ = self.connection.write_complete_frame(&frame).await;
 
         let cursored_buffer = self.connection.process_stream().await;
-        let processed_stream = DataChunk::read_chunk(&mut cursored_buffer.unwrap());
-        let processed_stream = Parser::new(processed_stream.unwrap());
+        let data_chunk = DataChunk::read_chunk(&mut cursored_buffer.unwrap());
+        let parser = Parser::new(data_chunk.unwrap());
 
-        let Ok(mut stream) = processed_stream else {
+        let Ok(mut parser) = parser else {
             return None;
         };
 
-        match stream.next() {
+        match parser.next() {
             Some(DataChunk::Null) => None,
             Some(DataChunk::Bulk(b)) => Some(std::str::from_utf8(&b).unwrap().to_owned()),
             _ => None,
