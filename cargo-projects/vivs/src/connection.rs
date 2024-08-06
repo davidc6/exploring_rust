@@ -79,8 +79,7 @@ impl Connection {
         //      1. the reader reached end of file and most likely won't produce more bytes
         //      2. buffer has remaining capacity of zero
         // if self.buffer.is_empty() {
-        //     Ok(Parser::default())
-
+        //     Ok(Cursor::new(&self.buffer[..]))
         // } else {
         Err(Box::new(ConnectionError::TcpClosed))
         // }

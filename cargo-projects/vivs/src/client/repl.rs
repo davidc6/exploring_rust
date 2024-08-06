@@ -77,7 +77,6 @@ async fn main() -> GenericResult<()> {
             .write_complete_frame(&data_chunk_frame_as_str)
             .await?;
 
-        // read in the response
         let mut buffer = connection.process_stream().await?;
         let data_chunk = DataChunk::read_chunk(&mut buffer).unwrap();
         let mut parser = Parser::new(data_chunk).unwrap();
