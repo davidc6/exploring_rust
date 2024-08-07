@@ -249,6 +249,12 @@ impl DataChunk {
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> std::result::Result<DataChunk, DataChunkError> {
         // TODO - add cursored_buffer.has_remaining() check
+        if !cursored_buffer.has_remaining() {
+            return Err(DataChunkError::Parse(format!(
+                "Failed to parse unknown data type"
+            )));
+        }
+
         let first_byte = cursored_buffer.get_u8();
 
         match first_byte {

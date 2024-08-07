@@ -1,3 +1,4 @@
+use crate::data_chunk::DataChunkError;
 use crate::{
     commands::ParseCommandErr, data_chunk::DataChunk, parser::Parser, Connection, DataStore,
     GenericError,
@@ -8,6 +9,7 @@ use crate::commands::Command;
 #[derive(Debug)]
 pub enum HandlerError {
     CommandParsing(ParseCommandErr),
+    DataChunk(DataChunkError),
     Other(GenericError),
 }
 
@@ -20,6 +22,12 @@ impl From<ParseCommandErr> for HandlerError {
 impl From<GenericError> for HandlerError {
     fn from(e: GenericError) -> Self {
         HandlerError::Other(e)
+    }
+}
+
+impl From<DataChunkError> for HandlerError {
+    fn from(e: DataChunkError) -> Self {
+        HandlerError::DataChunk(e)
     }
 }
 
@@ -42,9 +50,9 @@ impl Handler {
 
         // read chunk
         let data = DataChunk::read_chunk(&mut cursored_buffer);
-        let data = Parser::new(data.unwrap());
+        let data = Parser::new(data?);
 
-        let command = Command::parse_cmd(data.unwrap())?;
+        let command = Command::parse_cmd(data?)?;
         command.run(&mut self.connection, &self.db).await?;
 
         Ok(())
