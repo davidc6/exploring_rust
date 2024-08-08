@@ -11,6 +11,7 @@ pub enum DataChunkError {
     Parse(String),
     NonExistent,
     Other(Utf8Error),
+    NoBytesRemaining,
 }
 
 impl std::error::Error for DataChunkError {}
@@ -48,6 +49,7 @@ impl fmt::Display for DataChunkError {
             DataChunkError::Unknown(err) => err.fmt(f),
             DataChunkError::Insufficient => "Error".fmt(f),
             DataChunkError::NonExistent => "No next value in the iterator".fmt(f),
+            DataChunkError::NoBytesRemaining => "Client has disconnected".fmt(f),
             DataChunkError::Other(val) => val.fmt(f),
         }
     }
@@ -250,9 +252,7 @@ impl DataChunk {
     ) -> std::result::Result<DataChunk, DataChunkError> {
         // TODO - add cursored_buffer.has_remaining() check
         if !cursored_buffer.has_remaining() {
-            return Err(DataChunkError::Parse(format!(
-                "Failed to parse unknown data type"
-            )));
+            return Err(DataChunkError::NoBytesRemaining);
         }
 
         let first_byte = cursored_buffer.get_u8();
