@@ -1,33 +1,45 @@
-use crate::data_chunk::DataChunkError;
-use crate::{
-    commands::ParseCommandErr, data_chunk::DataChunk, parser::Parser, Connection, DataStore,
-    GenericError,
-};
-
-use crate::commands::Command;
+use crate::commands::{Command, ParseCommandErr};
+use crate::data_chunk::{DataChunk, DataChunkError};
+use crate::{parser::Parser, Connection, DataStore, GenericError};
+use std::fmt::{Debug, Display, Formatter, Result};
 
 #[derive(Debug)]
 pub enum HandlerError {
     CommandParsing(ParseCommandErr),
     DataChunk(DataChunkError),
+    ClientDisconnected,
     Other(GenericError),
+}
+
+impl Display for HandlerError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            HandlerError::ClientDisconnected => write!(f, "Client disconnected"),
+            HandlerError::CommandParsing(err) => write!(f, "Failed when parsing {:?}", err),
+            HandlerError::DataChunk(err) => write!(f, "Data chunk error: {}", err),
+            HandlerError::Other(err) => write!(f, "Error: {}", err),
+        }
+    }
 }
 
 impl From<ParseCommandErr> for HandlerError {
     fn from(e: ParseCommandErr) -> Self {
-        HandlerError::CommandParsing(e)
+        Self::CommandParsing(e)
     }
 }
 
 impl From<GenericError> for HandlerError {
     fn from(e: GenericError) -> Self {
-        HandlerError::Other(e)
+        Self::Other(e)
     }
 }
 
 impl From<DataChunkError> for HandlerError {
     fn from(e: DataChunkError) -> Self {
-        HandlerError::DataChunk(e)
+        match e {
+            DataChunkError::NoBytesRemaining => HandlerError::ClientDisconnected,
+            _ => HandlerError::DataChunk(e),
+        }
     }
 }
 
@@ -41,7 +53,7 @@ impl Handler {
         Handler { db, connection }
     }
 
-    pub async fn run(&mut self) -> Result<(), HandlerError> {
+    pub async fn run(&mut self) -> std::result::Result<(), HandlerError> {
         // TODO: should probably have a separate parser module
         // read a frame, should probably live in connection
         // read bits that host/client can send (frame)
