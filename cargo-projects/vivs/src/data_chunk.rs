@@ -7,51 +7,45 @@ use crate::{commands::ping::PONG, parser::Parser};
 #[derive(Debug, PartialEq)]
 pub enum DataChunkError {
     Insufficient,
-    Unknown(String),
     Parse(String),
-    NonExistent,
-    Other(Utf8Error),
     NoBytesRemaining,
-}
-
-impl std::error::Error for DataChunkError {}
-
-// To convert utf8 error in next_as_str() method
-impl From<Utf8Error> for DataChunkError {
-    fn from(e: Utf8Error) -> Self {
-        DataChunkError::Other(e)
-    }
-}
-
-impl From<String> for DataChunkError {
-    fn from(value: String) -> Self {
-        DataChunkError::Unknown(value)
-    }
-}
-
-impl From<&str> for DataChunkError {
-    fn from(value: &str) -> DataChunkError {
-        value.to_string().into()
-    }
-}
-
-// To convert the output of number_of to usize to compare with buffer chunk length
-impl From<TryFromIntError> for DataChunkError {
-    fn from(_src: TryFromIntError) -> DataChunkError {
-        "Invalid data chunk".into()
-    }
+    Utf8(Utf8Error),
+    Other(String),
 }
 
 impl fmt::Display for DataChunkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DataChunkError::Parse(e) => format!("Protocol error: {:?}", e).fmt(f),
-            DataChunkError::Unknown(err) => err.fmt(f),
-            DataChunkError::Insufficient => "Error".fmt(f),
-            DataChunkError::NonExistent => "No next value in the iterator".fmt(f),
+            DataChunkError::Insufficient => "Insufficient data to parse".fmt(f),
             DataChunkError::NoBytesRemaining => "Client has disconnected".fmt(f),
-            DataChunkError::Other(val) => val.fmt(f),
+            DataChunkError::Utf8(e) => e.fmt(f),
+            DataChunkError::Other(e) => e.fmt(f),
         }
+    }
+}
+
+// implement Error trait for our custom error type
+impl std::error::Error for DataChunkError {}
+
+// To convert utf8 error in next_as_str() method
+impl From<Utf8Error> for DataChunkError {
+    fn from(e: Utf8Error) -> Self {
+        DataChunkError::Utf8(e)
+    }
+}
+
+// To convert String error message that the "from" conversion produces
+impl From<String> for DataChunkError {
+    fn from(value: String) -> Self {
+        DataChunkError::Other(value)
+    }
+}
+
+// To convert the output of number_of to usize to compare with buffer chunk length
+impl From<TryFromIntError> for DataChunkError {
+    fn from(_src: TryFromIntError) -> DataChunkError {
+        "Invalid data chunk".to_owned().into()
     }
 }
 
@@ -94,7 +88,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChun
     Err(DataChunkError::Insufficient)
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub enum DataChunk {
     Array(Vec<DataChunk>),
     Bulk(Bytes),
@@ -128,6 +122,7 @@ impl DataChunk {
         let mut end_position = 0;
 
         let chars_iter = value.chars();
+        let chars_count = chars_iter.clone().count();
         let mut in_range = false;
 
         for char in chars_iter {
@@ -163,6 +158,13 @@ impl DataChunk {
                 continue;
             }
 
+            if end_position + 1 == chars_count && !elements.is_empty() {
+                let slice = value[start_position..=end_position].to_owned();
+
+                elements.push(slice);
+                break;
+            }
+
             // any other values outside of " or '
             end_position += 1;
         }
@@ -179,13 +181,12 @@ impl DataChunk {
         // Using range expression ( .. ) which implements Iterator trait,
         // enables to map over each element then collect iterator into a vector.
         let number = number_of(cursored_buffer)?;
-        let commands = (0..number)
-            .map(|_| {
-                DataChunk::read_chunk(cursored_buffer).unwrap_or_else(|_| panic!("Could not parse"))
-            })
-            .collect::<Vec<DataChunk>>();
 
-        Ok(DataChunk::Array(commands))
+        let commands = (0..number)
+            .map(|_| DataChunk::read_chunk(cursored_buffer))
+            .collect::<Result<Vec<_>, DataChunkError>>();
+
+        Ok(DataChunk::Array(commands?))
     }
 
     fn parse_bulk_strings(
@@ -250,7 +251,7 @@ impl DataChunk {
     pub fn read_chunk(
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> std::result::Result<DataChunk, DataChunkError> {
-        // TODO - add cursored_buffer.has_remaining() check
+        // Client disconnects
         if !cursored_buffer.has_remaining() {
             return Err(DataChunkError::NoBytesRemaining);
         }
@@ -324,6 +325,8 @@ impl DataChunk {
 
 #[cfg(test)]
 mod data_chunk_tests {
+    use bytes::Bytes;
+
     use super::*;
 
     #[test]
@@ -407,5 +410,23 @@ mod data_chunk_tests {
 
         let actual = line(&mut cursored_buffer);
         assert_eq!(actual, Err(DataChunkError::Insufficient));
+    }
+
+    #[test]
+    fn parse_array() {
+        let command_as_data_chunk_string = DataChunk::from_string("SET a b");
+        let command_as_bytes = command_as_data_chunk_string.as_bytes();
+        let mut cursored_buffer = Cursor::new(command_as_bytes);
+
+        let actual = DataChunk::read_chunk(&mut cursored_buffer);
+
+        let vec_data_chunk = vec![
+            DataChunk::Bulk(Bytes::from("SET".to_owned())),
+            DataChunk::Bulk(Bytes::from("a".to_owned())),
+            DataChunk::Bulk(Bytes::from("b")),
+        ];
+        let expected = Ok(DataChunk::Array(vec_data_chunk));
+
+        assert_eq!(actual, expected);
     }
 }
