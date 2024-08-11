@@ -56,7 +56,7 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> Result<u64, DataChunkError>
     let slice = line(cursored_buffer)?;
 
     atoi::<u64>(slice).ok_or(DataChunkError::Parse(
-        "Failed to parse an integer from a slice".to_owned(),
+        "Failed to parse an integer from the slice".to_owned(),
     ))
 }
 
@@ -178,10 +178,10 @@ impl DataChunk {
     }
 
     fn parse_array(cursored_buffer: &mut Cursor<&[u8]>) -> Result<DataChunk, DataChunkError> {
-        // Using range expression ( .. ) which implements Iterator trait,
-        // enables to map over each element then collect iterator into a vector.
         let number = number_of(cursored_buffer)?;
 
+        // Using range expression ([start position]..[end position]) which implements Iterator trait,
+        // enables to map over each element then collect iterator into a vector.
         let commands = (0..number)
             .map(|_| DataChunk::read_chunk(cursored_buffer))
             .collect::<Result<Vec<_>, DataChunkError>>();
@@ -366,7 +366,7 @@ mod data_chunk_tests {
         assert_eq!(
             actual,
             Err(DataChunkError::Parse(
-                "Failed to parse an integer from a slice".to_owned()
+                "Failed to parse an integer from the slice".to_owned()
             ))
         );
     }
@@ -413,7 +413,7 @@ mod data_chunk_tests {
     }
 
     #[test]
-    fn parse_array() {
+    fn parse_array_works() {
         let command_as_data_chunk_string = DataChunk::from_string("SET a b");
         let command_as_bytes = command_as_data_chunk_string.as_bytes();
         let mut cursored_buffer = Cursor::new(command_as_bytes);
@@ -428,5 +428,51 @@ mod data_chunk_tests {
         let expected = Ok(DataChunk::Array(vec_data_chunk));
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn parse_array_no_bytes_remaining() {
+        let command_as_bytes = [0; 0];
+        let mut cursored_buffer = Cursor::new(&command_as_bytes[..]);
+
+        let actual = DataChunk::read_chunk(&mut cursored_buffer);
+
+        assert_eq!(actual, Err(DataChunkError::NoBytesRemaining));
+    }
+
+    #[test]
+    fn parse_array_parse_error() {
+        // correct way   "*1\r\n$4\r\nPING\r\n"
+        // incorrect way "*\r\n1\r\n$4\r\nPING" <--- using this variant to test
+        let command_as_data_chunk_string = String::from("*\r\n1\r\n$4\r\nPING\r\n");
+        let command_as_bytes = command_as_data_chunk_string.as_bytes();
+        let mut cursored_buffer = Cursor::new(command_as_bytes);
+
+        let actual = DataChunk::read_chunk(&mut cursored_buffer);
+
+        assert_eq!(
+            actual,
+            Err(DataChunkError::Parse(
+                "Failed to parse an integer from the slice".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_array_parse_command_length_error() {
+        // correct way   "*1\r\n$4\r\nPING\r\n"
+        // incorrect way "*1\r\n$\r\n4\r\nPING\r\n" <--- using this variant to test
+        let command_as_data_chunk_string = String::from("*1\r\n$\r\n4\r\nPING\r\n");
+        let command_as_bytes = command_as_data_chunk_string.as_bytes();
+        let mut cursored_buffer = Cursor::new(command_as_bytes);
+
+        let actual = DataChunk::read_chunk(&mut cursored_buffer);
+
+        assert_eq!(
+            actual,
+            Err(DataChunkError::Parse(
+                "Failed to parse an integer from the slice".to_owned()
+            ))
+        );
     }
 }
