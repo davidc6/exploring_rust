@@ -6,7 +6,7 @@ use self::ttl::TTL_CMD;
 use crate::data_chunk::DataChunkError;
 use crate::parser::Parser;
 use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
-use crate::{Connection, DataStore, GenericError, GenericResult};
+use crate::{Connection, DataStore, GenericResult};
 use delete::Delete;
 use get::Get;
 use ping::Ping;
@@ -40,13 +40,6 @@ pub enum DataType {
 pub enum ParseCommandErr {
     Other(crate::GenericError),
     Unknown,
-    NoCommand,
-}
-
-impl From<GenericError> for ParseCommandErr {
-    fn from(error: GenericError) -> Self {
-        ParseCommandErr::Other(error)
-    }
 }
 
 impl From<DataChunkError> for ParseCommandErr {

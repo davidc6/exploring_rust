@@ -2,52 +2,50 @@ use atoi::atoi;
 use bytes::{Buf, Bytes};
 use std::{fmt, io::Cursor, num::TryFromIntError, str::Utf8Error};
 
+use crate::{commands::ping::PONG, parser::Parser};
+
 #[derive(Debug, PartialEq)]
 pub enum DataChunkError {
     Insufficient,
-    Unknown(String),
     Parse(String),
-    NonExistent,
-    Other(Utf8Error),
-}
-
-impl std::error::Error for DataChunkError {}
-
-// To convert utf8 error in next_as_str() method
-impl From<Utf8Error> for DataChunkError {
-    fn from(e: Utf8Error) -> Self {
-        DataChunkError::Other(e)
-    }
-}
-
-impl From<String> for DataChunkError {
-    fn from(value: String) -> Self {
-        DataChunkError::Unknown(value)
-    }
-}
-
-impl From<&str> for DataChunkError {
-    fn from(value: &str) -> DataChunkError {
-        value.to_string().into()
-    }
-}
-
-// To convert the output of number_of to usize to compare with buffer chunk length
-impl From<TryFromIntError> for DataChunkError {
-    fn from(_src: TryFromIntError) -> DataChunkError {
-        "Invalid data chunk".into()
-    }
+    NoBytesRemaining,
+    Utf8(Utf8Error),
+    Other(String),
 }
 
 impl fmt::Display for DataChunkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DataChunkError::Parse(e) => format!("Protocol error: {:?}", e).fmt(f),
-            DataChunkError::Unknown(err) => err.fmt(f),
-            DataChunkError::Insufficient => "Error".fmt(f),
-            DataChunkError::NonExistent => "No next value in the iterator".fmt(f),
-            DataChunkError::Other(val) => val.fmt(f),
+            DataChunkError::Insufficient => "Insufficient data to parse".fmt(f),
+            DataChunkError::NoBytesRemaining => "Client has disconnected".fmt(f),
+            DataChunkError::Utf8(e) => e.fmt(f),
+            DataChunkError::Other(e) => e.fmt(f),
         }
+    }
+}
+
+// Implement Error trait for our custom error type
+impl std::error::Error for DataChunkError {}
+
+// To convert utf8 error in next_as_str() method
+impl From<Utf8Error> for DataChunkError {
+    fn from(e: Utf8Error) -> Self {
+        DataChunkError::Utf8(e)
+    }
+}
+
+// To convert String error message that the "from" conversion produces
+impl From<String> for DataChunkError {
+    fn from(value: String) -> Self {
+        DataChunkError::Other(value)
+    }
+}
+
+// To convert the output of number_of to usize to compare with buffer chunk length
+impl From<TryFromIntError> for DataChunkError {
+    fn from(_src: TryFromIntError) -> DataChunkError {
+        "Invalid data chunk".to_owned().into()
     }
 }
 
@@ -58,7 +56,7 @@ fn number_of(cursored_buffer: &mut Cursor<&[u8]>) -> Result<u64, DataChunkError>
     let slice = line(cursored_buffer)?;
 
     atoi::<u64>(slice).ok_or(DataChunkError::Parse(
-        "Failed to parse an integer from a slice".to_owned(),
+        "Failed to parse an integer from the slice".to_owned(),
     ))
 }
 
@@ -90,7 +88,7 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChun
     Err(DataChunkError::Insufficient)
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub enum DataChunk {
     Array(Vec<DataChunk>),
     Bulk(Bytes),
@@ -124,6 +122,7 @@ impl DataChunk {
         let mut end_position = 0;
 
         let chars_iter = value.chars();
+        let chars_count = chars_iter.clone().count();
         let mut in_range = false;
 
         for char in chars_iter {
@@ -159,6 +158,13 @@ impl DataChunk {
                 continue;
             }
 
+            if end_position + 1 == chars_count && !elements.is_empty() {
+                let slice = value[start_position..=end_position].to_owned();
+
+                elements.push(slice);
+                break;
+            }
+
             // any other values outside of " or '
             end_position += 1;
         }
@@ -172,16 +178,15 @@ impl DataChunk {
     }
 
     fn parse_array(cursored_buffer: &mut Cursor<&[u8]>) -> Result<DataChunk, DataChunkError> {
-        // Using range expression ( .. ) which implements Iterator trait,
-        // enables to map over each element then collect iterator into a vector.
         let number = number_of(cursored_buffer)?;
-        let commands = (0..number)
-            .map(|_| {
-                DataChunk::read_chunk(cursored_buffer).unwrap_or_else(|_| panic!("Could not parse"))
-            })
-            .collect::<Vec<DataChunk>>();
 
-        Ok(DataChunk::Array(commands))
+        // Using range expression ([start position]..[end position]) which implements Iterator trait,
+        // enables to map over each element then collect iterator into a vector.
+        let commands = (0..number)
+            .map(|_| DataChunk::read_chunk(cursored_buffer))
+            .collect::<Result<Vec<_>, DataChunkError>>();
+
+        Ok(DataChunk::Array(commands?))
     }
 
     fn parse_bulk_strings(
@@ -228,6 +233,7 @@ impl DataChunk {
     ) -> Result<DataChunk, DataChunkError> {
         let err = line(cursored_buffer);
         let copied_err = Bytes::copy_from_slice(err.unwrap_or_default());
+
         Ok(DataChunk::SimpleError(copied_err))
     }
 
@@ -245,7 +251,11 @@ impl DataChunk {
     pub fn read_chunk(
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> std::result::Result<DataChunk, DataChunkError> {
-        // TODO - add cursored_buffer.has_remaining() check
+        // Client disconnects
+        if !cursored_buffer.has_remaining() {
+            return Err(DataChunkError::NoBytesRemaining);
+        }
+
         let first_byte = cursored_buffer.get_u8();
 
         match first_byte {
@@ -271,10 +281,52 @@ impl DataChunk {
             ))),
         }
     }
+
+    pub async fn read_chunk_frame(data_chunk: &mut Parser) -> Result<Bytes, DataChunkError> {
+        match data_chunk.next() {
+            Some(DataChunk::Bulk(data_bytes)) => {
+                // This is a hack in order to write consistently formatted values to stdout.
+                // Since val without quotes can also be written back to stdout without quotes
+                // it is not desirable and therefore we want to add extra quotes to the output value.
+                // We need to think about allocations here as it will affect performance in the long run.
+                // 34 is "
+                if data_bytes.first() != Some(&34) && data_bytes != *PONG {
+                    let quotes_bytes = Bytes::from("\"");
+                    let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
+                    Ok(Bytes::from(concat_bytes))
+                } else {
+                    Ok(data_bytes)
+                }
+            }
+            Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
+            Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
+            Some(DataChunk::Integer(val)) => {
+                // convert Bytes to bytes array
+                // then determine endianness to create u64 integer value from the bytes array
+                // and return integer as string
+                let bytes_slice = val.slice(0..8);
+
+                // converts the slice to an array of u8 elements (since u64 is 8 bytes)
+                let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
+                let integer_as_string = if cfg!(target_endian = "big") {
+                    u64::from_be_bytes(arr_u8)
+                } else {
+                    u64::from_le_bytes(arr_u8)
+                }
+                .to_string();
+
+                Ok(Bytes::from(format!("(integer) {}", integer_as_string)))
+            }
+            None => Ok(Bytes::from("Unknown")),
+            _ => Ok(Bytes::from("(nil)")), // catch all case
+        }
+    }
 }
 
 #[cfg(test)]
 mod data_chunk_tests {
+    use bytes::Bytes;
+
     use super::*;
 
     #[test]
@@ -314,7 +366,7 @@ mod data_chunk_tests {
         assert_eq!(
             actual,
             Err(DataChunkError::Parse(
-                "Failed to parse an integer from a slice".to_owned()
+                "Failed to parse an integer from the slice".to_owned()
             ))
         );
     }
@@ -358,5 +410,69 @@ mod data_chunk_tests {
 
         let actual = line(&mut cursored_buffer);
         assert_eq!(actual, Err(DataChunkError::Insufficient));
+    }
+
+    #[test]
+    fn parse_array_works() {
+        let command_as_data_chunk_string = DataChunk::from_string("SET a b");
+        let command_as_bytes = command_as_data_chunk_string.as_bytes();
+        let mut cursored_buffer = Cursor::new(command_as_bytes);
+
+        let actual = DataChunk::read_chunk(&mut cursored_buffer);
+
+        let vec_data_chunk = vec![
+            DataChunk::Bulk(Bytes::from("SET".to_owned())),
+            DataChunk::Bulk(Bytes::from("a".to_owned())),
+            DataChunk::Bulk(Bytes::from("b")),
+        ];
+        let expected = Ok(DataChunk::Array(vec_data_chunk));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn parse_array_no_bytes_remaining() {
+        let command_as_bytes = [0; 0];
+        let mut cursored_buffer = Cursor::new(&command_as_bytes[..]);
+
+        let actual = DataChunk::read_chunk(&mut cursored_buffer);
+
+        assert_eq!(actual, Err(DataChunkError::NoBytesRemaining));
+    }
+
+    #[test]
+    fn parse_array_parse_error() {
+        // correct way   "*1\r\n$4\r\nPING\r\n"
+        // incorrect way "*\r\n1\r\n$4\r\nPING" <--- using this variant to test
+        let command_as_data_chunk_string = String::from("*\r\n1\r\n$4\r\nPING\r\n");
+        let command_as_bytes = command_as_data_chunk_string.as_bytes();
+        let mut cursored_buffer = Cursor::new(command_as_bytes);
+
+        let actual = DataChunk::read_chunk(&mut cursored_buffer);
+
+        assert_eq!(
+            actual,
+            Err(DataChunkError::Parse(
+                "Failed to parse an integer from the slice".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn parse_array_parse_command_length_error() {
+        // correct way   "*1\r\n$4\r\nPING\r\n"
+        // incorrect way "*1\r\n$\r\n4\r\nPING\r\n" <--- using this variant to test
+        let command_as_data_chunk_string = String::from("*1\r\n$\r\n4\r\nPING\r\n");
+        let command_as_bytes = command_as_data_chunk_string.as_bytes();
+        let mut cursored_buffer = Cursor::new(command_as_bytes);
+
+        let actual = DataChunk::read_chunk(&mut cursored_buffer);
+
+        assert_eq!(
+            actual,
+            Err(DataChunkError::Parse(
+                "Failed to parse an integer from the slice".to_owned()
+            ))
+        );
     }
 }
