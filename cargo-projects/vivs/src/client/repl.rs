@@ -35,7 +35,11 @@ pub async fn read_chunk_frame(data_chunk: &mut Parser) -> GenericResult<Bytes> {
             let bytes_slice = val.slice(0..8);
 
             // converts the slice to an array of u8 elements (since u64 is 8 bytes)
-            let arr_u8: [u8; 8] = bytes_slice[0..8].try_into().unwrap();
+            let arr_u8: Result<[u8; 8], _> = bytes_slice[0..8].try_into();
+            let Ok(arr_u8) = arr_u8 else {
+                return Ok(Bytes::from("(nil)"));
+            };
+
             let integer_as_string = if cfg!(target_endian = "big") {
                 u64::from_be_bytes(arr_u8)
             } else {
@@ -78,9 +82,9 @@ async fn main() -> GenericResult<()> {
             .await?;
 
         let mut buffer = connection.process_stream().await?;
-        let data_chunk = DataChunk::read_chunk(&mut buffer).unwrap();
-        let mut parser = Parser::new(data_chunk).unwrap();
-        let bytes_read = DataChunk::read_chunk_frame(&mut parser).await.unwrap();
+        let data_chunk = DataChunk::read_chunk(&mut buffer)?;
+        let mut parser = Parser::new(data_chunk)?;
+        let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
 
         stdout().write_all(&bytes_read)?;
         stdout().write_all(b"\r\n")?;

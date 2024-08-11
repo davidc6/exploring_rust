@@ -25,7 +25,7 @@ impl fmt::Display for DataChunkError {
     }
 }
 
-// implement Error trait for our custom error type
+// Implement Error trait for our custom error type
 impl std::error::Error for DataChunkError {}
 
 // To convert utf8 error in next_as_str() method

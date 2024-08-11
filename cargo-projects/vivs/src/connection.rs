@@ -70,19 +70,9 @@ impl Connection {
             let cursored_buffer = Cursor::new(&self.buffer[..]);
 
             return Ok(cursored_buffer);
-
-            // let data_chunk = DataChunk::read_chunk(&mut cursored_buffer)?;
-            // return Parser::new(data_chunk);
         }
 
-        // "0" read bytes usually indicates end of stream/connection closed status and could be because:
-        //      1. the reader reached end of file and most likely won't produce more bytes
-        //      2. buffer has remaining capacity of zero
-        // if self.buffer.is_empty() {
-        //     Ok(Cursor::new(&self.buffer[..]))
-        // } else {
         Err(Box::new(ConnectionError::TcpClosed))
-        // }
     }
 
     // Write chunk of data / frame to the stream
