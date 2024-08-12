@@ -5,8 +5,8 @@ use vivs::{server, PORT};
 pub async fn main() -> vivs::GenericResult<()> {
     env_logger::init();
 
-    let ipv4 = "127.0.0.1".to_string(); // default for now
-    let port = PORT.to_string();
+    let ipv4 = "127.0.0.1"; // default for now
+    let port = PORT;
 
     info!("Vivs is starting");
 
