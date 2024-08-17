@@ -1,19 +1,37 @@
 use log::{error, info};
-use vivs::{server, PORT};
+use serde::Deserialize;
+use std::{env, fs};
+use vivs::server;
+
+#[derive(Deserialize, Debug)]
+struct Data {
+    connection: Config,
+}
+
+#[derive(Deserialize, Debug)]
+struct Config {
+    address: String,
+    port: u16,
+}
 
 #[tokio::main]
 pub async fn main() -> vivs::GenericResult<()> {
     env_logger::init();
 
-    let ipv4 = "127.0.0.1"; // default for now
-    let port = PORT;
+    // TODO: load config
+    let current_dir = env::current_dir()?;
+    let config_dir = current_dir.join("config/config.toml");
+    let file_contents = fs::read_to_string(config_dir)?;
+    let config: Data = toml::from_str(&file_contents)?;
 
     info!("Vivs is starting");
 
-    server::start(ipv4, port).await.map_err(|e| {
-        error!("Failed to start Vivs server: {e}");
-        e
-    })?;
+    server::start(&config.connection.address, config.connection.port)
+        .await
+        .map_err(|e| {
+            error!("Failed to start Vivs server: {e}");
+            e
+        })?;
 
     Ok(())
 }
