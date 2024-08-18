@@ -4,12 +4,12 @@ use std::{env, fs};
 use vivs::server;
 
 #[derive(Deserialize, Debug)]
-struct Data {
-    connection: Config,
+struct Config {
+    connection: Connection,
 }
 
 #[derive(Deserialize, Debug)]
-struct Config {
+struct Connection {
     address: String,
     port: u16,
 }
@@ -18,20 +18,20 @@ struct Config {
 pub async fn main() -> vivs::GenericResult<()> {
     env_logger::init();
 
-    // TODO: load config
-    let current_dir = env::current_dir()?;
-    let config_dir = current_dir.join("config/config.toml");
-    let file_contents = fs::read_to_string(config_dir)?;
-    let config: Data = toml::from_str(&file_contents)?;
+    let config_dir = env::current_dir()?.join("config/config.toml");
+    let file_contents_as_string = fs::read_to_string(config_dir)?;
+
+    let config: Config = toml::from_str(&file_contents_as_string)?;
+    let Config {
+        connection: Connection { address, port },
+    } = config;
 
     info!("Vivs is starting");
 
-    server::start(&config.connection.address, config.connection.port)
-        .await
-        .map_err(|e| {
-            error!("Failed to start Vivs server: {e}");
-            e
-        })?;
+    server::start(&address, port).await.map_err(|e| {
+        error!("Failed to start Vivs server: {e}");
+        e
+    })?;
 
     Ok(())
 }
