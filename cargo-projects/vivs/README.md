@@ -25,6 +25,19 @@ To run integration tests:
 cargo test --test commands
 ```
 
+### Default values
+
+Vivs server and repl start with these values by default.
+
+| Key | Value |
+|------|---------|
+| Address | 127.0.0.1 |
+| Port | 9000 |
+
+### Repl / cli
+
+- [ ] Pass in address and port (either as config or param)
+
 ### Commands
 
 Once the server and client are running, the following commands can be used:
@@ -53,6 +66,8 @@ Once the server and client are running, the following commands can be used:
 - [ ] Repl EXIT command
 - [X] On DELETE remove expiration key
 - [ ] Flag any commands options that are incorrect to the user, also would be nice to have some sort of a command completion
+- [ ] Listen on many ports
+- [ ] Authentication
 
 ## General architecture
 
