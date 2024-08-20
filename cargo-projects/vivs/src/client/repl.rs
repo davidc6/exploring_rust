@@ -3,7 +3,7 @@ use std::io::{stdin, stdout, Write};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
-use vivs::{data_chunk::DataChunk, Connection, GenericResult, PORT};
+use vivs::{data_chunk::DataChunk, Connection, GenericResult};
 
 pub async fn write_complete_frame(stream: &mut TcpStream, data: &str) -> std::io::Result<()> {
     stream.write_all(data.as_bytes()).await?;
@@ -56,7 +56,7 @@ pub async fn read_chunk_frame(data_chunk: &mut Parser) -> GenericResult<Bytes> {
 
 #[tokio::main]
 async fn main() -> GenericResult<()> {
-    let address = format!("127.0.0.1:{}", PORT);
+    let address = format!("127.0.0.1:{}", 9000);
     let stream = TcpStream::connect(address).await?;
     let mut connection = Connection::new(stream);
 
