@@ -1,5 +1,8 @@
 #![deny(clippy::unwrap_in_result)]
 
+use std::{collections::HashMap, sync::Arc};
+use tokio::{net::TcpStream, sync::Mutex};
+
 pub mod data_chunk;
 use data_chunk::DataChunk;
 
@@ -23,7 +26,6 @@ pub mod server;
 pub mod utils;
 
 use parser::Parser;
-use tokio::net::TcpStream;
 
 // Boxing errors is a good starting point but would need to be reconsidered.
 //
@@ -52,6 +54,11 @@ pub type GenericResult<T> = std::result::Result<T, GenericError>;
 
 // This is the default port the server listens on
 pub const PORT: u16 = 9000;
+
+// Global config
+thread_local! {
+    pub static VIVS_CONFIG: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+}
 
 // TODO: This is just a temporary Vivs client implementation and will need to be extracted soon
 pub struct Client {
