@@ -1,7 +1,7 @@
 use log::{error, info};
 use serde::Deserialize;
 use std::{env, fs};
-use vivs::server;
+use vivs::{server, VIVS_CONFIG};
 
 #[derive(Deserialize, Debug)]
 struct Config {
@@ -28,7 +28,12 @@ pub async fn main() -> vivs::GenericResult<()> {
 
     info!("Vivs is starting");
 
-    server::start(&address, port).await.map_err(|e| {
+    let config = VIVS_CONFIG.with(|arc| arc.clone());
+    let mut inner_config = config.lock().await;
+    inner_config.insert("address".to_owned(), address);
+    inner_config.insert("port".to_owned(), port.to_string());
+
+    server::start().await.map_err(|e| {
         error!("Failed to start Vivs server: {e}");
         e
     })?;
