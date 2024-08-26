@@ -2,6 +2,8 @@
 
 Vivs is a simple, (currently) experimental in-memory data store. Currently, it uses a `HashMap` wrapped in `Arc` and `RwLock` that enable threads to safety read from and write to it. The data stores creates a thread per connection at the moment.
 
+Vivs also has can have expirations set on keys (please see commands below).
+
 **This project is still in its early stages and work in progress**
 
 ### Guide
