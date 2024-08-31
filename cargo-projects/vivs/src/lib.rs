@@ -56,6 +56,8 @@ pub type GenericResult<T> = std::result::Result<T, GenericError>;
 pub const PORT: u16 = 9000;
 
 // Global config
+// A thread-local storage (TLS) is created here using thread_local! {} macro.
+// VIVS_CONFIG is a static variable which is visible across function invocations
 thread_local! {
     pub static VIVS_CONFIG: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
 }
