@@ -57,7 +57,9 @@ pub const PORT: u16 = 9000;
 
 // Global config
 // A thread-local storage (TLS) is created here using thread_local! {} macro.
-// VIVS_CONFIG is a static variable which is visible across function invocations
+// VIVS_CONFIG is a static variable which is visible across function invocations.
+// Arc is used to prevent unsafe sharing between threads.
+// Mutex is used to give mutual-exclusive access.
 thread_local! {
     pub static VIVS_CONFIG: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
 }
