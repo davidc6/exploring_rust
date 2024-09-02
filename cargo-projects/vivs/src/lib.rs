@@ -1,6 +1,10 @@
 #![deny(clippy::unwrap_in_result)]
 
-use std::{collections::HashMap, sync::Arc};
+use serde::Deserialize;
+use std::{
+    collections::HashMap,
+    sync::{Arc, OnceLock},
+};
 use tokio::{net::TcpStream, sync::Mutex};
 
 pub mod data_chunk;
@@ -55,16 +59,26 @@ pub type GenericResult<T> = std::result::Result<T, GenericError>;
 // This is the default port the server listens on
 pub const PORT: u16 = 9000;
 
+#[derive(Deserialize, Debug, Default)]
+pub struct Config {
+    connection: ConnectionState,
+}
+
+#[derive(Deserialize, Debug, Default)]
+struct ConnectionState {
+    address: String,
+    port: u16,
+}
+
 // Global config
 // A thread-local storage (TLS) is created here using thread_local! {} macro.
 // VIVS_CONFIG is a static variable which is visible across function invocations.
 // Arc is used to prevent unsafe sharing between threads.
 // Mutex is used to give mutual-exclusive access.
-thread_local! {
-    pub static VIVS_CONFIG: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
-}
+// thread_local! {
+// pub static VIVS_CONFIG: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
+pub static VIVS_CONFIG_2: OnceLock<Config> = OnceLock::new();
 
-// TODO: This is just a temporary Vivs client implementation and will need to be extracted soon
 pub struct Client {
     connection: Connection,
 }
