@@ -3,6 +3,7 @@
 use serde::Deserialize;
 use std::{
     collections::HashMap,
+    fmt::Display,
     sync::{Arc, OnceLock},
 };
 use tokio::{net::TcpStream, sync::Mutex};
@@ -70,14 +71,17 @@ struct ConnectionState {
     port: u16,
 }
 
+impl std::error::Error for Config {}
+
+impl Display for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Could not load global config")
+    }
+}
+
 // Global config
-// A thread-local storage (TLS) is created here using thread_local! {} macro.
-// VIVS_CONFIG is a static variable which is visible across function invocations.
-// Arc is used to prevent unsafe sharing between threads.
-// Mutex is used to give mutual-exclusive access.
-// thread_local! {
-// pub static VIVS_CONFIG: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
-pub static VIVS_CONFIG_2: OnceLock<Config> = OnceLock::new();
+// VIVS_CONFIG is a (thread-safe) empty cell that can be written to only once.
+pub static VIVS_CONFIG: OnceLock<Config> = OnceLock::new();
 
 pub struct Client {
     connection: Connection,
