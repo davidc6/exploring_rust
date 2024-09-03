@@ -1,9 +1,11 @@
-use crate::{DataStore, GenericResult, Listener, VIVS_CONFIG};
+use crate::{DataStore, GenericResult, Listener, VIVS_CONFIG_LAZY};
 use log::{error, info};
 use tokio::net::TcpListener;
 
 pub async fn start() -> GenericResult<()> {
-    let vivs_config = VIVS_CONFIG.get().unwrap();
+    let vivs_config = &*VIVS_CONFIG_LAZY;
+    let vivs_config = vivs_config.as_ref().unwrap();
+
     let port = vivs_config.connection.port;
     let address = format!("{}:{}", vivs_config.connection.address, port);
     info!("Attempting to bind on port {port}");

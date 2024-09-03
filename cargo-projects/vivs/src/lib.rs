@@ -1,7 +1,10 @@
 #![deny(clippy::unwrap_in_result)]
 
 use serde::Deserialize;
-use std::{fmt::Display, sync::OnceLock};
+use std::{
+    fmt::Display,
+    sync::{LazyLock, OnceLock},
+};
 use tokio::net::TcpStream;
 
 pub mod data_chunk;
@@ -75,9 +78,19 @@ impl Display for Config {
     }
 }
 
-// Global config
-// VIVS_CONFIG is a (thread-safe) empty cell that can be written to only once.
-pub static VIVS_CONFIG: OnceLock<Config> = OnceLock::new();
+// Load up the global config lazily
+pub static VIVS_CONFIG_LAZY: LazyLock<Result<Config, String>> = LazyLock::new(|| {
+    let Ok(config_dir) = std::env::current_dir() else {
+        return Err("No current dir".to_owned());
+    };
+
+    let config_dir = config_dir.join("config/config.toml");
+    let Ok(file_contents_as_string) = std::fs::read_to_string(config_dir) else {
+        return Err("Could not read file".to_owned());
+    };
+
+    Ok(toml::from_str(&file_contents_as_string).unwrap())
+});
 
 pub struct Client {
     connection: Connection,
