@@ -1,12 +1,8 @@
 #![deny(clippy::unwrap_in_result)]
 
 use serde::Deserialize;
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    sync::{Arc, OnceLock},
-};
-use tokio::{net::TcpStream, sync::Mutex};
+use std::{fmt::Display, sync::OnceLock};
+use tokio::net::TcpStream;
 
 pub mod data_chunk;
 use data_chunk::DataChunk;

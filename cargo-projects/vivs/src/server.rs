@@ -3,9 +3,6 @@ use log::{error, info};
 use tokio::net::TcpListener;
 
 pub async fn start() -> GenericResult<()> {
-    // let vivs_config_ref = VIVS_CONFIG.with(|arc| arc.clone());
-    // let vivs_config = vivs_config_ref.lock();
-
     let vivs_config = VIVS_CONFIG.get().unwrap();
     let port = vivs_config.connection.port;
     let address = format!("{}:{}", vivs_config.connection.address, port);
