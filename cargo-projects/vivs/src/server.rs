@@ -4,11 +4,22 @@ use tokio::net::TcpListener;
 
 pub async fn start() -> GenericResult<()> {
     let vivs_config = &*VIVS_CONFIG_LAZY;
-    let vivs_config = vivs_config.as_ref().unwrap();
+    let vivs_config = vivs_config.as_ref();
 
-    let port = vivs_config.connection.port;
-    let address = format!("{}:{}", vivs_config.connection.address, port);
-    info!("Attempting to bind on port {port}");
+    let port;
+    let address;
+
+    if let Ok(vivs_config) = vivs_config.as_ref() {
+        info!("Config found!");
+        port = vivs_config.connection.port;
+        address = format!("{}:{}", vivs_config.connection.address, port);
+    } else {
+        info!("No config found, using defaults");
+        port = 9000;
+        address = format!("{}:{}", "127.0.0.1", port);
+    }
+
+    info!("Attempting to bind on port {port} {address}");
 
     // Bind/assign the address to the socket (ip address + port number)
     let tcp_listener = TcpListener::bind(address).await.map_err(|err| {
