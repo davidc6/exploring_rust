@@ -1,6 +1,6 @@
 # README
 
-Vivs is a simple, (currently) experimental in-memory data store. Currently, it uses a `HashMap` wrapped in `Arc` and `RwLock` that enable threads to safety read from and write to it. The data stores creates a thread per connection at the moment.
+Vivs is a simple, (currently) experimental in-memory data store. Currently, it uses a `HashMap` wrapped in `Arc` and `RwLock` that enable threads to safety read from and write to it. In the current implementation the data store creates a thread per connection at the moment.
 
 Vivs also has can have expirations set on keys (please see commands below).
 
@@ -61,12 +61,12 @@ Once the server and client are running, the following commands can be used:
 - [x] Save strings that contain spaces i.e. "Hello world"
 - [x] Build a REPL to test commands
 - [ ] HELLO (a command that returns instance information)
-- [X] TTL command, implement using a simple algorithm that checks if key is still valid when getting or ttling it
+- [x] TTL command, implement using a simple algorithm that checks if key is still valid when getting or ttling it
 - [ ] TTL (semi-active i.e. check ttl when key is being accessed AND/OR active i.e. sort keys by expiration in radix tree)
 - [ ] Build a client (connect to kv store, call get, set, delete commands)
 - [ ] GET command should only have one option for now
 - [ ] Repl EXIT command
-- [X] On DELETE remove expiration key
+- [x] On DELETE remove expiration key
 - [ ] Flag any commands options that are incorrect to the user, also would be nice to have some sort of a command completion
 - [ ] Listen on many ports
 - [ ] Authentication
