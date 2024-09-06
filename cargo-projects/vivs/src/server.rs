@@ -1,4 +1,4 @@
-use crate::{DataStore, GenericResult, Listener, VIVS_CONFIG_LAZY};
+use crate::{Config, ConnectionState, DataStore, GenericResult, Listener, VIVS_CONFIG_LAZY};
 use log::{error, info};
 use tokio::net::TcpListener;
 
@@ -6,18 +6,9 @@ pub async fn start() -> GenericResult<()> {
     let vivs_config = &*VIVS_CONFIG_LAZY;
     let vivs_config = vivs_config.as_ref();
 
-    let port;
-    let address;
-
-    if let Ok(vivs_config) = vivs_config.as_ref() {
-        info!("Config found!");
-        port = vivs_config.connection.port;
-        address = format!("{}:{}", vivs_config.connection.address, port);
-    } else {
-        info!("No config found, using defaults");
-        port = 9000;
-        address = format!("{}:{}", "127.0.0.1", port);
-    }
+    let Config {
+        connection: ConnectionState { address, port },
+    } = vivs_config.unwrap();
 
     info!("Attempting to bind on port {port} {address}");
 

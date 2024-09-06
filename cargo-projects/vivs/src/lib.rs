@@ -89,7 +89,17 @@ pub static VIVS_CONFIG_LAZY: LazyLock<Result<Config, String>> = LazyLock::new(||
         return Err("Could not read file".to_owned());
     };
 
-    Ok(toml::from_str(&file_contents_as_string).unwrap())
+    if let Ok(config) = toml::from_str(&file_contents_as_string) {
+        config
+    } else {
+        let c = ConnectionState {
+            port: 9000,
+            address: "127.0.0.1".to_owned(),
+        };
+        Ok(Config { connection: c })
+    }
+
+    // Ok(toml::from_str(&file_contents_as_string).unwrap())
 });
 
 pub struct Client {
