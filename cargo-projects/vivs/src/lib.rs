@@ -98,8 +98,6 @@ pub static VIVS_CONFIG_LAZY: LazyLock<Result<Config, String>> = LazyLock::new(||
         };
         Ok(Config { connection: c })
     }
-
-    // Ok(toml::from_str(&file_contents_as_string).unwrap())
 });
 
 pub struct Client {
