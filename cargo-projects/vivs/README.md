@@ -70,6 +70,8 @@ Once the server and client are running, the following commands can be used:
 - [ ] Flag any commands options that are incorrect to the user, also would be nice to have some sort of a command completion
 - [ ] Listen on many ports
 - [ ] Authentication
+- [ ] Swap out "manual" errors with `thiserror` or similar crate
+- [ ] Make distributed (Consensus algorithm)
 
 ## General architecture
 

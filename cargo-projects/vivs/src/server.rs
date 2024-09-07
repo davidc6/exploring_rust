@@ -10,13 +10,15 @@ pub async fn start() -> GenericResult<()> {
         connection: ConnectionState { address, port },
     } = vivs_config.unwrap();
 
-    info!("Attempting to bind on port {port} {address}");
+    info!("Attempting to bind on port {port}");
 
     // Bind/assign the address to the socket (ip address + port number)
-    let tcp_listener = TcpListener::bind(address).await.map_err(|err| {
-        error!("TCP listener failed to bind: {err}");
-        err
-    })?;
+    let tcp_listener = TcpListener::bind(format!("{}:{}", address, port))
+        .await
+        .map_err(|err| {
+            error!("TCP listener failed to bind: {err}");
+            err
+        })?;
 
     let listener = Listener::new(tcp_listener, DataStore::new());
     listener.run().await?;

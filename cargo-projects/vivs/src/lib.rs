@@ -92,11 +92,11 @@ pub static VIVS_CONFIG_LAZY: LazyLock<Result<Config, String>> = LazyLock::new(||
     if let Ok(config) = toml::from_str(&file_contents_as_string) {
         config
     } else {
-        let c = ConnectionState {
+        let connection = ConnectionState {
             port: 9000,
             address: "127.0.0.1".to_owned(),
         };
-        Ok(Config { connection: c })
+        Ok(Config { connection })
     }
 });
 
