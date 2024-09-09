@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use clap::{Args, Parser as ClapParser, Subcommand};
 use std::io::{stdin, stdout, Write};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use vivs::commands::ping::PONG;
@@ -54,8 +55,35 @@ pub async fn read_chunk_frame(data_chunk: &mut Parser) -> GenericResult<Bytes> {
     }
 }
 
+#[derive(Args, Debug, Clone)]
+struct ClusterCommands {
+    #[arg(long)]
+    create: Vec<String>,
+    #[arg(long)]
+    delete: Vec<String>,
+}
+
+#[derive(Debug, Subcommand, Clone)]
+enum Commands {
+    Create { create: Vec<String> },
+}
+
+#[derive(Debug, ClapParser)]
+struct Cli {
+    #[arg(long, short)]
+    cluster: bool,
+    #[command(subcommand)]
+    command: Commands,
+}
+
 #[tokio::main]
 async fn main() -> GenericResult<()> {
+    let cli_args = Cli::parse();
+
+    if cli_args.cluster {
+        println!("{:?}", cli_args);
+    }
+
     let address = format!("127.0.0.1:{}", 9000);
     let stream = TcpStream::connect(address).await?;
     let mut connection = Connection::new(stream);
