@@ -65,21 +65,31 @@ struct ClusterCommands {
 
 #[derive(Debug, Subcommand, Clone)]
 enum Commands {
-    Create { create: Vec<String> },
+    Create {
+        create: Vec<String>,
+        #[arg(long, short)]
+        is_cluster: bool,
+    },
 }
+
+// #[derive(Subcommand)]
+// struct OriginalCommands {}
 
 #[derive(Debug, ClapParser)]
 struct Cli {
     #[arg(long, short)]
     cluster: bool,
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
+    // #[arg(long)]
+    // host: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> GenericResult<()> {
     let cli_args = Cli::parse();
 
+    println!("{:?}", cli_args);
     if cli_args.cluster {
         println!("{:?}", cli_args);
     }

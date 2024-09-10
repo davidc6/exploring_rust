@@ -1,10 +1,7 @@
 #![deny(clippy::unwrap_in_result)]
 
 use serde::Deserialize;
-use std::{
-    fmt::Display,
-    sync::{LazyLock, OnceLock},
-};
+use std::{fmt::Display, sync::LazyLock};
 use tokio::net::TcpStream;
 
 pub mod data_chunk;
