@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use clap::{Args, Parser as ClapParser, Subcommand};
+use std::env::args;
 use std::io::{stdin, stdout, Write};
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use vivs::commands::ping::PONG;
@@ -65,11 +66,7 @@ struct ClusterCommands {
 
 #[derive(Debug, Subcommand, Clone)]
 enum Commands {
-    Create {
-        create: Vec<String>,
-        #[arg(long, short)]
-        is_cluster: bool,
-    },
+    Create { addresses: Vec<String> },
 }
 
 // #[derive(Subcommand)]
@@ -81,17 +78,44 @@ struct Cli {
     cluster: bool,
     #[command(subcommand)]
     command: Option<Commands>,
-    // #[arg(long)]
-    // host: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> GenericResult<()> {
     let cli_args = Cli::parse();
 
-    println!("{:?}", cli_args);
     if cli_args.cluster {
-        println!("{:?}", cli_args);
+        println!("Cluster mode enabled: {:?}", cli_args);
+
+        if let Some(Commands::Create { addresses }) = cli_args.command {
+            for address in addresses {
+                // send PING command to <ip:port>
+                let ping = DataChunk::from_string("PING");
+                println!("{ping}");
+                let stream = TcpStream::connect(address.clone()).await?;
+                let mut conn = Connection::new(stream);
+                conn.write_complete_frame(&ping).await?;
+
+                // process response
+                let mut buffer = conn.process_stream().await?;
+                let data_chunk = DataChunk::read_chunk(&mut buffer)?;
+                let mut parser = Parser::new(data_chunk)?;
+                let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+
+                // we know that vivs instance is running if it PONGs back
+                if bytes_read == PONG.as_bytes() {
+                    println!("{} is running", address);
+                }
+            }
+        }
+
+        // check order for
+        // redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 --cluster-replicas 1
+
+        // - check address is active
+        // - ping and pong
+
+        return Ok(());
     }
 
     let address = format!("127.0.0.1:{}", 9000);
