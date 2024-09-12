@@ -91,7 +91,6 @@ async fn main() -> GenericResult<()> {
             for address in addresses {
                 // send PING command to <ip:port>
                 let ping = DataChunk::from_string("PING");
-                println!("{ping}");
                 let stream = TcpStream::connect(address.clone()).await?;
                 let mut conn = Connection::new(stream);
                 conn.write_complete_frame(&ping).await?;
