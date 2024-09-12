@@ -118,6 +118,10 @@ impl DataChunk {
     pub fn from_string(value: &str) -> String {
         let mut elements: Vec<String> = vec![];
 
+        if !value.contains(" ") {
+            return format!("*1\r\n${}\r\n{}\r\n", value.len(), value);
+        }
+
         let mut start_position = 0;
         let mut end_position = 0;
 
