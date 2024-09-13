@@ -1,29 +1,30 @@
-# README
+# Vivs
 
-Vivs is a simple, (currently) experimental in-memory data store. Currently, it uses a `HashMap` wrapped in `Arc` and `RwLock` that enable threads to safety read from and write to it. In the current implementation the data store creates a thread per connection at the moment.
+Vivs is a simple, (currently) experimental in-memory data store. Current implementation is very straightforward. It uses a `HashMap<T>` wrapped in `Arc<T>` to allow for shared ownership and `RwLock<T>` to enable threads to safety read from and write to `HashMap<T>`. In the current implementation the data store creates a thread per connection at the moment.
 
-Vivs also has can have expirations set on keys (please see commands below).
+Vivs also has can have expirations (TTL) set on keys (please see commands below).
 
 **This project is still in its early stages and work in progress**
 
 ### Guide
 
-To run:
+To run the package locally:
 
 ```sh
-# server
+# Runs the server
 cargo run --bin vivs
 
-# server with logs
+# Runs the server with logs
 RUST_LOG=vivs cargo run --bin vivs
 
-# client / repl, to execute commands
+# Starts the REPL which is used to execute commands
 cargo run --bin vivs-repl
 ```
 
 To run integration tests:
 
 ```sh
+# Runs integration tests to test Vivs commands
 cargo test --test commands
 ```
 
@@ -36,10 +37,6 @@ Vivs server and repl start with these values by default.
 | Address | 127.0.0.1 |
 | Port | 9000 |
 
-### Repl / cli
-
-- [ ] Pass in address and port (either as config or param)
-
 ### Commands
 
 Once the server and client are running, the following commands can be used:
@@ -51,7 +48,23 @@ Once the server and client are running, the following commands can be used:
 - `DELETE <key>` - deletes key from the store
 - `TTL <key>` - checks whether a key has time to live (expiry time)
 
-## TODOs
+## Brief roadmap
+
+### Todos
+
+- [ ] HELLO (a command that returns instance information)
+- [ ] TTL (semi-active i.e. check ttl when key is being accessed AND/OR active i.e. sort keys by expiration in radix tree)
+- [ ] Build a client (connect to kv store, call get, set, delete commands)
+- [ ] GET command should only have one option for now
+- [ ] Repl EXIT command
+- [ ] Flag any commands options that are incorrect to the user, also would be nice to have some sort of a command completion
+- [ ] Listen on many ports
+- [ ] Authentication
+- [ ] Swap out "manual" errors with `thiserror` or similar crate
+- [ ] Make distributed (Consensus algorithm)
+- [ ] [REPL] Pass in address and port (either as config or param)
+
+### Done
 
 - [x] Logging (.log) for all commands
 - [x] PING
@@ -60,22 +73,12 @@ Once the server and client are running, the following commands can be used:
 - [x] DELETE
 - [x] Save strings that contain spaces i.e. "Hello world"
 - [x] Build a REPL to test commands
-- [ ] HELLO (a command that returns instance information)
 - [x] TTL command, implement using a simple algorithm that checks if key is still valid when getting or ttling it
-- [ ] TTL (semi-active i.e. check ttl when key is being accessed AND/OR active i.e. sort keys by expiration in radix tree)
-- [ ] Build a client (connect to kv store, call get, set, delete commands)
-- [ ] GET command should only have one option for now
-- [ ] Repl EXIT command
 - [x] On DELETE remove expiration key
-- [ ] Flag any commands options that are incorrect to the user, also would be nice to have some sort of a command completion
-- [ ] Listen on many ports
-- [ ] Authentication
-- [ ] Swap out "manual" errors with `thiserror` or similar crate
-- [ ] Make distributed (Consensus algorithm)
 
 ## General architecture
 
-- Client sends a frame which server parses
+- Client sends a frame which the server then parses
 - Server parses the payload by splitting it into "chunks" (Example `*1$4PING` get split into `*1`, `$4`, `PING`)
 - Server then writes back to the stream which is read by the client
 
