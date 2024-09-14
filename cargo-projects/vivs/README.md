@@ -61,6 +61,7 @@ Once the server and client are running, the following commands can be used:
 - [ ] Listen on many ports
 - [ ] Authentication
 - [ ] Swap out "manual" errors with `thiserror` or similar crate
+- [ ] Cluster mode (WIP)
 - [ ] Make distributed (Consensus algorithm)
 - [ ] [REPL] Pass in address and port (either as config or param)
 
