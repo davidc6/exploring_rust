@@ -1,8 +1,12 @@
 use bytes::Bytes;
 use clap::{Args, Parser as ClapParser, Subcommand};
-use std::env::args;
+use serde::Serialize;
+use std::env::{args, current_dir};
 use std::io::{stdin, stdout, Write};
+use tokio::fs::{self, File};
+use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
+use toml::value;
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
 use vivs::{data_chunk::DataChunk, Connection, GenericResult};
@@ -80,19 +84,57 @@ struct Cli {
     command: Option<Commands>,
 }
 
+async fn rand_number_as_string() -> GenericResult<String> {
+    let mut open_file = File::open("/dev/urandom").await?;
+
+    let mut rand_integers = [0u8; 10];
+    open_file.read_exact(&mut rand_integers).await?;
+
+    Ok(rand_integers
+        .to_vec()
+        .iter()
+        .map(|integer| format!("{:x}", integer))
+        .collect::<Vec<_>>()
+        .join(""))
+}
+
+#[derive(Serialize)]
+struct Config {
+    id: String,
+    ip: String,
+}
+
 #[tokio::main]
 async fn main() -> GenericResult<()> {
     let cli_args = Cli::parse();
 
+    // check order for
     if cli_args.cluster {
         println!("Cluster mode enabled: {:?}", cli_args);
 
+        let node_id = rand_number_as_string().await?;
+
+        let config = Config {
+            id: node_id,
+            ip: "127.0.0.1".to_owned(),
+        };
+
+        let toml_as_string = toml::to_string(&config).unwrap();
+
+        let mut active_instances = vec![];
+
         if let Some(Commands::Create { addresses }) = cli_args.command {
             for address in addresses {
-                // send PING command to <ip:port>
+                let stream = TcpStream::connect(address.clone()).await;
+
+                if stream.is_err() {
+                    continue;
+                }
+
                 let ping = DataChunk::from_string("PING");
-                let stream = TcpStream::connect(address.clone()).await?;
-                let mut conn = Connection::new(stream);
+
+                // send PING command to <ip:port>
+                let mut conn = Connection::new(stream.unwrap());
                 conn.write_complete_frame(&ping).await?;
 
                 // process response
@@ -101,14 +143,28 @@ async fn main() -> GenericResult<()> {
                 let mut parser = Parser::new(data_chunk)?;
                 let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
 
-                // we know that vivs instance is running if it PONGs back
+                // we know that a Vivs instance is running if we PING it and it PONGs back
                 if bytes_read == PONG.as_bytes() {
-                    println!("{} is running", address);
+                    active_instances.push(address.clone());
+
+                    let port: Vec<_> = address.split(":").collect();
+                    let path = current_dir();
+                    let mut file = File::create(format!(
+                        "{}/{}.toml",
+                        path.unwrap().display(),
+                        port.get(1).unwrap()
+                    ))
+                    .await?;
+                    // let a = value(v);
+                    file.write_all(toml_as_string.as_bytes()).await?;
                 }
             }
         }
 
-        // check order for
+        if active_instances.is_empty() {
+            Err("Could not create a cluster mode since no Vivs instances are running")?;
+        }
+
         // redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 --cluster-replicas 1
 
         // - check address is active
