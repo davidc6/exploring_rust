@@ -122,9 +122,7 @@ async fn main() -> GenericResult<()> {
 
         let mut active_instances = HashSet::new();
 
-        let current_pos = 0;
-
-        let mut a = HashMap::new();
+        let mut current_config = HashMap::new();
 
         if let Some(Commands::Create { addresses }) = cli_args.command {
             let addresses_len = addresses.len();
@@ -146,7 +144,7 @@ async fn main() -> GenericResult<()> {
                         config.is_self = true;
                     }
                     cur += 1;
-                    a.insert(address.clone(), config);
+                    current_config.insert(address.clone(), config);
 
                     let stream = TcpStream::connect(address.clone()).await;
 
@@ -190,7 +188,7 @@ async fn main() -> GenericResult<()> {
                 .await?;
 
                 // let toml_as_string = toml::to_string(&config).unwrap();
-                let toml_as_string = toml::to_string(&a).unwrap();
+                let toml_as_string = toml::to_string(&current_config).unwrap();
                 file.write_all(toml_as_string.as_bytes()).await?;
             }
         }
