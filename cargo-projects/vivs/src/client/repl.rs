@@ -98,7 +98,7 @@ async fn rand_number_as_string() -> GenericResult<String> {
         .join(""))
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 struct Config {
     id: String,
     ip: String,
@@ -121,7 +121,7 @@ async fn main() -> GenericResult<()> {
         println!("Cluster mode enabled: {:?}", cli_args);
 
         let mut active_instances = HashSet::new();
-
+        let mut instances: HashMap<String, Config> = HashMap::new();
         let mut current_config = HashMap::new();
 
         if let Some(Commands::Create { addresses }) = cli_args.command {
@@ -132,22 +132,15 @@ async fn main() -> GenericResult<()> {
 
             for i in 0..addresses_len {
                 cur = 0;
+
+                let current_address = addresses.get(cur_2);
+                let current_port: Vec<_> = current_address.unwrap().split(":").collect();
+                let current_port = current_port.get(1).unwrap();
+                let mut is_current_port_open = false;
+
                 for address in &addresses {
-                    let node_id = rand_number_as_string().await?;
-
-                    let mut config = Config {
-                        id: node_id,
-                        ip: address.clone(),
-                        is_self: false,
-                    };
-                    if i == cur {
-                        config.is_self = true;
-                    }
-                    cur += 1;
-                    current_config.insert(address.clone(), config);
-
+                    // Can a TCP connection to the node be established?
                     let stream = TcpStream::connect(address.clone()).await;
-
                     if stream.is_err() {
                         continue;
                     }
@@ -166,30 +159,52 @@ async fn main() -> GenericResult<()> {
 
                     // we know that a Vivs instance is running if we PING it and it PONGs back
                     if bytes_read == PONG.as_bytes() {
+                        if current_address.unwrap() == &address.clone() {
+                            is_current_port_open = true;
+                        }
+
                         active_instances.insert(address.clone());
+
+                        if let Some(k) = instances.get_mut(&address.clone()) {
+                            k.is_self = i == cur;
+
+                            current_config.insert(address.clone(), k.clone());
+                            cur += 1;
+
+                            continue;
+                        }
 
                         let node_id = rand_number_as_string().await?;
 
-                        // let a = value(v);
-                        // if port
-                        // config.is_self
+                        let mut config = Config {
+                            id: node_id.clone(),
+                            ip: address.clone(),
+                            is_self: false,
+                        };
+                        if i == cur {
+                            config.is_self = true;
+                        }
+                        cur += 1;
+
+                        instances.insert(address.clone(), config.clone());
+                        current_config.insert(address.clone(), config);
                     }
                 }
 
-                let port: Vec<_> = addresses.get(cur_2).unwrap().split(":").collect();
                 cur_2 += 1;
-                let path = current_dir();
 
-                let mut file = File::create(format!(
-                    "{}/{}.toml",
-                    path.unwrap().display(),
-                    port.get(1).unwrap()
-                ))
-                .await?;
+                if is_current_port_open {
+                    // TODO: only write to file if port is open active
+                    let path = current_dir();
 
-                // let toml_as_string = toml::to_string(&config).unwrap();
-                let toml_as_string = toml::to_string(&current_config).unwrap();
-                file.write_all(toml_as_string.as_bytes()).await?;
+                    let mut file =
+                        File::create(format!("{}/{}.toml", path.unwrap().display(), current_port))
+                            .await?;
+
+                    // let toml_as_string = toml::to_string(&config).unwrap();
+                    let toml_as_string = toml::to_string(&current_config).unwrap();
+                    file.write_all(toml_as_string.as_bytes()).await?;
+                }
             }
         }
 
