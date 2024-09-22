@@ -1,4 +1,4 @@
-use crate::{Config, ConnectionState, DataStore, GenericResult, Listener, VIVS_CONFIG_LAZY};
+use crate::{DataStore, GenericResult, Listener, VIVS_CONFIG_LAZY};
 use clap::Parser;
 use log::{error, info};
 use tokio::net::TcpListener;
@@ -13,9 +13,9 @@ pub async fn start() -> GenericResult<()> {
     let vivs_config = &*VIVS_CONFIG_LAZY;
     let vivs_config = vivs_config.as_ref();
 
-    let config = vivs_config.unwrap();
+    let connection = &vivs_config.unwrap().connection;
     let mut port = connection.port;
-    let address = connection.address;
+    let address = &connection.address;
 
     let args = Cli::parse();
     if args.port.is_some() {
