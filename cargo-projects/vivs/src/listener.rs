@@ -17,8 +17,10 @@ impl Listener {
 
     /// Starts listening to the incoming connections and processes accordingly.
     pub async fn run(self) -> GenericResult<()> {
-        info!("Server initialised");
-        info!("Listening for connections");
+        info!(
+            "Listening for connections on {}",
+            self.tcp_listener.local_addr()?
+        );
 
         // To accept multiple incoming connections,
         // a loop construct is used here to handle each connection.
@@ -37,8 +39,8 @@ impl Listener {
             // Tasks are created by passing an async block to spawn().
             tokio::spawn(async move {
                 info!("Connection established with {:?}", socket_addr);
-                // Wait for me data from already connected sockets,
-                // by looping here the connection does not close.
+                // Wait for the data from the connected sockets.
+                // By looping here the connection does not close.
                 // If we don't loop and when a client tries to send data continuously on the socket,
                 // we'll get the "broken pipe" error message.
                 loop {

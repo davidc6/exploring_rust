@@ -1,4 +1,4 @@
-use crate::{Config, ConnectionState, DataStore, GenericResult, Listener, VIVS_CONFIG_LAZY};
+use crate::{Config, DataStore, GenericResult, Listener, NodeListener, VIVS_CONFIG_LAZY};
 use clap::Parser;
 use log::{error, info};
 use tokio::net::TcpListener;
@@ -12,28 +12,49 @@ struct Cli {
 pub async fn start() -> GenericResult<()> {
     let vivs_config = &*VIVS_CONFIG_LAZY;
     let vivs_config = vivs_config.as_ref();
-
-    let config = vivs_config.unwrap();
-    let mut port = connection.port;
-    let address = connection.address;
+    let Config {
+        connection,
+        cluster,
+    } = &vivs_config.unwrap();
 
     let args = Cli::parse();
-    if args.port.is_some() {
-        port = args.port.unwrap();
-    }
+    let port = args.port.unwrap_or(connection.port);
+    let address = &connection.address;
+    let cluster = cluster.as_ref();
 
+    info!("Vivs initialised");
     info!("Attempting to bind on port {port}");
 
     // Bind/assign the address to the socket (ip address + port number)
-    let tcp_listener = TcpListener::bind(format!("{}:{}", address, port))
+    // This is for client connections
+    let tcp_listener = TcpListener::bind(format!("{address}:{port}"))
         .await
         .map_err(|err| {
-            error!("TCP listener failed to bind: {err}");
+            error!("Failed to bind: {err}");
             err
         })?;
-
     let listener = Listener::new(tcp_listener, DataStore::new());
-    listener.run().await?;
+
+    if let Some(cluster) = cluster.as_ref() {
+        let cluster_port = cluster.port;
+        info!("Attempting to bind on port {cluster_port}");
+
+        // This is for node to node / peer to peer connections
+        let node_tcp_listener = TcpListener::bind(format!("{address}:{cluster_port}"))
+            .await
+            .map_err(|err| {
+                error!("Failed to bind: {err}");
+                err
+            })?;
+        let node_listener = NodeListener::new(node_tcp_listener);
+
+        let _ = tokio::join!(listener.run(), node_listener.run());
+
+        return Ok(());
+    }
+
+    // Enables to wait on concurrent branches, returning when all branches complete
+    let _ = listener.run().await;
 
     Ok(())
 }

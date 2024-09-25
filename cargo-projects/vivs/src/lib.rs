@@ -1,10 +1,7 @@
 #![deny(clippy::unwrap_in_result)]
 
 use serde::Deserialize;
-use std::{
-    fmt::Display,
-    sync::{LazyLock, OnceLock},
-};
+use std::{fmt::Display, sync::LazyLock};
 use tokio::net::TcpStream;
 
 pub mod data_chunk;
@@ -12,6 +9,9 @@ use data_chunk::DataChunk;
 
 pub mod listener;
 pub use listener::Listener;
+
+pub mod node_listener;
+pub use node_listener::NodeListener;
 
 pub mod db;
 pub use db::DataStore;
@@ -62,11 +62,19 @@ pub const PORT: u16 = 9000;
 #[derive(Deserialize, Debug, Default)]
 pub struct Config {
     connection: ConnectionState,
+    cluster: Option<Cluster>,
 }
 
 #[derive(Deserialize, Debug, Default)]
 struct ConnectionState {
     address: String,
+    port: u16,
+}
+
+#[derive(Deserialize, Debug, Default)]
+struct Cluster {
+    enabled: bool,
+    node_timeout: u16,
     port: u16,
 }
 
@@ -89,14 +97,19 @@ pub static VIVS_CONFIG_LAZY: LazyLock<Result<Config, String>> = LazyLock::new(||
         return Err("Could not read file".to_owned());
     };
 
-    if let Ok(config) = toml::from_str(&file_contents_as_string) {
-        config
+    let toml_config = toml::from_str::<Config>(&file_contents_as_string);
+
+    if let Ok(config) = toml_config {
+        Ok(config)
     } else {
         let connection = ConnectionState {
             port: 9000,
             address: "127.0.0.1".to_owned(),
         };
-        Ok(Config { connection })
+        Ok(Config {
+            connection,
+            cluster: None,
+        })
     }
 });
 
