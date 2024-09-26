@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use clap::{Args, Parser as ClapParser, Subcommand};
+use log::info;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::env::current_dir;
@@ -70,11 +71,8 @@ struct ClusterCommands {
 
 #[derive(Debug, Subcommand, Clone)]
 enum Commands {
-    Create { addresses: Vec<String> },
+    Create { ip_addresses: Vec<String> },
 }
-
-// #[derive(Subcommand)]
-// struct OriginalCommands {}
 
 #[derive(Debug, ClapParser)]
 struct Cli {
@@ -105,119 +103,115 @@ struct Config {
     is_self: bool,
 }
 
-struct AddressConfig {
-    id: String,
-    neighbours: Vec<String>,
-}
+async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
+    info!("Enabling cluster mode");
 
-type HM = HashMap<String, AddressConfig>;
+    let mut active_instances = HashSet::new();
+    let mut instances: HashMap<String, Config> = HashMap::new();
+    let mut current_config = HashMap::new();
 
-#[tokio::main]
-async fn main() -> GenericResult<()> {
-    let cli_args = Cli::parse();
+    // Create cluster command
+    if let Some(Commands::Create { ip_addresses }) = cli_args.command {
+        let total_ips = ip_addresses.len();
 
-    // check order for
-    if cli_args.cluster {
-        println!("Cluster mode enabled: {:?}", cli_args);
+        for i in 0..total_ips {
+            let mut cur: usize = 0;
 
-        let mut active_instances = HashSet::new();
-        let mut instances: HashMap<String, Config> = HashMap::new();
-        let mut current_config = HashMap::new();
+            // Check if exists
 
-        if let Some(Commands::Create { addresses }) = cli_args.command {
-            let addresses_len = addresses.len();
+            let current_ip = ip_addresses.get(i);
+            let current_port = current_ip.unwrap().split(":").nth(1);
+            if current_port.is_none() {
+                info!("{:?} IP does not contain a port", current_ip.unwrap());
+                continue;
+            }
 
-            let mut cur = 0;
-            let mut cur_2 = 0;
+            let current_port = current_port.unwrap();
+            let mut is_current_port_open = false;
 
-            for i in 0..addresses_len {
-                cur = 0;
+            for address in &ip_addresses {
+                // Can a TCP connection to the node be established?
+                let stream = TcpStream::connect(address.clone()).await;
+                if stream.is_err() {
+                    info!("Could not connect to {:?}", address);
+                    continue;
+                }
 
-                let current_address = addresses.get(cur_2);
-                let current_port: Vec<_> = current_address.unwrap().split(":").collect();
-                let current_port = current_port.get(1).unwrap();
-                let mut is_current_port_open = false;
+                let ping = DataChunk::from_string("PING");
 
-                for address in &addresses {
-                    // Can a TCP connection to the node be established?
-                    let stream = TcpStream::connect(address.clone()).await;
-                    if stream.is_err() {
+                // send PING command to <ip:port>
+                let mut conn = Connection::new(stream.unwrap());
+                conn.write_complete_frame(&ping).await?;
+
+                // process response
+                let mut buffer = conn.process_stream().await?;
+                let data_chunk = DataChunk::read_chunk(&mut buffer)?;
+                let mut parser = Parser::new(data_chunk)?;
+                let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+
+                // we know that a Vivs instance is running if we PING it and it PONGs back
+                if bytes_read == PONG.as_bytes() {
+                    if current_ip.unwrap() == &address.clone() {
+                        is_current_port_open = true;
+                    }
+
+                    active_instances.insert(address.clone());
+
+                    if let Some(k) = instances.get_mut(&address.clone()) {
+                        k.is_self = i == cur;
+
+                        current_config.insert(address.clone(), k.clone());
+                        cur += 1;
+
                         continue;
                     }
 
-                    let ping = DataChunk::from_string("PING");
+                    let node_id = rand_number_as_string().await?;
 
-                    // send PING command to <ip:port>
-                    let mut conn = Connection::new(stream.unwrap());
-                    conn.write_complete_frame(&ping).await?;
-
-                    // process response
-                    let mut buffer = conn.process_stream().await?;
-                    let data_chunk = DataChunk::read_chunk(&mut buffer)?;
-                    let mut parser = Parser::new(data_chunk)?;
-                    let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
-
-                    // we know that a Vivs instance is running if we PING it and it PONGs back
-                    if bytes_read == PONG.as_bytes() {
-                        if current_address.unwrap() == &address.clone() {
-                            is_current_port_open = true;
-                        }
-
-                        active_instances.insert(address.clone());
-
-                        if let Some(k) = instances.get_mut(&address.clone()) {
-                            k.is_self = i == cur;
-
-                            current_config.insert(address.clone(), k.clone());
-                            cur += 1;
-
-                            continue;
-                        }
-
-                        let node_id = rand_number_as_string().await?;
-
-                        let mut config = Config {
-                            id: node_id.clone(),
-                            ip: address.clone(),
-                            is_self: false,
-                        };
-                        if i == cur {
-                            config.is_self = true;
-                        }
-                        cur += 1;
-
-                        instances.insert(address.clone(), config.clone());
-                        current_config.insert(address.clone(), config);
+                    let mut config = Config {
+                        id: node_id.clone(),
+                        ip: address.clone(),
+                        is_self: false,
+                    };
+                    if i == cur {
+                        config.is_self = true;
                     }
-                }
+                    cur += 1;
 
-                cur_2 += 1;
-
-                if is_current_port_open {
-                    // TODO: only write to file if port is open active
-                    let path = current_dir();
-
-                    let mut file =
-                        File::create(format!("{}/{}.toml", path.unwrap().display(), current_port))
-                            .await?;
-
-                    // let toml_as_string = toml::to_string(&config).unwrap();
-                    let toml_as_string = toml::to_string(&current_config).unwrap();
-                    file.write_all(toml_as_string.as_bytes()).await?;
+                    instances.insert(address.clone(), config.clone());
+                    current_config.insert(address.clone(), config);
                 }
             }
+
+            if is_current_port_open {
+                let path = current_dir();
+
+                let mut file =
+                    File::create(format!("{}/{}.toml", path.unwrap().display(), current_port))
+                        .await?;
+
+                let toml_as_string = toml::to_string(&current_config).unwrap();
+                file.write_all(toml_as_string.as_bytes()).await?;
+            }
         }
+    }
 
-        if active_instances.is_empty() {
-            Err("Could not create a cluster mode since no Vivs instances are running")?;
-        }
+    if active_instances.is_empty() {
+        Err("Could not create a cluster mode since no Vivs instances are running")?;
+    }
 
-        // redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 --cluster-replicas 1
+    Ok(())
+}
 
-        // - check address is active
-        // - ping and pong
+#[tokio::main]
+async fn main() -> GenericResult<()> {
+    env_logger::init();
 
-        return Ok(());
+    let cli_args = Cli::parse();
+
+    // TODO: check args order
+    if cli_args.cluster {
+        return set_up_cluster(cli_args).await;
     }
 
     let address = format!("127.0.0.1:{}", 9000);
