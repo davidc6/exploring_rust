@@ -25,7 +25,7 @@ pub async fn start() -> GenericResult<()> {
     info!("Attempting to bind on port {port}");
 
     // Bind/assign the address to the socket (ip address + port number)
-    let tcp_listener = TcpListener::bind(format!("{}:{}", address, port))
+    let tcp_listener = TcpListener::bind(format!("{address}:{port}"))
         .await
         .map_err(|err| {
             error!("TCP listener failed to bind: {err}");
