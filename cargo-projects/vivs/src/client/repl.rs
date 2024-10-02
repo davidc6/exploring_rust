@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use clap::{Args, Parser as ClapParser, Subcommand};
+use env_logger::Env;
 use log::info;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -114,28 +115,31 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
     if let Some(Commands::Create { ip_addresses }) = cli_args.command {
         let total_ips = ip_addresses.len();
 
+        // To enable us to access ips by index later
         for i in 0..total_ips {
             let mut cur: usize = 0;
 
-            // Check if exists
-
-            let current_ip = ip_addresses.get(i);
-            let current_port = current_ip.unwrap().split(":").nth(1);
-            if current_port.is_none() {
-                info!("{:?} IP does not contain a port", current_ip.unwrap());
+            let Some(current_ip) = ip_addresses.get(i) else {
                 continue;
-            }
+            };
 
-            let current_port = current_port.unwrap();
+            let Some(current_port) = current_ip.split(":").nth(1) else {
+                info!("{current_ip} IP does not contain a port");
+                continue;
+            };
+
+            // We need this to write the config file
             let mut is_current_port_open = false;
 
-            for address in &ip_addresses {
+            // Iterate over the passed in ips
+            for ip_address in &ip_addresses {
                 // Can a TCP connection to the node be established?
-                let stream = TcpStream::connect(address.clone()).await;
-                if stream.is_err() {
-                    info!("Could not connect to {:?}", address);
+                let stream = TcpStream::connect(ip_address).await;
+
+                let Ok(_) = stream else {
+                    info!("Could not connect to {ip_address}");
                     continue;
-                }
+                };
 
                 let ping = DataChunk::from_string("PING");
 
@@ -149,18 +153,20 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
                 let mut parser = Parser::new(data_chunk)?;
                 let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
 
-                // we know that a Vivs instance is running if we PING it and it PONGs back
+                // We know that a Vivs instance is running if we PING it and it PONGs back
                 if bytes_read == PONG.as_bytes() {
-                    if current_ip.unwrap() == &address.clone() {
+                    // We are connected to the Vivs instance
+                    if current_ip == ip_address {
                         is_current_port_open = true;
                     }
 
-                    active_instances.insert(address.clone());
+                    active_instances.insert(ip_address.clone());
 
-                    if let Some(k) = instances.get_mut(&address.clone()) {
-                        k.is_self = i == cur;
+                    //
+                    if let Some(node) = instances.get_mut(ip_address) {
+                        node.is_self = i == cur;
 
-                        current_config.insert(address.clone(), k.clone());
+                        current_config.insert(ip_address.clone(), node.clone());
                         cur += 1;
 
                         continue;
@@ -170,7 +176,7 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
 
                     let mut config = Config {
                         id: node_id.clone(),
-                        ip: address.clone(),
+                        ip: ip_address.clone(),
                         is_self: false,
                     };
                     if i == cur {
@@ -178,11 +184,12 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
                     }
                     cur += 1;
 
-                    instances.insert(address.clone(), config.clone());
-                    current_config.insert(address.clone(), config);
+                    instances.insert(ip_address.clone(), config.clone());
+                    current_config.insert(ip_address.clone(), config);
                 }
             }
 
+            // Vivs instance node is active and listening
             if is_current_port_open {
                 let path = current_dir();
 
@@ -205,7 +212,7 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
 
 #[tokio::main]
 async fn main() -> GenericResult<()> {
-    env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let cli_args = Cli::parse();
 
