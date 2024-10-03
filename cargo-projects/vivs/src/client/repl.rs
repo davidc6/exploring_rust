@@ -149,8 +149,7 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
 
                 // process response
                 let mut buffer = conn.process_stream().await?;
-                let data_chunk = DataChunk::read_chunk(&mut buffer)?;
-                let mut parser = Parser::new(data_chunk)?;
+                let mut parser = Parser::new(DataChunk::read_chunk(&mut buffer)?)?;
                 let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
 
                 // We know that a Vivs instance is running if we PING it and it PONGs back
