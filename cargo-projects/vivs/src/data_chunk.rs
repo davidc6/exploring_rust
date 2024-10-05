@@ -119,7 +119,9 @@ impl DataChunk {
         let mut elements: Vec<String> = vec![];
 
         if !value.contains(" ") {
-            return format!("*1\r\n${}\r\n{}\r\n", value.len(), value);
+            // trim() here to remove \n at the end of the value
+            // e.g. ping\n becomes ping
+            return format!("*1\r\n${}\r\n{}\r\n", value.len(), value.trim());
         }
 
         let mut start_position = 0;
