@@ -10,8 +10,8 @@ use data_chunk::DataChunk;
 pub mod listener;
 pub use listener::Listener;
 
-pub mod listener2;
-pub use listener2::Listener2;
+pub mod node_listener;
+pub use node_listener::NodeListener;
 
 pub mod db;
 pub use db::DataStore;

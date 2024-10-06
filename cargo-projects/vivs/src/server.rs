@@ -1,4 +1,4 @@
-use crate::{DataStore, GenericResult, Listener, Listener2, VIVS_CONFIG_LAZY};
+use crate::{DataStore, GenericResult, Listener, NodeListener, VIVS_CONFIG_LAZY};
 use clap::Parser;
 use log::{error, info};
 use tokio::net::{tcp, TcpListener};
@@ -27,19 +27,20 @@ pub async fn start() -> GenericResult<()> {
             error!("TCP listener failed to bind: {err}");
             err
         })?;
+    let listener = Listener::new(tcp_listener, DataStore::new());
 
-    let tcp_listener = Listener::new(tcp_listener, DataStore::new());
+    info!("Attempting to bind on port 10000");
 
-    let tcp_listener_bus = TcpListener::bind(format!("{address}:10000"))
+    let node_tcp_listener = TcpListener::bind(format!("{address}:10000"))
         .await
         .map_err(|err| {
             error!("TCP listener failed to bind: {err}");
             err
         })?;
+    let node_listener = NodeListener::new(node_tcp_listener);
 
-    let tcp_listener_bus = Listener2::new(tcp_listener_bus);
-
-    let _ = tokio::join!(tcp_listener.run(), tcp_listener_bus.run());
+    // Enables to wait on concurrent branches, returning when all branches complete
+    let _ = tokio::join!(listener.run(), node_listener.run());
 
     Ok(())
 }
