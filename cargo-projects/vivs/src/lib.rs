@@ -68,6 +68,7 @@ pub struct Config {
 struct ConnectionState {
     address: String,
     port: u16,
+    cluster_port: u16,
 }
 
 impl std::error::Error for Config {}
@@ -94,6 +95,7 @@ pub static VIVS_CONFIG_LAZY: LazyLock<Result<Config, String>> = LazyLock::new(||
     } else {
         let connection = ConnectionState {
             port: 9000,
+            cluster_port: 19000,
             address: "127.0.0.1".to_owned(),
         };
         Ok(Config { connection })

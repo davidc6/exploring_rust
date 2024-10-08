@@ -121,7 +121,8 @@ impl DataChunk {
         if !value.contains(" ") {
             // trim() here to remove \n at the end of the value
             // e.g. ping\n becomes ping
-            return format!("*1\r\n${}\r\n{}\r\n", value.len(), value.trim());
+            let command = value.trim();
+            return format!("*1\r\n${}\r\n{command}\r\n", command.len());
         }
 
         let mut start_position = 0;

@@ -2,6 +2,7 @@
 [connection]
 address = "127.0.0.1"
 port = 9000
+cluster_port = 19000
 
 # Cluster related settings
 [cluster]

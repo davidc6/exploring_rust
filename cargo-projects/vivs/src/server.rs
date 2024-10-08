@@ -17,6 +17,7 @@ pub async fn start() -> GenericResult<()> {
     let args = Cli::parse();
     let port = args.port.unwrap_or(connection.port);
     let address = &connection.address;
+    let cluster_port = &connection.cluster_port;
 
     info!("Attempting to bind on port {port}");
 
@@ -29,9 +30,9 @@ pub async fn start() -> GenericResult<()> {
         })?;
     let listener = Listener::new(tcp_listener, DataStore::new());
 
-    info!("Attempting to bind on port 10000");
+    info!("Attempting to bind on port {cluster_port}");
 
-    let node_tcp_listener = TcpListener::bind(format!("{address}:10000"))
+    let node_tcp_listener = TcpListener::bind(format!("{address}:{cluster_port}"))
         .await
         .map_err(|err| {
             error!("TCP listener failed to bind: {err}");
