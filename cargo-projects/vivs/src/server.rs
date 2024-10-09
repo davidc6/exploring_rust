@@ -1,7 +1,7 @@
 use crate::{DataStore, GenericResult, Listener, NodeListener, VIVS_CONFIG_LAZY};
 use clap::Parser;
 use log::{error, info};
-use tokio::net::{tcp, TcpListener};
+use tokio::net::TcpListener;
 
 #[derive(Parser)]
 struct Cli {
