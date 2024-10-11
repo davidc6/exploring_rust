@@ -17,8 +17,10 @@ impl Listener {
 
     /// Starts listening to the incoming connections and processes accordingly.
     pub async fn run(self) -> GenericResult<()> {
-        info!("Server initialised");
-        info!("Listening for connections");
+        info!(
+            "Listening for connections on {}",
+            self.tcp_listener.local_addr()?
+        );
 
         // To accept multiple incoming connections,
         // a loop construct is used here to handle each connection.

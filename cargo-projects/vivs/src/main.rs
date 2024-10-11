@@ -11,7 +11,7 @@ pub async fn main() -> vivs::GenericResult<()> {
 
     // Start the server
     server::start().await.map_err(|e| {
-        error!("Failed to start Vivs server: {e}");
+        error!("Failed to start Vivs: {e}");
         e
     })?;
 

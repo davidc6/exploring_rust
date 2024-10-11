@@ -19,23 +19,26 @@ pub async fn start() -> GenericResult<()> {
     let address = &connection.address;
     let cluster_port = &connection.cluster_port;
 
+    info!("Vivs initialised");
     info!("Attempting to bind on port {port}");
 
     // Bind/assign the address to the socket (ip address + port number)
+    // This is for client connections
     let tcp_listener = TcpListener::bind(format!("{address}:{port}"))
         .await
         .map_err(|err| {
-            error!("TCP listener failed to bind: {err}");
+            error!("Failed to bind: {err}");
             err
         })?;
     let listener = Listener::new(tcp_listener, DataStore::new());
 
     info!("Attempting to bind on port {cluster_port}");
 
+    // This is for node to node / peer to peer connections
     let node_tcp_listener = TcpListener::bind(format!("{address}:{cluster_port}"))
         .await
         .map_err(|err| {
-            error!("TCP listener failed to bind: {err}");
+            error!("Failed to bind: {err}");
             err
         })?;
     let node_listener = NodeListener::new(node_tcp_listener);
