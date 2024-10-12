@@ -118,6 +118,13 @@ impl DataChunk {
     pub fn from_string(value: &str) -> String {
         let mut elements: Vec<String> = vec![];
 
+        if !value.contains(" ") {
+            // trim() here to remove \n at the end of the value
+            // e.g. ping\n becomes ping
+            let command = value.trim();
+            return format!("*1\r\n${}\r\n{command}\r\n", command.len());
+        }
+
         let mut start_position = 0;
         let mut end_position = 0;
 

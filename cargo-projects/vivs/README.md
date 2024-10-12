@@ -21,6 +21,19 @@ RUST_LOG=vivs cargo run --bin vivs
 cargo run --bin vivs-repl
 ```
 
+To run in Cluster mode:
+
+```sh
+# Start a couple of Vivs instances
+# 1
+RUST_LOG=vivs cargo run --bin vivs -- -p 9000
+# 2
+RUST_LOG=vivs cargo run --bin vivs -- -p 9001
+
+# Run the command with logs (addresses are essentially where Vivs instances are running ip + port)
+RUST_LOG=vivs cargo run --bin vivs-repl -- --cluster create <ip:port> ... 
+```
+
 To run integration tests:
 
 ```sh
