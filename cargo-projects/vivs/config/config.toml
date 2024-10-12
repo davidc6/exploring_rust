@@ -2,10 +2,9 @@
 [connection]
 address = "127.0.0.1"
 port = 9000
-cluster_port = 19000
 
 # Cluster related settings
 [cluster]
 enabled = true
-node-timeout = 20000
+node_timeout = 20000
 port = 10000
