@@ -77,6 +77,10 @@ enum Commands {
 
 #[derive(Debug, ClapParser)]
 struct Cli {
+    #[arg(long)]
+    host: Option<String>,
+    #[arg(long, short)]
+    port: Option<u16>,
     #[arg(long, short)]
     cluster: bool,
     #[command(subcommand)]
@@ -220,13 +224,25 @@ async fn main() -> GenericResult<()> {
         return set_up_cluster(cli_args).await;
     }
 
-    let address = format!("127.0.0.1:{}", 9000);
-    let stream = TcpStream::connect(address).await?;
+    let node_port = if let Some(node_port) = cli_args.port {
+        node_port
+    } else {
+        9000
+    };
+
+    let node_host = if let Some(node_host) = cli_args.host {
+        node_host
+    } else {
+        "127.0.0.1".to_owned()
+    };
+
+    let address = format!("{node_host}:{node_port}");
+    let stream = TcpStream::connect(address.clone()).await?;
     let mut connection = Connection::new(stream);
 
     loop {
         // write to stdout
-        write!(stdout(), "> ")?;
+        write!(stdout(), "{address}> ")?;
         // flush everything, ensuring all content reach destination (stdout)
         stdout().flush()?;
 
