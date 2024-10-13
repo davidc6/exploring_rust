@@ -35,22 +35,30 @@ pub async fn start() -> GenericResult<()> {
         })?;
     let listener = Listener::new(tcp_listener, DataStore::new());
 
+    // Cluster mode enabled
     if let Some(cluster) = cluster.as_ref() {
-        let cluster_port = cluster.port;
-        info!("Attempting to bind on port {cluster_port}");
+        if cluster.enabled {
+            let cluster_port = if let Some(cluster_port) = cluster.port {
+                cluster_port
+            } else {
+                port + 5000
+            };
 
-        // This is for node to node / peer to peer connections
-        let node_tcp_listener = TcpListener::bind(format!("{address}:{cluster_port}"))
-            .await
-            .map_err(|err| {
-                error!("Failed to bind: {err}");
-                err
-            })?;
-        let node_listener = NodeListener::new(node_tcp_listener);
+            info!("Attempting to bind on port {cluster_port}");
 
-        let _ = tokio::join!(listener.run(), node_listener.run());
+            // This is for node to node / peer to peer connections
+            let node_tcp_listener = TcpListener::bind(format!("{address}:{cluster_port}"))
+                .await
+                .map_err(|err| {
+                    error!("Failed to bind: {err}");
+                    err
+                })?;
+            let node_listener = NodeListener::new(node_tcp_listener);
 
-        return Ok(());
+            let _ = tokio::join!(listener.run(), node_listener.run());
+
+            return Ok(());
+        }
     }
 
     // Enables to wait on concurrent branches, returning when all branches complete

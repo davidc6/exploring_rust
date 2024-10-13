@@ -75,7 +75,7 @@ struct ConnectionState {
 struct Cluster {
     enabled: bool,
     node_timeout: u16,
-    port: u16,
+    port: Option<u16>,
 }
 
 impl std::error::Error for Config {}
