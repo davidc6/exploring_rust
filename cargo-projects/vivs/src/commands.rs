@@ -3,10 +3,11 @@ use self::get::GET_CMD;
 use self::ping::PING_CMD;
 use self::set::SET_CMD;
 use self::ttl::TTL_CMD;
-use crate::data_chunk::DataChunkError;
+use crate::data_chunk::{DataChunk, DataChunkError};
 use crate::parser::Parser;
 use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
 use crate::{Connection, DataStore, GenericResult};
+use bytes::Bytes;
 use delete::Delete;
 use get::Get;
 use ping::Ping;
@@ -25,6 +26,8 @@ pub enum Command {
     Set(Set),
     Delete(Delete),
     Ttl(Ttl),
+    // Moved,
+    // Asking,
     Unknown(String),
     None,
 }
@@ -77,6 +80,14 @@ impl Command {
             return Ok(Command::None);
         };
 
+        let Some(key) = data_chunk.next_as_str()? else {
+            return Ok(Command::None);
+        };
+
+        // Redirect to a valid node here
+
+        data_chunk = data_chunk.push(Bytes::from(key.clone()));
+
         // To figure out which command needs to be processed,
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = match &command[..] {
@@ -94,6 +105,7 @@ impl Command {
 
     pub async fn run(self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         match self {
+            // Command
             Command::Ping(command) => command.respond(conn).await,
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,

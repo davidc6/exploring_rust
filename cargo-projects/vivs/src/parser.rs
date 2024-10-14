@@ -59,6 +59,13 @@ impl Parser {
         self.segments.len()
     }
 
+    pub fn push(mut self, bytes: Bytes) -> Self {
+        let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
+        data_chunks_collection.push(DataChunk::Bulk(bytes));
+        self.segments = data_chunks_collection.into_iter();
+        self
+    }
+
     pub fn push_bulk_str(mut self, bytes: Bytes) -> Self {
         // TODO: this is a hack (for now).
         // Convert iterator to vector in order to push data chunks into it.
