@@ -59,6 +59,8 @@ impl Parser {
         self.segments.len()
     }
 
+    /// Creates a new iterator by first, converting the existing iterator into the vector,
+    /// pushing a value to it and then creating a brand new iterator from it.
     pub fn push(mut self, bytes: Bytes) -> Self {
         let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
         data_chunks_collection.push(DataChunk::Bulk(bytes));
