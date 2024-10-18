@@ -106,6 +106,7 @@ struct Config {
     id: String,
     ip: String,
     is_self: bool,
+    position: (usize, usize),
 }
 
 async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
@@ -118,6 +119,12 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
     // Create cluster command
     if let Some(Commands::Create { ip_addresses }) = cli_args.command {
         let total_ips = ip_addresses.len();
+
+        let positions = 16384;
+        let slice = positions / total_ips;
+
+        let mut start = 0;
+        let mut end = slice;
 
         // To enable us to access ips by index later
         for i in 0..total_ips {
@@ -181,6 +188,7 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
                         id: node_id.clone(),
                         ip: ip_address.clone(),
                         is_self: false,
+                        position: (start, end),
                     };
                     if i == cur {
                         config.is_self = true;
@@ -190,6 +198,9 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
                     instances.insert(ip_address.clone(), config.clone());
                     current_config.insert(ip_address.clone(), config);
                 }
+
+                start += slice;
+                end += slice;
             }
 
             // Vivs instance node is active and listening
