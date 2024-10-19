@@ -1,7 +1,7 @@
 #![deny(clippy::unwrap_in_result)]
 
-use serde::Deserialize;
-use std::{fmt::Display, sync::LazyLock};
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fmt::Display, sync::LazyLock};
 use tokio::net::TcpStream;
 
 pub mod data_chunk;
@@ -55,6 +55,16 @@ pub type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
 // We use type alias here to to avoid having to repeat the Error type
 // For example, Result<bool> is interpreted as Result<bool, Error>
 pub type GenericResult<T> = std::result::Result<T, GenericError>;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ClusterConfig {
+    pub id: String,
+    pub ip: String,
+    pub is_self: bool,
+    pub position: (usize, usize),
+}
+
+pub type ClusterInstanceConfig = HashMap<String, ClusterConfig>;
 
 // This is the default port the server listens on
 pub const PORT: u16 = 9000;

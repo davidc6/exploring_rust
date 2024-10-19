@@ -12,6 +12,7 @@ use tokio::{io::AsyncWriteExt, net::TcpStream};
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
 use vivs::{data_chunk::DataChunk, Connection, GenericResult};
+use vivs::{ClusterConfig, ClusterInstanceConfig};
 
 pub async fn write_complete_frame(stream: &mut TcpStream, data: &str) -> std::io::Result<()> {
     stream.write_all(data.as_bytes()).await?;
@@ -101,19 +102,11 @@ async fn rand_number_as_string() -> GenericResult<String> {
         .join(""))
 }
 
-#[derive(Serialize, Clone, Debug)]
-struct Config {
-    id: String,
-    ip: String,
-    is_self: bool,
-    position: (usize, usize),
-}
-
 async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
     info!("Enabling cluster mode");
 
     let mut active_instances = HashSet::new();
-    let mut instances: HashMap<String, Config> = HashMap::new();
+    let mut instances: HashMap<String, ClusterConfig> = HashMap::new();
     let mut current_config = HashMap::new();
 
     // Create cluster command
@@ -184,7 +177,7 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
 
                     let node_id = rand_number_as_string().await?;
 
-                    let mut config = Config {
+                    let mut config = ClusterConfig {
                         id: node_id.clone(),
                         ip: ip_address.clone(),
                         is_self: false,

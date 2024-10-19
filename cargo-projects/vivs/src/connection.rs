@@ -54,6 +54,10 @@ impl Connection {
         "".to_owned()
     }
 
+    pub fn self_address(&self) -> String {
+        self.stream.get_ref().local_addr().unwrap().to_string()
+    }
+
     /// Reads and processes a stream of bytes from the TCP stream.
     pub async fn process_stream(&mut self) -> GenericResult<Cursor<&[u8]>> {
         // Buffer needs to be cleared since the same Connection instance runs for a single tcp connection
