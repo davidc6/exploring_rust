@@ -3,11 +3,19 @@ use crate::{
     GenericResult,
 };
 use bytes::{Buf, Bytes};
-use std::vec::IntoIter;
+use std::{iter::Peekable, vec::IntoIter};
 
-#[derive(Debug, Default)]
+impl Default for Parser {
+    fn default() -> Self {
+        Parser {
+            segments: vec![].into_iter().peekable(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Parser {
-    segments: IntoIter<DataChunk>,
+    segments: Peekable<IntoIter<DataChunk>>,
 }
 
 impl Parser {
@@ -23,7 +31,9 @@ impl Parser {
 
         let segments = data_chunks_vec.into_iter();
 
-        Ok(Parser { segments })
+        Ok(Parser {
+            segments: segments.peekable(),
+        })
     }
 
     /// Tries to get next element in the collection/segments.
@@ -47,11 +57,20 @@ impl Parser {
         }
     }
 
-    pub fn enumerate(self) -> std::iter::Enumerate<IntoIter<DataChunk>> {
+    pub fn peek(&mut self) -> Option<&DataChunk> {
+        // let a = self.segments.as_ref();
+        // let p = self.segments.peekable();
+
+        // let b = p.next();
+        let c = self.segments.peek();
+        c
+    }
+
+    pub fn enumerate(self) -> std::iter::Enumerate<Peekable<IntoIter<DataChunk>>> {
         self.segments.enumerate()
     }
 
-    pub fn iter(self) -> IntoIter<DataChunk> {
+    pub fn iter(self) -> Peekable<IntoIter<DataChunk>> {
         self.segments
     }
 
@@ -64,7 +83,7 @@ impl Parser {
     pub fn push(mut self, bytes: Bytes) -> Self {
         let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
         data_chunks_collection.push(DataChunk::Bulk(bytes));
-        self.segments = data_chunks_collection.into_iter();
+        self.segments = data_chunks_collection.into_iter().peekable();
         self
     }
 
@@ -74,7 +93,7 @@ impl Parser {
         // This functionality is part of the so called "client encoder".
         let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
         data_chunks_collection.push(DataChunk::Bulk(bytes));
-        self.segments = data_chunks_collection.into_iter();
+        self.segments = data_chunks_collection.into_iter().peekable();
         self
     }
 }

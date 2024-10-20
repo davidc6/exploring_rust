@@ -3,6 +3,7 @@ use bytes::BytesMut;
 use std::{
     fmt::Display,
     io::{self, Cursor},
+    net::SocketAddr,
 };
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufWriter},
@@ -54,8 +55,8 @@ impl Connection {
         "".to_owned()
     }
 
-    pub fn self_address(&self) -> String {
-        self.stream.get_ref().local_addr().unwrap().to_string()
+    pub fn own_addr(&self) -> io::Result<SocketAddr> {
+        self.stream.get_ref().local_addr()
     }
 
     /// Reads and processes a stream of bytes from the TCP stream.

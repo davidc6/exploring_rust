@@ -268,6 +268,10 @@ async fn main() -> GenericResult<()> {
         let mut buffer = connection.process_stream().await?;
         let data_chunk = DataChunk::read_chunk(&mut buffer)?;
         let mut parser = Parser::new(data_chunk)?;
+
+        let peeked_val = parser.peek();
+        println!("PEEKED {:?}", peeked_val);
+
         let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
 
         stdout().write_all(&bytes_read)?;

@@ -1,36 +1,58 @@
+use std::default;
+use std::process::CommandArgs;
+
 use self::delete::DELETE_CMD;
 use self::get::GET_CMD;
 use self::ping::PING_CMD;
 use self::set::SET_CMD;
 use self::ttl::TTL_CMD;
-use crate::data_chunk::{DataChunk, DataChunkError};
+use crate::data_chunk::DataChunkError;
 use crate::parser::Parser;
 use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
 use crate::{Connection, DataStore, GenericResult};
-use bytes::Bytes;
+use asking::Ask;
 use delete::Delete;
 use get::Get;
 use ping::Ping;
 use set::Set;
 use ttl::Ttl;
 
+pub mod asking;
 pub mod delete;
 pub mod get;
 pub mod ping;
 pub mod set;
 pub mod ttl;
 
-struct AskingCommand {
-    slot: u16,
-    command: Box<Command>,
-}
+// pub struct Asking {
+//     // slot: u16,
+//     command: Box<Command>,
+// }
 
-impl AskingCommand {
-    pub async fn respond(&self) -> GenericResult<()> {
-        Ok(())
-    }
-}
+// impl Asking {
+//     pub async fn respond(&self) -> GenericResult<()> {
+//         if false {
+//             // Redirect to a valid node here
+//             // If the node has the slot for this value the proceed to fetching it
+//             // else redirect to other node by using ASK command
 
+//             // we need current slot range
+
+//             // slot and original command
+//             // e.g. 5445, Command
+//             // Command::Asking(AskingCommand {
+//             // slot: 12345,
+//             //     command: Box::new(a),
+//             // });
+
+//             return Ok(());
+//         } else {
+//             return Ok(());
+//         }
+//     }
+// }
+
+#[derive(Debug)]
 pub enum Command {
     Ping(Ping),
     Get(Get),
@@ -38,9 +60,17 @@ pub enum Command {
     Delete(Delete),
     Ttl(Ttl),
     // Moved,
-    Asking(AskingCommand),
+    Ask(Ask),
     Unknown(String),
     None,
+}
+
+impl Default for Command {
+    fn default() -> Self {
+        Command::Ask(Ask {
+            command: Box::new(Command::Get(Get { key: None })),
+        })
+    }
 }
 
 pub enum DataType {
@@ -74,6 +104,10 @@ impl From<&str> for ParseCommandErr {
     }
 }
 
+pub trait AskCommand {
+    async fn check_ask(&self, conn: &mut Connection) -> Option<(u16, String)>;
+}
+
 pub trait CommonCommand {
     fn parse(data: Parser) -> Self;
     fn respond(
@@ -85,20 +119,23 @@ pub trait CommonCommand {
 
 impl Command {
     fn process_location(a: Command) -> Command {
-        if false {
-            // Redirect to a valid node here
-            // If the node has the slot for this value the proceed to fetching it
-            // else redirect to other node by using ASK command
+        // if false {
+        // Redirect to a valid node here
+        // If the node has the slot for this value the proceed to fetching it
+        // else redirect to other node by using ASK command
 
-            // slot and original command
-            // e.g. 5445, Command
-            Command::Asking(AskingCommand {
-                slot: 123,
-                command: Box::new(a),
-            })
-        } else {
-            a
-        }
+        // we need current slot range
+
+        //
+
+        // slot and original command
+        // e.g. 5445, Command
+        Command::Ask(Ask {
+            command: Box::new(a),
+        })
+        // } else {
+        //     a
+        // }
     }
 
     pub fn parse_cmd(mut data_chunk: Parser) -> Result<Command, ParseCommandErr> {
@@ -112,8 +149,8 @@ impl Command {
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = match &command[..] {
             PING_CMD => Command::Ping(Ping::parse(data_chunk)),
-            GET_CMD => Self::process_location(Command::Get(Get::parse(data_chunk))),
-            SET_CMD => Command::Set(Set::parse(data_chunk)),
+            GET_CMD => Command::Get(Get::parse(data_chunk)),
+            SET_CMD => Self::process_location(Command::Set(Set::parse(data_chunk))),
             DELETE_CMD => Command::Delete(Delete::parse(data_chunk)),
             TTL_CMD => Command::Ttl(Ttl::parse(data_chunk)),
             "" => Command::None,
@@ -131,7 +168,7 @@ impl Command {
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
             Command::Ttl(command) => command.respond(conn, db).await,
-            Command::Asking(command) => command.respond().await,
+            Command::Ask(command) => command.respond(conn).await,
             Command::None => {
                 conn.write_error(NO_CMD_ERR.as_bytes()).await?;
                 Ok(())
