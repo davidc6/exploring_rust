@@ -13,7 +13,7 @@ pub const SET_CMD: &str = "set";
 // xm - (x)expire in (m)minutes (TODO: not implemented)
 const EXPIRE_SECONDS: &str = "xs";
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Set {
     key: Option<String>,
     value: Option<String>,

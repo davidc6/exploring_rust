@@ -7,6 +7,7 @@ use std::time::{Duration, SystemTime};
 
 pub const TTL_CMD: &str = "ttl";
 
+#[derive(Debug)]
 pub struct Ttl {
     key: Option<String>,
 }

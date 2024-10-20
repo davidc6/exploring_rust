@@ -57,13 +57,12 @@ impl Parser {
         }
     }
 
+    /// Enables to peek into the DataChunks iterator.
+    /// This is useful when needing to get the key,
+    /// in order to establish the node that holds the value of that key.
+    /// Peeking does not remove values and does not forward the iterator.
     pub fn peek(&mut self) -> Option<&DataChunk> {
-        // let a = self.segments.as_ref();
-        // let p = self.segments.peekable();
-
-        // let b = p.next();
-        let c = self.segments.peek();
-        c
+        self.segments.peek()
     }
 
     pub fn enumerate(self) -> std::iter::Enumerate<Peekable<IntoIter<DataChunk>>> {
