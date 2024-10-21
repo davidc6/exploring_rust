@@ -113,11 +113,12 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
     if let Some(Commands::Create { ip_addresses }) = cli_args.command {
         let total_ips = ip_addresses.len();
 
-        let positions = 16384;
-        let slice = positions / total_ips;
+        // There are 16384 cells
+        const CELLS_TOTAL: usize = 16384;
+        let slice = CELLS_TOTAL / total_ips;
 
         let mut start = 0;
-        let mut end = slice;
+        let mut end = slice - 1;
 
         // To enable us to access ips by index later
         for i in 0..total_ips {
@@ -192,8 +193,13 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
                     current_config.insert(ip_address.clone(), config);
                 }
 
-                start += slice;
-                end += slice;
+                start += slice + 1;
+
+                if slice * 2 > CELLS_TOTAL - 1 {
+                    end = CELLS_TOTAL - 1;
+                } else {
+                    end += slice * 2;
+                }
             }
 
             // Vivs instance node is active and listening
@@ -268,9 +274,6 @@ async fn main() -> GenericResult<()> {
         let mut buffer = connection.process_stream().await?;
         let data_chunk = DataChunk::read_chunk(&mut buffer)?;
         let mut parser = Parser::new(data_chunk)?;
-
-        let peeked_val = parser.peek();
-        println!("PEEKED {:?}", peeked_val);
 
         let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
 
