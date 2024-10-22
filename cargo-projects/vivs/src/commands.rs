@@ -1,6 +1,3 @@
-use std::default;
-use std::process::CommandArgs;
-
 use self::delete::DELETE_CMD;
 use self::get::GET_CMD;
 use self::ping::PING_CMD;
@@ -24,34 +21,6 @@ pub mod ping;
 pub mod set;
 pub mod ttl;
 
-// pub struct Asking {
-//     // slot: u16,
-//     command: Box<Command>,
-// }
-
-// impl Asking {
-//     pub async fn respond(&self) -> GenericResult<()> {
-//         if false {
-//             // Redirect to a valid node here
-//             // If the node has the slot for this value the proceed to fetching it
-//             // else redirect to other node by using ASK command
-
-//             // we need current slot range
-
-//             // slot and original command
-//             // e.g. 5445, Command
-//             // Command::Asking(AskingCommand {
-//             // slot: 12345,
-//             //     command: Box::new(a),
-//             // });
-
-//             return Ok(());
-//         } else {
-//             return Ok(());
-//         }
-//     }
-// }
-
 #[derive(Debug)]
 pub enum Command {
     Ping(Ping),
@@ -59,7 +28,6 @@ pub enum Command {
     Set(Set),
     Delete(Delete),
     Ttl(Ttl),
-    // Moved,
     Ask(Ask),
     Unknown(String),
     None,
@@ -105,7 +73,10 @@ impl From<&str> for ParseCommandErr {
 }
 
 pub trait AskCommand {
-    async fn check_ask(&self, conn: &mut Connection) -> Option<(u16, String)>;
+    fn check_ask(
+        &self,
+        conn: &mut Connection,
+    ) -> impl std::future::Future<Output = Option<(u16, String)>>;
 }
 
 pub trait CommonCommand {
@@ -119,23 +90,9 @@ pub trait CommonCommand {
 
 impl Command {
     fn process_location(a: Command) -> Command {
-        // if false {
-        // Redirect to a valid node here
-        // If the node has the slot for this value the proceed to fetching it
-        // else redirect to other node by using ASK command
-
-        // we need current slot range
-
-        //
-
-        // slot and original command
-        // e.g. 5445, Command
         Command::Ask(Ask {
             command: Box::new(a),
         })
-        // } else {
-        //     a
-        // }
     }
 
     pub fn parse_cmd(mut data_chunk: Parser) -> Result<Command, ParseCommandErr> {
@@ -162,7 +119,6 @@ impl Command {
 
     pub async fn run(self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         match self {
-            // Command
             Command::Ping(command) => command.respond(conn).await,
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,

@@ -2,7 +2,6 @@ use bytes::Bytes;
 use clap::{Args, Parser as ClapParser, Subcommand};
 use env_logger::Env;
 use log::info;
-use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::env::current_dir;
 use std::io::{stdin, stdout, Write};
@@ -11,8 +10,8 @@ use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
+use vivs::ClusterConfig;
 use vivs::{data_chunk::DataChunk, Connection, GenericResult};
-use vivs::{ClusterConfig, ClusterInstanceConfig};
 
 pub async fn write_complete_frame(stream: &mut TcpStream, data: &str) -> std::io::Result<()> {
     stream.write_all(data.as_bytes()).await?;

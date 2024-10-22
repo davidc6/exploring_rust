@@ -1,11 +1,10 @@
 use super::{AskCommand, CommonCommand};
 use crate::parser::Parser;
 use crate::utils::INCORRECT_ARGS_ERR;
-use crate::{Cluster, ClusterInstanceConfig, Config, Connection, DataStore, GenericResult};
+use crate::{ClusterInstanceConfig, Connection, DataStore, GenericResult};
 use core::str;
 use log::info;
 use std::env::current_dir;
-use std::net::SocketAddrV4;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::fs;
 
@@ -83,10 +82,6 @@ impl CommonCommand for Get {
         );
 
         if let Some(redirect_addr) = self.check_ask(conn).await {
-            // TODO: Send to
-            // conn.write_chunk().await?;
-            // println!("ASKING IP: {:?}", redirect_addr)
-            println!("-ASK {} {}", redirect_addr.0, redirect_addr.1);
             conn.write_chunk(
                 super::DataType::SimpleError,
                 Some(format!("ASK {} {}", redirect_addr.0, redirect_addr.1).as_bytes()),
