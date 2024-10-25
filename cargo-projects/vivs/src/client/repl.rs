@@ -249,18 +249,41 @@ async fn main() -> GenericResult<()> {
     let stream = TcpStream::connect(address.clone()).await?;
     let mut connection = Connection::new(stream);
 
-    loop {
-        // write to stdout
-        write!(stdout(), "{address}> ")?;
-        // flush everything, ensuring all content reach destination (stdout)
-        stdout().flush()?;
+    let mut command_to_execute: Option<String> = None;
 
-        // buffer for stdin's line of input
+    loop {
         let mut buffer = String::new();
-        // Read a line of input and append to the buffer.
-        // stdin() is a handle in this case to the standard input of the current process
-        // which gets "locked" and waits for newline or the "Enter" key (or 0xA byte) to be pressed.
-        stdin().read_line(&mut buffer)?;
+
+        if let Some(ref command) = command_to_execute {
+            buffer = command.to_owned();
+
+            // let data_chunk_frame_as_str = DataChunk::from_string(&command);
+        } else {
+            // write to stdout
+            write!(stdout(), "{address}> ")?;
+            // flush everything, ensuring all content reach destination (stdout)
+            stdout().flush()?;
+
+            // buffer for stdin's line of input
+            // let mut buffer = String::new();
+
+            // Read a line of input and append to the buffer.
+            // stdin() is a handle in this case to the standard input of the current process
+            // which gets "locked" and waits for newline or the "Enter" key (or 0xA byte) to be pressed.
+            stdin().read_line(&mut buffer)?;
+        }
+
+        // // write to stdout
+        // write!(stdout(), "{address}> ")?;
+        // // flush everything, ensuring all content reach destination (stdout)
+        // stdout().flush()?;
+
+        // // buffer for stdin's line of input
+        // let mut buffer = String::new();
+        // // Read a line of input and append to the buffer.
+        // // stdin() is a handle in this case to the standard input of the current process
+        // // which gets "locked" and waits for newline or the "Enter" key (or 0xA byte) to be pressed.
+        // stdin().read_line(&mut buffer)?;
 
         let data_chunk_frame_as_str = DataChunk::from_string(&buffer);
 
@@ -275,6 +298,13 @@ async fn main() -> GenericResult<()> {
         let mut parser = Parser::new(data_chunk)?;
 
         let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+
+        // TODO
+        // If error is Ask, get slot and get address
+        // Construct command i.e. if get, GET <key> (or could this be slot) -h 127.0.0.1 -p 9002
+        // write complete frame
+        // read response
+        // back to waiting for stdin
 
         stdout().write_all(&bytes_read)?;
         stdout().write_all(b"\r\n")?;
