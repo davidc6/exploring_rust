@@ -10,6 +10,8 @@ use tokio::{
     net::TcpStream,
 };
 
+const END_OF_LINE: &str = "\r\n";
+
 #[derive(Debug)]
 pub enum ConnectionError {
     TcpClosed,
@@ -110,8 +112,9 @@ impl Connection {
         // "-" - first byte denotes error data type
         // "ERR" - generic error type
         // TODO: as a future improvement we could differentiate between error types
-        self.stream.write_all(b"-(error) ").await?;
+        self.stream.write_all(b"-ERR ").await?;
         self.stream.write_all(err_msg_bytes).await?;
+        self.stream.write_all(END_OF_LINE.as_bytes()).await?;
         self.stream.flush().await
     }
 
@@ -121,14 +124,14 @@ impl Connection {
         self.stream.flush().await
     }
 
-    pub async fn write_chunk_frame(&mut self, data: Parser) -> io::Result<()> {
+    pub async fn write_chunk_frame(&mut self, data: &mut Parser) -> io::Result<()> {
         self.stream.write_all(b"*").await?; // *
         self.stream
             .write_all(data.size().to_string().as_bytes())
             .await?; // 1
         self.stream.write_all(b"\r\n").await?; // \r\n
 
-        for chunk in data.iter() {
+        for chunk in data.into_iter() {
             match chunk {
                 DataChunk::Bulk(str) => {
                     // string length minus "\r\n"
