@@ -1,7 +1,7 @@
 use super::CommonCommand;
 use crate::{
     parser::Parser,
-    utils::{u64_as_bytes, INCORRECT_ARGS_ERR},
+    utils::{u64_as_bytes, ARGS_NUM},
     Connection, DataStore, GenericResult,
 };
 use log::info;
@@ -24,7 +24,7 @@ impl CommonCommand for Delete {
 
     async fn respond(&self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
-            conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
+            conn.write_error(ARGS_NUM.as_bytes()).await?;
             return Ok(());
         };
 

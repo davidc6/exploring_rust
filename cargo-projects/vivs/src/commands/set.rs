@@ -1,7 +1,7 @@
 use super::CommonCommand;
 use crate::{
     parser::Parser,
-    utils::{INCORRECT_ARGS_ERR, VALUE_NOT_INT_ERR},
+    utils::{ARGS_NUM, NON_INT},
     Connection, DataStore, GenericResult,
 };
 use log::info;
@@ -66,16 +66,12 @@ impl CommonCommand for Set {
 
     async fn respond(&self, connection: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
-            connection
-                .write_error(INCORRECT_ARGS_ERR.as_bytes())
-                .await?;
+            connection.write_error(ARGS_NUM.as_bytes()).await?;
             return Ok(());
         };
 
         let Some(value) = self.value.as_ref() else {
-            connection
-                .write_error(INCORRECT_ARGS_ERR.as_bytes())
-                .await?;
+            connection.write_error(ARGS_NUM.as_bytes()).await?;
             return Ok(());
         };
 
@@ -85,7 +81,7 @@ impl CommonCommand for Set {
 
         if let Some(expiration) = self.expiry {
             if expiration == 0 {
-                connection.write_error(VALUE_NOT_INT_ERR.as_bytes()).await?;
+                connection.write_error(NON_INT.as_bytes()).await?;
                 return Ok(());
             }
 

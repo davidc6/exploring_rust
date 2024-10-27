@@ -1,7 +1,7 @@
 use super::asking::AskCommand;
 use super::CommonCommand;
 use crate::parser::Parser;
-use crate::utils::INCORRECT_ARGS_ERR;
+use crate::utils::ARGS_NUM;
 use crate::{Connection, DataStore, GenericResult};
 use core::str;
 use log::info;
@@ -27,7 +27,7 @@ impl CommonCommand for Get {
 
     async fn respond(&self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
-            conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
+            conn.write_error(ARGS_NUM.as_bytes()).await?;
             return Ok(());
         };
 
@@ -42,11 +42,9 @@ impl CommonCommand for Get {
         );
 
         if let Some(redirect_addr) = self.check_ask(self.key.as_ref().unwrap(), conn).await {
-            conn.write_chunk(
-                super::DataType::SimpleError,
-                Some(format!("ASK {} {}", redirect_addr.0, redirect_addr.1).as_bytes()),
-            )
-            .await?
+            conn.write_error(format!("ASK {} {}", redirect_addr.0, redirect_addr.1).as_bytes())
+                .await?;
+            return Ok(());
         }
 
         let mut db_guard = db.db.write().await;

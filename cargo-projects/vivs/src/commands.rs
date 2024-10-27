@@ -5,9 +5,10 @@ use self::set::SET_CMD;
 use self::ttl::TTL_CMD;
 use crate::data_chunk::DataChunkError;
 use crate::parser::Parser;
-use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
-use crate::{ClusterInstanceConfig, Connection, DataStore, GenericResult};
+use crate::utils::{FALSE_CMD, NO_CMD};
+use crate::{Connection, DataStore, GenericResult};
 // use asking::Ask;
+use asking::{Ask, ASK_CMD};
 use core::str;
 use delete::Delete;
 use get::Get;
@@ -31,7 +32,7 @@ pub enum Command {
     Set(Set),
     Delete(Delete),
     Ttl(Ttl),
-    // Ask(Ask),
+    Ask(Ask),
     Unknown(String),
     None,
 }
@@ -98,6 +99,7 @@ impl Command {
             SET_CMD => Command::Set(Set::parse(data_chunk)),
             DELETE_CMD => Command::Delete(Delete::parse(data_chunk)),
             TTL_CMD => Command::Ttl(Ttl::parse(data_chunk)),
+            // ASK_CMD => Command::Ask(Ask
             "" => Command::None,
             val => Command::Unknown(val.to_owned()),
         };
@@ -112,14 +114,14 @@ impl Command {
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
             Command::Ttl(command) => command.respond(conn, db).await,
-            // Command::Ask(command) => command.respond(conn).await,
+            Command::Ask(command) => command.respond(conn).await,
             Command::None => {
-                conn.write_error(NO_CMD_ERR.as_bytes()).await?;
+                // conn.write_error(NO_CMD_ERR.as_bytes()).await?;
+                conn.write_error(NO_CMD.as_bytes()).await?;
                 Ok(())
             }
             Command::Unknown(command) => {
-                conn.write_error(unknown_cmd_err(command).as_bytes())
-                    .await?;
+                conn.write_error(FALSE_CMD.as_bytes()).await?;
                 Ok(())
             }
         }
