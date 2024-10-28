@@ -42,6 +42,7 @@ pub enum DataType {
     Null,
     SimpleError,
     Integer,
+    BulkString,
 }
 
 #[derive(Debug)]
