@@ -57,77 +57,84 @@ pub trait AskCommand {
 //     pub command: Box<Command>,
 // }
 
-// impl Ask {
-//     pub fn new(command: Command) -> Self {
-//         Ask {
-//             command: Box::new(command),
-//         }
-//     }
+#[derive(Debug, Default)]
+pub struct Ask {}
 
-// pub fn parse(mut data: Parser) -> Self {
-//     match data.next_as_str() {
-//         Ok(value) => Ping::new(value),
-//         Err(_) => Ping::default(),
-//     }
-// }
+impl Ask {
+    pub fn parse() {}
+}
 
-// pub async fn respond(self, conn: &mut Connection) -> GenericResult<()> {
-//     const X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
-//     let value = *self.command;
-//     let k = match value {
-//         Command::Get(val) => val.key,
-//         _ => Some("".to_owned()),
-//     };
+impl Ask {
+    //     pub fn new(command: Command) -> Self {
+    //         Ask {
+    //             command: Box::new(command),
+    //         }
+    //     }
 
-//     let a = X25.checksum(k.unwrap().as_bytes()) % 16384;
+    // pub fn parse(mut data: Parser) -> Self {
+    //     match data.next_as_str() {
+    //         Ok(value) => Ping::new(value),
+    //         Err(_) => Ping::default(),
+    //     }
+    // }
 
-// We need a list nodes
-// Ranges per each node
-// and then where to redirect to
+    pub async fn respond(self, conn: &mut Connection) -> GenericResult<()> {
+        //     const X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
+        //     let value = *self.command;
+        //     let k = match value {
+        //         Command::Get(val) => val.key,
+        //         _ => Some("".to_owned()),
+        //     };
 
-// println!("SLOT {}", a); // 759
+        //     let a = X25.checksum(k.unwrap().as_bytes()) % 16384;
 
-// -ASK <SLOT> <address_to_reach_out>
+        // We need a list nodes
+        // Ranges per each node
+        // and then where to redirect to
 
-// if let Some(message) = self.message {
-//     info!(
-//         "{}",
-//         format!(
-//             "{:?} {:?} {:?}",
-//             conn.connected_peer_addr(),
-//             PING_CMD.to_uppercase(),
-//             message
-//         )
-//     );
-//     conn.write_chunk(super::DataType::SimpleString, Some(message.as_bytes()))
-//         .await?;
-// } else {
-//     info!(
-//         "{:?} {:?}",
-//         conn.connected_peer_addr(),
-//         PING_CMD.to_uppercase()
-//     );
-//     conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
-//         .await?;
-// }
+        // println!("SLOT {}", a); // 759
 
-//     Ok(())
-// }
+        // -ASK <SLOT> <address_to_reach_out>
 
-// / Pushes optional PING [message] to the segments array if it exists.
-// / In order to do this, a default Parser gets created which
-// / takes is a command first and then the optional message.
-// / This is a bit of a hack since Parser and DataChunk are
-// / different structs (even though potentially get could be one in the future).
-// pub fn into_chunk(self) {
-// let data_chunk_frame = Parser::default();
-// let cmd = format!("{}\r\n", PING_CMD);
-// let mut data_chunk_frame = data_chunk_frame.push_bulk_str(Bytes::from(cmd));
+        // if let Some(message) = self.message {
+        //     info!(
+        //         "{}",
+        //         format!(
+        //             "{:?} {:?} {:?}",
+        //             conn.connected_peer_addr(),
+        //             PING_CMD.to_uppercase(),
+        //             message
+        //         )
+        //     );
+        //     conn.write_chunk(super::DataType::SimpleString, Some(message.as_bytes()))
+        //         .await?;
+        // } else {
+        //     info!(
+        //         "{:?} {:?}",
+        //         conn.connected_peer_addr(),
+        //         PING_CMD.to_uppercase()
+        //     );
+        //     conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
+        //         .await?;
+        // }
 
-// if let Some(msg) = self.message {
-//     data_chunk_frame = data_chunk_frame.push_bulk_str(format!("{}\r\n", msg).into());
-// }
+        Ok(())
+    }
 
-//         // data_chunk_frame
-//     }
-// }
+    // / Pushes optional PING [message] to the segments array if it exists.
+    // / In order to do this, a default Parser gets created which
+    // / takes is a command first and then the optional message.
+    // / This is a bit of a hack since Parser and DataChunk are
+    // / different structs (even though potentially get could be one in the future).
+    // pub fn into_chunk(self) {
+    // let data_chunk_frame = Parser::default();
+    // let cmd = format!("{}\r\n", PING_CMD);
+    // let mut data_chunk_frame = data_chunk_frame.push_bulk_str(Bytes::from(cmd));
+
+    // if let Some(msg) = self.message {
+    //     data_chunk_frame = data_chunk_frame.push_bulk_str(format!("{}\r\n", msg).into());
+    // }
+
+    //         // data_chunk_frame
+    //     }
+}
