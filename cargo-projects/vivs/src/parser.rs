@@ -65,6 +65,21 @@ impl Parser {
         self.segments.peek()
     }
 
+    #[allow(clippy::unwrap_in_result)]
+    pub fn peek_as_str(&mut self) -> Option<String> {
+        let segment = self.segments.peek();
+
+        match segment {
+            Some(DataChunk::Bulk(value)) => {
+                Some(std::str::from_utf8(value.chunk()).unwrap().to_owned())
+            }
+            Some(DataChunk::SimpleError(value)) => {
+                Some(std::str::from_utf8(value.chunk()).unwrap().to_owned())
+            }
+            _ => None,
+        }
+    }
+
     pub fn enumerate(self) -> std::iter::Enumerate<Peekable<IntoIter<DataChunk>>> {
         self.segments.enumerate()
     }
@@ -94,6 +109,26 @@ impl Parser {
         data_chunks_collection.push(DataChunk::Bulk(bytes));
         self.segments = data_chunks_collection.into_iter().peekable();
         self
+    }
+
+    pub fn to_string(mut self) {
+        // let v = vec![];
+        // let l = self.segments.len();
+
+        // for (position, data_chunk) in self.segments.enumerate() {
+        //     // length
+        //     if position == 0 {
+        //         let a = format!("*{}", l);
+        //     }
+
+        //     // command
+        //     if position == 1 {
+        //         let l1 = data_chunk;
+        //         let a = format!("${}\r\n{}", data_chunk);
+        //     }
+        // }
+
+        // "".to_owned()
     }
 }
 
