@@ -8,59 +8,60 @@ use std::io::{stdin, stdout, Write};
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
+use vivs::commands::asking::ASK_CMD;
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
-use vivs::ClusterConfig;
 use vivs::{data_chunk::DataChunk, Connection, GenericResult};
+use vivs::{ClusterConfig, Command};
 
 pub async fn write_complete_frame(stream: &mut TcpStream, data: &str) -> std::io::Result<()> {
     stream.write_all(data.as_bytes()).await?;
     stream.flush().await
 }
 
-pub async fn read_chunk_frame(data_chunk: &mut Parser) -> GenericResult<Bytes> {
-    match data_chunk.next() {
-        Some(DataChunk::Bulk(data_bytes)) => {
-            // This is a hack in order to write consistently formatted values to stdout.
-            // Since val without quotes can also be written back to stdout without quotes
-            // it is not desirable and therefore we want to add extra quotes to the output value.
-            // We need to think about allocations here as it will affect performance in the long run.
-            // 34 is "
-            if data_bytes.first() != Some(&34) && data_bytes != *PONG {
-                let quotes_bytes = Bytes::from("\"");
-                let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
-                Ok(Bytes::from(concat_bytes))
-            } else {
-                Ok(data_bytes)
-            }
-        }
-        Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
-        Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
-        Some(DataChunk::Integer(val)) => {
-            // convert Bytes to bytes array
-            // then determine endianness to create u64 integer value from the bytes array
-            // and return integer as string
-            let bytes_slice = val.slice(0..8);
+// pub async fn read_chunk_frame(data_chunk: &mut Parser) -> GenericResult<Bytes> {
+//     match data_chunk.next() {
+//         Some(DataChunk::Bulk(data_bytes)) => {
+//             // This is a hack in order to write consistently formatted values to stdout.
+//             // Since val without quotes can also be written back to stdout without quotes
+//             // it is not desirable and therefore we want to add extra quotes to the output value.
+//             // We need to think about allocations here as it will affect performance in the long run.
+//             // 34 is "
+//             if data_bytes.first() != Some(&34) && data_bytes != *PONG {
+//                 let quotes_bytes = Bytes::from("\"");
+//                 let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
+//                 Ok(Bytes::from(concat_bytes))
+//             } else {
+//                 Ok(data_bytes)
+//             }
+//         }
+//         Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
+//         Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
+//         Some(DataChunk::Integer(val)) => {
+//             // convert Bytes to bytes array
+//             // then determine endianness to create u64 integer value from the bytes array
+//             // and return integer as string
+//             let bytes_slice = val.slice(0..8);
 
-            // converts the slice to an array of u8 elements (since u64 is 8 bytes)
-            let arr_u8: Result<[u8; 8], _> = bytes_slice[0..8].try_into();
-            let Ok(arr_u8) = arr_u8 else {
-                return Ok(Bytes::from("(nil)"));
-            };
+//             // converts the slice to an array of u8 elements (since u64 is 8 bytes)
+//             let arr_u8: Result<[u8; 8], _> = bytes_slice[0..8].try_into();
+//             let Ok(arr_u8) = arr_u8 else {
+//                 return Ok(Bytes::from("(nil)"));
+//             };
 
-            let integer_as_string = if cfg!(target_endian = "big") {
-                u64::from_be_bytes(arr_u8)
-            } else {
-                u64::from_le_bytes(arr_u8)
-            }
-            .to_string();
+//             let integer_as_string = if cfg!(target_endian = "big") {
+//                 u64::from_be_bytes(arr_u8)
+//             } else {
+//                 u64::from_le_bytes(arr_u8)
+//             }
+//             .to_string();
 
-            Ok(Bytes::from(format!("(integer) {}", integer_as_string)))
-        }
-        None => Ok(Bytes::from("Unknown")),
-        _ => Ok(Bytes::from("(nil)")), // catch all case
-    }
-}
+//             Ok(Bytes::from(format!("(integer) {}", integer_as_string)))
+//         }
+//         None => Ok(Bytes::from("Unknown")),
+//         _ => Ok(Bytes::from("(nil)")), // catch all case
+//     }
+// }
 
 #[derive(Args, Debug, Clone)]
 struct ClusterCommands {
@@ -297,17 +298,42 @@ async fn main() -> GenericResult<()> {
         let data_chunk = DataChunk::read_chunk(&mut buffer)?;
         let mut parser = Parser::new(data_chunk)?;
 
-        let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+        let Some(alo) = parser.peek_as_str() else {
+            let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
 
-        // TODO
-        // If error is Ask, get slot and get address
-        // Construct command i.e. if get, GET <key> (or could this be slot) -h 127.0.0.1 -p 9002
-        // write complete frame
-        // read response
-        // back to waiting for stdin
+            stdout().write_all(&bytes_read)?;
+            stdout().write_all(b"\r\n")?;
+            stdout().flush()?;
 
-        stdout().write_all(&bytes_read)?;
-        stdout().write_all(b"\r\n")?;
-        stdout().flush()?;
+            continue;
+        };
+
+        // What type of error?
+        // -ASK is for asking the client to hit a diff instance
+        if alo.to_lowercase() == ASK_CMD.to_lowercase() {
+            println!("ASK");
+            // we now need to write this command
+            connection.write_chunk_frame(&mut parser).await?;
+            // continue;
+
+            let mut buffer = connection.process_stream().await?;
+            let data_chunk = DataChunk::read_chunk(&mut buffer)?;
+            let mut parser = Parser::new(data_chunk)?;
+
+            let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+        } else {
+            let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+
+            // TODO
+            // If error is Ask, get slot and get address
+            // Construct command i.e. if get, GET <key> (or could this be slot) -h 127.0.0.1 -p 9002
+            // write complete frame
+            // read response
+            // back to waiting for stdin
+
+            stdout().write_all(&bytes_read)?;
+            stdout().write_all(b"\r\n")?;
+            stdout().flush()?;
+        }
     }
 }
