@@ -63,12 +63,11 @@ impl CommonCommand for Ttl {
             // treat it as an integer
             let ttl_byte_arr = u64_as_bytes(ttl);
 
-            conn.write_chunk(super::DataType::Integer, Some(&ttl_byte_arr))
+            conn.write_chunk(super::DataType::Integer, &ttl_byte_arr)
                 .await?
         } else {
             let no_ttl = u64_as_bytes(0);
-            conn.write_chunk(super::DataType::Integer, Some(&no_ttl))
-                .await?
+            conn.write_chunk(super::DataType::Integer, &no_ttl).await?
         }
 
         Ok(())

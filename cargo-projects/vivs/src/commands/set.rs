@@ -100,7 +100,7 @@ impl CommonCommand for Set {
         );
 
         connection
-            .write_chunk(super::DataType::SimpleString, Some("OK".as_bytes()))
+            .write_chunk(super::DataType::SimpleString, "OK".as_bytes())
             .await?;
 
         Ok(())

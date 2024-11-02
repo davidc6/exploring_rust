@@ -64,11 +64,11 @@ impl CommonCommand for Get {
 
                     conn.write_null().await?
                 } else {
-                    conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                    conn.write_chunk(super::DataType::SimpleString, value.as_bytes())
                         .await?
                 }
             } else {
-                conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                conn.write_chunk(super::DataType::SimpleString, value.as_bytes())
                     .await?
             }
         } else {

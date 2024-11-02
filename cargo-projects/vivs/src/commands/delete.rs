@@ -34,12 +34,12 @@ impl CommonCommand for Delete {
             let mut expiries_guard = db.expirations.write().await;
             expiries_guard.remove(key);
 
-            let val = u64_as_bytes(1);
-            conn.write_chunk(super::DataType::Integer, Some(&val))
+            let total_entries_deleted = u64_as_bytes(1);
+            conn.write_chunk(super::DataType::Integer, &total_entries_deleted)
                 .await?
         } else {
-            let val = u64_as_bytes(0);
-            conn.write_chunk(super::DataType::Integer, Some(&val))
+            let total_entries_deleted = u64_as_bytes(0);
+            conn.write_chunk(super::DataType::Integer, &total_entries_deleted)
                 .await?
         }
 
