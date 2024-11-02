@@ -10,6 +10,7 @@ use tokio::{
     net::TcpStream,
 };
 
+// i.e. \r\n
 const END_OF_LINE: [u8; 2] = [13, 10];
 
 #[derive(Debug)]
@@ -143,8 +144,8 @@ impl Connection {
         // TODO: as a future improvement we could differentiate between error types
         self.stream.write_all(b"-").await?;
         self.stream.write_all(err_msg_type_bytes).await?;
-        self.stream.write_all(b" ");
-        self.stream.write_all(err_msg);
+        self.stream.write_all(b" ").await?;
+        self.stream.write_all(err_msg).await?;
         self.stream.write_all(&END_OF_LINE).await?;
         self.stream.flush().await
     }
