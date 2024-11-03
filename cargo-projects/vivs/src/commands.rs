@@ -7,15 +7,12 @@ use crate::data_chunk::DataChunkError;
 use crate::parser::Parser;
 use crate::utils::{FALSE_CMD, NO_CMD};
 use crate::{Connection, DataStore, GenericResult};
-// use asking::Ask;
 use asking::{Ask, ASK_CMD};
 use core::str;
 use delete::Delete;
 use get::Get;
 use ping::Ping;
 use set::Set;
-use std::env::current_dir;
-use tokio::fs;
 use ttl::Ttl;
 
 pub mod asking;
@@ -79,12 +76,6 @@ pub trait CommonCommand {
 }
 
 impl Command {
-    // fn process_location(a: Command) -> Command {
-    //     Command::Ask(Ask {
-    //         command: Box::new(a),
-    //     })
-    // }
-
     pub fn parse_cmd(mut data_chunk: Parser) -> Result<Command, ParseCommandErr> {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
         // The first value is the command itself
