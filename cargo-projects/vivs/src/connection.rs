@@ -1,4 +1,7 @@
-use crate::{commands::DataType, data_chunk::DataChunk, parser::Parser, GenericResult};
+use crate::{
+    commands::DataType, data_chunk::DataChunk, parser::Parser, utils::u64_as_bytes,
+    utils::u8_as_bytes, GenericResult,
+};
 use bytes::BytesMut;
 use std::{
     fmt::Display,
@@ -168,11 +171,18 @@ impl Connection {
             match chunk {
                 DataChunk::Bulk(str) => {
                     // string length minus "\r\n"
-                    let len_byte = (str.len() - 2).to_string();
+                    let bulk_str_len = if str[str.len() - 1] == b'\n' {
+                        (str.len() - 2)
+                    } else {
+                        str.len()
+                    };
+                    let bulk_str_len = u8::try_from(bulk_str_len).unwrap();
+
                     self.stream.write_all(b"$").await?;
-                    self.stream.write_all(len_byte.as_bytes()).await?;
+                    self.stream.write_all(&u8_as_bytes(bulk_str_len)).await?;
                     self.stream.write_all(&END_OF_LINE).await?;
                     self.stream.write_all(&str).await?;
+                    self.stream.write_all(&END_OF_LINE).await?;
                 }
                 _ => {
                     // TODO: Handle other data types
