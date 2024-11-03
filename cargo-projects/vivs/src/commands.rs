@@ -100,7 +100,7 @@ impl Command {
             SET_CMD => Command::Set(Set::parse(data_chunk)),
             DELETE_CMD => Command::Delete(Delete::parse(data_chunk)),
             TTL_CMD => Command::Ttl(Ttl::parse(data_chunk)),
-            // ASK_CMD => Command::Ask(Ask
+            ASK_CMD => Command::Ask(Ask::parse()),
             "" => Command::None,
             val => Command::Unknown(val.to_owned()),
         };
@@ -117,12 +117,13 @@ impl Command {
             Command::Ttl(command) => command.respond(conn, db).await,
             Command::Ask(command) => command.respond(conn).await,
             Command::None => {
-                // conn.write_error(NO_CMD_ERR.as_bytes()).await?;
                 conn.write_error(NO_CMD.as_bytes()).await?;
                 Ok(())
             }
             Command::Unknown(command) => {
-                conn.write_error(FALSE_CMD.as_bytes()).await?;
+                let error_msg = format!("Unknown command {:?}", command);
+                conn.write_error_with_msg(FALSE_CMD.as_bytes(), error_msg.as_bytes())
+                    .await?;
                 Ok(())
             }
         }
