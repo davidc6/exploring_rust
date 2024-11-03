@@ -172,14 +172,20 @@ impl Connection {
                 DataChunk::Bulk(str) => {
                     // string length minus "\r\n"
                     let bulk_str_len = if str[str.len() - 1] == b'\n' {
-                        (str.len() - 2)
+                        str.len() - 2
                     } else {
                         str.len()
                     };
-                    let bulk_str_len = u8::try_from(bulk_str_len).unwrap();
+                    // let bulk_str_len = u8::try_from(bulk_str_len).unwrap();
+                    // let u8_bytes = &u8_as_bytes(bulk_str_len);
+
+                    // TODO: do we need to convert to string and bytes here?
+                    // What we need is the integer representation
+                    let bulk_str_len = bulk_str_len.to_string();
+                    let bulk_str_len = bulk_str_len.as_bytes();
 
                     self.stream.write_all(b"$").await?;
-                    self.stream.write_all(&u8_as_bytes(bulk_str_len)).await?;
+                    self.stream.write_all(bulk_str_len).await?;
                     self.stream.write_all(&END_OF_LINE).await?;
                     self.stream.write_all(&str).await?;
                     self.stream.write_all(&END_OF_LINE).await?;
