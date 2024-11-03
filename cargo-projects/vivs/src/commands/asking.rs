@@ -61,23 +61,12 @@ pub trait AskCommand {
 pub struct Ask {}
 
 impl Ask {
-    pub fn parse() {}
+    pub fn parse() -> Self {
+        Self {}
+    }
 }
 
 impl Ask {
-    //     pub fn new(command: Command) -> Self {
-    //         Ask {
-    //             command: Box::new(command),
-    //         }
-    //     }
-
-    // pub fn parse(mut data: Parser) -> Self {
-    //     match data.next_as_str() {
-    //         Ok(value) => Ping::new(value),
-    //         Err(_) => Ping::default(),
-    //     }
-    // }
-
     pub async fn respond(self, conn: &mut Connection) -> GenericResult<()> {
         //     const X25: crc::Crc<u16> = crc::Crc::<u16>::new(&crc::CRC_16_IBM_SDLC);
         //     let value = *self.command;
@@ -117,6 +106,9 @@ impl Ask {
         //     conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
         //         .await?;
         // }
+
+        conn.write_chunk(super::DataType::SimpleString, "-> Redirected".as_bytes())
+            .await?;
 
         Ok(())
     }

@@ -311,16 +311,18 @@ async fn main() -> GenericResult<()> {
         // What type of error?
         // -ASK is for asking the client to hit a diff instance
         if alo.to_lowercase() == ASK_CMD.to_lowercase() {
-            println!("ASK");
             // we now need to write this command
             connection.write_chunk_frame(&mut parser).await?;
-            // continue;
 
             let mut buffer = connection.process_stream().await?;
             let data_chunk = DataChunk::read_chunk(&mut buffer)?;
             let mut parser = Parser::new(data_chunk)?;
 
             let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+
+            stdout().write_all(&bytes_read)?;
+            stdout().write_all(b"\r\n")?;
+            stdout().flush()?;
         } else {
             let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
 

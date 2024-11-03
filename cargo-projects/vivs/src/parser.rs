@@ -26,7 +26,7 @@ impl Parser {
             DataChunk::Bulk(value) => vec![DataChunk::Bulk(value)],
             DataChunk::Null => vec![DataChunk::Null],
             DataChunk::Integer(value) => vec![DataChunk::Integer(value)],
-            DataChunk::SimpleError(value) => vec![DataChunk::SimpleError(value)],
+            DataChunk::SimpleError(value) => value,
         };
 
         let segments = data_chunks_vec.into_iter();
@@ -74,7 +74,15 @@ impl Parser {
                 Some(std::str::from_utf8(value.chunk()).unwrap().to_owned())
             }
             Some(DataChunk::SimpleError(value)) => {
-                Some(std::str::from_utf8(value.chunk()).unwrap().to_owned())
+                let a = value.first();
+                let a = a.unwrap();
+
+                let r = match a {
+                    DataChunk::Bulk(val) => val,
+                    _ => "hi".as_bytes(),
+                };
+
+                Some(std::str::from_utf8(r).unwrap().to_owned())
             }
             _ => None,
         }

@@ -95,7 +95,7 @@ pub enum DataChunk {
     #[default]
     Null,
     Integer(Bytes),
-    SimpleError(Bytes),
+    SimpleError(Vec<DataChunk>),
 }
 
 impl DataChunk {
@@ -238,10 +238,34 @@ impl DataChunk {
     fn parse_simple_errors(
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> Result<DataChunk, DataChunkError> {
-        let err = line(cursored_buffer);
-        let copied_err = Bytes::copy_from_slice(err.unwrap_or_default());
+        // e.g. ['ASK', '1234', '127.0.0.1']
+        let mut data_chunks = vec![];
+        let mut pos_start = 0_usize;
+        let mut pos_end = 0_usize;
 
-        Ok(DataChunk::SimpleError(copied_err))
+        for (index, char) in cursored_buffer.get_ref().iter().enumerate() {
+            if char == &b'-' {
+                pos_start += 1;
+                pos_end += 1;
+                continue;
+            }
+
+            if char == &b' ' {
+                data_chunks.push(DataChunk::Bulk(Bytes::copy_from_slice(
+                    &cursored_buffer.get_ref()[pos_start..pos_end],
+                )));
+                pos_start = index + 1;
+                pos_end = pos_start;
+                continue;
+            }
+            pos_end += 1;
+        }
+
+        data_chunks.push(DataChunk::Bulk(Bytes::copy_from_slice(
+            &cursored_buffer.get_ref()[pos_start..pos_end - 2],
+        )));
+
+        Ok(DataChunk::SimpleError(data_chunks))
     }
 
     /// Parses the data type (first byte sign like +, :, $ etc)
@@ -306,7 +330,7 @@ impl DataChunk {
                 }
             }
             Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
-            Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
+            // Some(DataChunk::SimpleError(data_bytes)) => Ok(Bytes::from("OHO")),
             Some(DataChunk::Integer(val)) => {
                 // convert Bytes to bytes array
                 // then determine endianness to create u64 integer value from the bytes array
