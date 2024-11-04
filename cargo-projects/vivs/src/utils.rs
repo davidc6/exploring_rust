@@ -1,17 +1,3 @@
-pub fn unknown_cmd_err(value: String) -> String {
-    format!("Unknown command: {value}\r\n")
-}
-pub const FALSE_CMD: &str = "FALSECMD";
-
-pub const NO_CMD_ERR: &str = "No command supplied\r\n";
-pub const NO_CMD: &str = "NOCMD";
-
-pub const INCORRECT_ARGS_ERR: &str = "Incorrect number of arguments\r\n";
-pub const ARGS_NUM: &str = "ARGSNUM";
-
-pub const VALUE_NOT_INT_ERR: &str = "Value is not an integer\r\n";
-pub const NON_INT: &str = "NONINT";
-
 // TODO: Investigate generic solution
 // trait ToBeLeBytes {
 //     type ByteArray: AsRef<u8>;

@@ -69,6 +69,17 @@ pub type ClusterInstanceConfig = HashMap<String, ClusterConfig>;
 // This is the default port the server listens on
 pub const PORT: u16 = 9000;
 
+pub const FALSE_CMD: &str = "FALSECMD";
+
+pub const NO_CMD_ERR: &str = "No command supplied\r\n";
+pub const NO_CMD: &str = "NOCMD";
+
+pub const INCORRECT_ARGS_ERR: &str = "Incorrect number of arguments\r\n";
+pub const ARGS_NUM: &str = "ARGSNUM";
+
+pub const VALUE_NOT_INT_ERR: &str = "Value is not an integer\r\n";
+pub const NON_INT: &str = "NONINT";
+
 #[derive(Deserialize, Debug, Default)]
 pub struct Config {
     connection: ConnectionState,

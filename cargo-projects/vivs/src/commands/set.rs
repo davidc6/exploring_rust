@@ -1,9 +1,5 @@
 use super::CommonCommand;
-use crate::{
-    parser::Parser,
-    utils::{ARGS_NUM, NON_INT},
-    Connection, DataStore, GenericResult,
-};
+use crate::{parser::Parser, Connection, DataStore, GenericResult, ARGS_NUM, NON_INT};
 use log::info;
 use std::time::{Duration, SystemTime};
 

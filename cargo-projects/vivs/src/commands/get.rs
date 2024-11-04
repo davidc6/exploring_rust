@@ -1,8 +1,7 @@
 use super::asking::AskCommand;
 use super::CommonCommand;
 use crate::parser::Parser;
-use crate::utils::ARGS_NUM;
-use crate::{Connection, DataStore, GenericResult};
+use crate::{Connection, DataStore, GenericResult, ARGS_NUM};
 use core::str;
 use log::info;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

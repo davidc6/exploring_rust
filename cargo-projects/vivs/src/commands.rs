@@ -5,8 +5,7 @@ use self::set::SET_CMD;
 use self::ttl::TTL_CMD;
 use crate::data_chunk::DataChunkError;
 use crate::parser::Parser;
-use crate::utils::{FALSE_CMD, NO_CMD};
-use crate::{Connection, DataStore, GenericResult};
+use crate::{Connection, DataStore, GenericResult, FALSE_CMD, NO_CMD};
 use asking::{Ask, ASK_CMD};
 use core::str;
 use delete::Delete;
@@ -112,6 +111,7 @@ impl Command {
                 Ok(())
             }
             Command::Unknown(command) => {
+                println!("COMMAND {:?}", command);
                 let error_msg = format!("Unknown command {:?}", command);
                 conn.write_error_with_msg(FALSE_CMD.as_bytes(), error_msg.as_bytes())
                     .await?;
