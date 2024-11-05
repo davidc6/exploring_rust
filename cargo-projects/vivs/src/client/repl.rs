@@ -3,7 +3,7 @@ use env_logger::Env;
 use log::info;
 use std::collections::{HashMap, HashSet};
 use std::env::current_dir;
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, stdout, Cursor, Write};
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
@@ -242,6 +242,7 @@ async fn main() -> GenericResult<()> {
 
         let mut parser = parse_stream(&mut connection).await?;
 
+        //
         let Some(error_type) = parser.peek_as_str() else {
             let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
             write_to_stdout(&bytes_read)?;
@@ -250,8 +251,20 @@ async fn main() -> GenericResult<()> {
 
         let bytes_read;
 
-        // ASK
+        // Different error types could be handled differently
+        // ASK -
         if error_type.to_lowercase() == ASK_CMD.to_lowercase() {
+            // new Parser for ASKING command
+            let _ = parser.next(); // cmd
+            let _ = parser.next().unwrap(); // slot
+            let address = parser.next_as_str().unwrap().unwrap();
+
+            let command = format!("ASKING GET {address}");
+            let command_as_string = DataChunk::from_string(&command);
+            let mut command_as_bytes = Cursor::new(command_as_string.as_bytes());
+            let command_as_data_chunk = DataChunk::read_chunk(&mut command_as_bytes).unwrap();
+            let command_as_data_chunk = Parser::new(command_as_data_chunk)?;
+
             connection.write_chunk_frame(&mut parser).await?;
             let mut parser = parse_stream(&mut connection).await?;
 
