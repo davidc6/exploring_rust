@@ -11,6 +11,8 @@ use super::Command;
 pub const ASK_CMD: &str = "ask";
 pub const ASK: &str = "ASK";
 
+pub const ASKING_CMD: &str = "asking";
+
 pub trait AskCommand {
     async fn check_ask(&self, key: &str, conn: &mut Connection) -> Option<(u16, String)> {
         // check if config exists, we'll most likely need to store it in memory to avoid constant IO (?)

@@ -2,7 +2,7 @@ use atoi::atoi;
 use bytes::{Buf, Bytes};
 use std::{fmt, io::Cursor, num::TryFromIntError, str::Utf8Error};
 
-use crate::{commands::ping::PONG, parser::Parser};
+use crate::{commands::ping::PONG, parser::Parser, GenericResult};
 
 #[derive(Debug, PartialEq)]
 pub enum DataChunkError {
@@ -24,6 +24,18 @@ impl fmt::Display for DataChunkError {
         }
     }
 }
+
+// impl fmt::Display for DataChunk {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         match self {
+//             DataChunk::Bulk(val) => {
+//                 let a = std::str::from_utf8(val)?;
+//                 Ok(a.to_owned())
+//             }
+//             _ => "hello".to_owned(),
+//         }
+//     }
+// }
 
 // Implement Error trait for our custom error type
 impl std::error::Error for DataChunkError {}
@@ -350,6 +362,13 @@ impl DataChunk {
             }
             None => Ok(Bytes::from("Unknown")),
             _ => Ok(Bytes::from("(nil)")), // catch all case
+        }
+    }
+
+    pub fn as_string(data_chunk: DataChunk) -> GenericResult<String> {
+        match data_chunk {
+            DataChunk::Bulk(val) => Ok(std::str::from_utf8(&val[..])?.to_owned()),
+            _ => Ok("Hi".to_owned()),
         }
     }
 }

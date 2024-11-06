@@ -6,7 +6,7 @@ use self::ttl::TTL_CMD;
 use crate::data_chunk::DataChunkError;
 use crate::parser::Parser;
 use crate::{Connection, DataStore, GenericResult, FALSE_CMD, NO_CMD};
-use asking::{Ask, ASK_CMD};
+use asking::{Ask, ASKING_CMD, ASK_CMD};
 use core::str;
 use delete::Delete;
 use get::Get;
@@ -30,6 +30,7 @@ pub enum Command {
     Ttl(Ttl),
     Ask(Ask),
     Unknown(String),
+    Asking,
     None,
 }
 
@@ -91,11 +92,19 @@ impl Command {
             DELETE_CMD => Command::Delete(Delete::parse(data_chunk)),
             TTL_CMD => Command::Ttl(Ttl::parse(data_chunk)),
             ASK_CMD => Command::Ask(Ask::parse()),
+            ASKING_CMD => Command::Asking,
             "" => Command::None,
             val => Command::Unknown(val.to_owned()),
         };
 
         Ok(command)
+    }
+
+    async fn asking(conn: &mut Connection) -> GenericResult<()> {
+        let _ = conn
+            .write_chunk(DataType::SimpleString, "Asking".as_bytes())
+            .await;
+        Ok(())
     }
 
     pub async fn run(self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
@@ -106,6 +115,7 @@ impl Command {
             Command::Delete(command) => command.respond(conn, db).await,
             Command::Ttl(command) => command.respond(conn, db).await,
             Command::Ask(command) => command.respond(conn).await,
+            Command::Asking => Self::asking(conn).await,
             Command::None => {
                 conn.write_error(NO_CMD.as_bytes()).await?;
                 Ok(())
