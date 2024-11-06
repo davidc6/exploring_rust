@@ -263,9 +263,11 @@ async fn main() -> GenericResult<()> {
             let command_as_string = DataChunk::from_string(&command);
             let mut command_as_bytes = Cursor::new(command_as_string.as_bytes());
             let command_as_data_chunk = DataChunk::read_chunk(&mut command_as_bytes).unwrap();
-            let command_as_data_chunk = Parser::new(command_as_data_chunk)?;
+            let mut command_as_data_chunk = Parser::new(command_as_data_chunk)?;
 
-            connection.write_chunk_frame(&mut parser).await?;
+            connection
+                .write_chunk_frame(&mut command_as_data_chunk)
+                .await?;
             let mut parser = parse_stream(&mut connection).await?;
 
             bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
