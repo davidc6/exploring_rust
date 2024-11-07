@@ -1,4 +1,4 @@
-use super::asking::AskCommand;
+use super::ask::AskCommand;
 use super::CommonCommand;
 use crate::parser::Parser;
 use crate::{Connection, DataStore, GenericResult, ARGS_NUM};

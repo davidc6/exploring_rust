@@ -7,7 +7,7 @@ use std::io::{stdin, stdout, Cursor, Write};
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
-use vivs::commands::asking::ASK_CMD;
+use vivs::commands::ask::ASK_CMD;
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
 use vivs::{connection, ClusterConfig};
