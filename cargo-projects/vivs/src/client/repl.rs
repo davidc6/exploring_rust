@@ -256,10 +256,10 @@ async fn main() -> GenericResult<()> {
         if error_type.to_lowercase() == ASK_CMD.to_lowercase() {
             // new Parser for ASKING command
             let _ = parser.next(); // cmd
-            let _ = parser.next().unwrap(); // slot
+            let slot = parser.next_as_str().unwrap().unwrap(); // slot
             let address = parser.next_as_str().unwrap().unwrap();
 
-            let command = format!("ASKING GET {address}");
+            let command = format!("ASKING GET {slot} {address}");
             let command_as_string = DataChunk::from_string(&command);
             let mut command_as_bytes = Cursor::new(command_as_string.as_bytes());
             let command_as_data_chunk = DataChunk::read_chunk(&mut command_as_bytes).unwrap();

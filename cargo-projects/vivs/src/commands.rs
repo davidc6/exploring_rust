@@ -94,7 +94,7 @@ impl Command {
             DELETE_CMD => Command::Delete(Delete::parse(data_chunk)),
             TTL_CMD => Command::Ttl(Ttl::parse(data_chunk)),
             ASK_CMD => Command::Ask(Ask::parse()),
-            ASKING_CMD => Command::Asking(Asking::parse()),
+            ASKING_CMD => Command::Asking(Asking::parse(data_chunk)),
             "" => Command::None,
             val => Command::Unknown(val.to_owned()),
         };
