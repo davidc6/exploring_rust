@@ -8,9 +8,10 @@ use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use vivs::commands::ask::ASK_CMD;
+use vivs::commands::get::GET_CMD;
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
-use vivs::{connection, ClusterConfig};
+use vivs::ClusterConfig;
 use vivs::{data_chunk::DataChunk, Connection, GenericResult};
 
 pub async fn write_complete_frame(stream: &mut TcpStream, data: &str) -> std::io::Result<()> {
@@ -215,66 +216,100 @@ async fn main() -> GenericResult<()> {
         "127.0.0.1".to_owned()
     };
 
-    let address = format!("{node_host}:{node_port}");
+    let mut address = format!("{node_host}:{node_port}");
     let stream = TcpStream::connect(address.clone()).await?;
     let mut connection = Connection::new(stream);
+    let mut other_addr = "".to_string();
+
+    let mut command_to_process: Option<Cursor<&[u8]>> = None;
+    let mut initial_command = vec![];
 
     loop {
-        // write to stdout
-        write!(stdout(), "{address}> ")?;
-        // flush everything, ensuring all content reach destination (stdout)
-        stdout().flush()?;
+        // Peek at a string
+        if let Some(ref mut cursor) = command_to_process {
+            let command_as_data_chunk = DataChunk::read_chunk(cursor).unwrap();
+            let mut parser = Parser::new(command_as_data_chunk)?;
 
-        // buffer for stdin's line of input
-        let mut buffer = String::new();
-        // Read a line of input and append to the buffer.
-        // stdin() is a handle in this case to the standard input of the current process
-        // which gets "locked" and waits for newline or the "Enter" key (or 0xA byte) to be pressed.
-        stdin().read_line(&mut buffer)?;
+            // The response from the server is Null (TODO: update implementation)
+            let Some(command) = parser.peek_as_str() else {
+                let bytes_read: bytes::Bytes = DataChunk::read_chunk_frame(&mut parser).await?;
+                command_to_process = None;
 
-        let data_chunk_frame_as_str = DataChunk::from_string(&buffer);
+                write_to_stdout(&bytes_read)?;
+                continue;
+            };
 
-        // write bytes to server socket
-        // e.g. *0\r\n$4\r\nPING\r\n$4\r\nMary\r\n
-        connection
-            .write_complete_frame(&data_chunk_frame_as_str)
-            .await?;
+            if command.to_lowercase() == ASK_CMD.to_lowercase() {
+                let _ = parser.next(); // cmd
+                let slot = parser.next_as_str().unwrap().unwrap(); // slot
+                let address = parser.next_as_str().unwrap().unwrap();
 
-        let mut parser = parse_stream(&mut connection).await?;
+                other_addr = address.clone();
+                // TODO - hard-coded
+                let command = format!(
+                    "asking get {:?} {}",
+                    initial_command.get(1),
+                    address.clone()
+                );
+                let command_as_string = DataChunk::from_string(&command);
+                let mut command_as_bytes = Cursor::new(command_as_string.as_bytes());
+                let command_as_data_chunk = DataChunk::read_chunk(&mut command_as_bytes).unwrap();
+                let mut command_as_data_chunk = Parser::new(command_as_data_chunk)?;
 
-        //
-        let Some(error_type) = parser.peek_as_str() else {
+                connection
+                    .write_chunk_frame(&mut command_as_data_chunk)
+                    .await?;
+
+                let buffer = connection.process_stream().await?;
+                command_to_process = Some(buffer);
+                continue;
+            }
+
+            if command.to_lowercase() == GET_CMD.to_lowercase() {
+                address = other_addr.clone();
+
+                let stream = TcpStream::connect(address.clone()).await?;
+                connection = Connection::new(stream);
+
+                connection.write_chunk_frame(&mut parser).await?;
+
+                let buffer = connection.process_stream().await?;
+                command_to_process = Some(buffer);
+                continue;
+            }
+
             let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+            command_to_process = None;
+
             write_to_stdout(&bytes_read)?;
-            continue;
-        };
-
-        let bytes_read;
-
-        // Different error types could be handled differently
-        // ASK -
-        if error_type.to_lowercase() == ASK_CMD.to_lowercase() {
-            // new Parser for ASKING command
-            let _ = parser.next(); // cmd
-            let slot = parser.next_as_str().unwrap().unwrap(); // slot
-            let address = parser.next_as_str().unwrap().unwrap();
-
-            let command = format!("ASKING GET {slot} {address}");
-            let command_as_string = DataChunk::from_string(&command);
-            let mut command_as_bytes = Cursor::new(command_as_string.as_bytes());
-            let command_as_data_chunk = DataChunk::read_chunk(&mut command_as_bytes).unwrap();
-            let mut command_as_data_chunk = Parser::new(command_as_data_chunk)?;
-
-            connection
-                .write_chunk_frame(&mut command_as_data_chunk)
-                .await?;
-            let mut parser = parse_stream(&mut connection).await?;
-
-            bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
         } else {
-            bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
-        }
+            // write to stdout
+            write!(stdout(), "{address}> ")?;
 
-        write_to_stdout(&bytes_read)?;
+            // flush everything, ensuring all content reach destination (stdout)
+            stdout().flush()?;
+
+            let mut buffer = String::new();
+            // Read a line of input and append to the buffer.
+            // stdin() is a handle in this case to the standard input of the current process
+            // which gets "locked" and waits for newline or the "Enter" key (or 0xA byte) to be pressed.
+            stdin().read_line(&mut buffer)?;
+
+            initial_command = buffer
+                .split_whitespace()
+                .map(|val| val.to_string())
+                .collect();
+
+            let data_chunk_frame_as_str = DataChunk::from_string(&buffer);
+
+            // write bytes to server socket
+            // e.g. *0\r\n$4\r\nPING\r\n$4\r\nMary\r\n
+            connection
+                .write_complete_frame(&data_chunk_frame_as_str)
+                .await?;
+
+            let buffer = connection.process_stream().await?;
+            command_to_process = Some(buffer);
+        }
     }
 }
