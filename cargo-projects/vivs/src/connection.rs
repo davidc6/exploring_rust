@@ -33,6 +33,7 @@ impl Display for ConnectionError {
     }
 }
 
+#[derive(Debug)]
 pub struct Connection {
     stream: BufWriter<TcpStream>,
     buffer: BytesMut,
@@ -97,6 +98,7 @@ impl Connection {
             DataType::SimpleError => b'-',
             DataType::Integer => b':',
             DataType::BulkString => b'$',
+            DataType::Array => b'*',
         };
 
         // Response is different for these types
