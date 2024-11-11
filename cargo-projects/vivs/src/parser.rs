@@ -100,6 +100,15 @@ impl Parser {
         self.segments.len()
     }
 
+    pub fn push_up(mut self, bytes: Bytes) -> Self {
+        let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
+        let mut a = vec![DataChunk::Bulk(bytes)];
+        a.append(&mut data_chunks_collection);
+        // let a = [data_chunks_collection, [b"GET"]].concat();
+        self.segments = a.into_iter().peekable();
+        self
+    }
+
     /// Creates a new iterator by first, converting the existing iterator into the vector,
     /// pushing a value to it and then creating a brand new iterator from it.
     pub fn push(mut self, bytes: Bytes) -> Self {
