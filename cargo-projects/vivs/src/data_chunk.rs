@@ -102,7 +102,9 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChun
 
 #[derive(Debug, Default, PartialEq)]
 pub enum DataChunk {
+    /// Commands as arrays
     Array(Vec<DataChunk>),
+    /// Single string
     Bulk(Bytes),
     #[default]
     Null,
