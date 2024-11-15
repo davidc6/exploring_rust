@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::collections::LinkedList;
 use std::collections::VecDeque;
 
 fn vector() {
@@ -75,4 +77,33 @@ pub fn double_ended_queue() {
     vd.is_empty();
 
     println!("{:?}", vd);
+}
+
+// HashMap uses SIMD (Single Instruction Multiple Data) lookup
+pub fn hash_map() -> Option<i32> {
+    let mut h = HashMap::new();
+
+    let s = "one";
+    let val = h.insert(s, 1);
+
+    if let Some(val) = val {
+        println!("Overwritting {:?}", val);
+    } else {
+        println!("Writing initial value {:?}", s);
+    }
+
+    let val = h.entry("two").or_insert(2);
+    *val += 1;
+
+    h.get("two").copied()
+}
+
+#[cfg(test)]
+mod hash_map_tests {
+    use super::*;
+
+    #[test]
+    fn hash_map_works() {
+        assert_eq!(hash_map(), Some(3));
+    }
 }
