@@ -264,15 +264,15 @@ impl Iterator for AudioMarkers {
 
 type BoxedNode = Option<Box<Node>>;
 
-#[derive(Debug)]
-struct Node {
+#[derive(Debug, PartialEq)]
+pub struct Node {
     value: u64,
     left: BoxedNode,
     right: BoxedNode,
 }
 
 #[derive(Debug)]
-struct BST {
+pub struct BST {
     root: BoxedNode,
     length: u64,
 }
@@ -281,36 +281,43 @@ impl BST {
     pub fn add(&mut self, node: Node) {
         self.length += 1;
         let root = self.root.take();
-        self.root = self.add_recursively(root, node);
+        self.root = Self::add_recursively(root, node);
     }
 
-    fn add_recursively(&mut self, node: BoxedNode, new_node: Node) -> BoxedNode {
+    fn add_recursively(node: BoxedNode, new_node: Node) -> BoxedNode {
         match node {
             Some(mut node) => {
                 if node.value >= new_node.value {
-                    node.left = self.add_recursively(node.left, new_node);
+                    node.left = Self::add_recursively(node.left, new_node);
                     Some(node)
                 } else {
-                    node.right = self.add_recursively(node.right, new_node);
+                    node.right = Self::add_recursively(node.right, new_node);
                     Some(node)
                 }
             }
             _ => Some(Box::new(new_node)),
         }
     }
-}
 
-fn binary_search_tree() {
-    let mut bst = BST {
-        root: Some(Box::new(Node {
-            value: 10,
-            left: None,
-            right: None,
-        })),
-        length: 1,
-    };
+    pub fn find(&mut self, value: u64) -> BoxedNode {
+        let root = self.root.take();
+        Self::find_recursively(root, value)
+    }
 
-    println!("BST {:?}", bst);
+    fn find_recursively(node: BoxedNode, value: u64) -> BoxedNode {
+        match node {
+            Some(node) => {
+                if node.value > value {
+                    Self::find_recursively(node.left, value)
+                } else if node.value < value {
+                    Self::find_recursively(node.right, value)
+                } else {
+                    Some(node)
+                }
+            }
+            None => None,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -385,5 +392,49 @@ mod data_structures_tests {
         bst.add(n4);
 
         assert!(bst.length == 4);
+    }
+
+    #[test]
+    fn bst_find_works() {
+        let n = Node {
+            value: 10,
+            left: None,
+            right: None,
+        };
+        let mut bst = BST {
+            root: Some(Box::new(n)),
+            length: 1,
+        };
+
+        let n2 = Node {
+            value: 5,
+            left: None,
+            right: None,
+        };
+        bst.add(n2);
+
+        let n3 = Node {
+            value: 12,
+            left: None,
+            right: None,
+        };
+        bst.add(n3);
+
+        let n4 = Node {
+            value: 1,
+            left: None,
+            right: None,
+        };
+        bst.add(n4);
+
+        let node = bst.find(1);
+        assert_eq!(
+            node,
+            Some(Box::new(Node {
+                value: 1,
+                left: None,
+                right: None
+            }))
+        );
     }
 }
