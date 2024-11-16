@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::collections::LinkedList;
 use std::collections::VecDeque;
 
@@ -100,6 +101,18 @@ pub fn hash_map() -> Option<i32> {
     h.get(s2).copied()
 }
 
+pub fn hash_set<'a>() -> HashSet<&'a str> {
+    let mut audio_tracks = HashSet::new();
+
+    let tracks = ["track 1", "track 2", "track 3", "track 2", "track 1"];
+
+    for track in tracks {
+        audio_tracks.insert(track);
+    }
+
+    audio_tracks
+}
+
 #[cfg(test)]
 mod hash_map_tests {
     use super::*;
@@ -107,5 +120,11 @@ mod hash_map_tests {
     #[test]
     fn hash_map_works() {
         assert_eq!(hash_map(), Some(3));
+    }
+
+    #[test]
+    fn hash_set_works() {
+        let hs = hash_set();
+        assert!(hs.len() == 3);
     }
 }
