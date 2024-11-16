@@ -92,10 +92,12 @@ pub fn hash_map() -> Option<i32> {
         println!("Writing initial value {:?}", s);
     }
 
-    let val = h.entry("two").or_insert(2);
+    let s2 = "two";
+
+    let val = h.entry(s2).or_insert(2);
     *val += 1;
 
-    h.get("two").copied()
+    h.get(s2).copied()
 }
 
 #[cfg(test)]
