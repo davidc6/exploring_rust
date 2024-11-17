@@ -93,12 +93,13 @@ trait Speed {
 }
 
 trait Vehicle: Accelerate + Speed {}
-// Blanket implementation i.e. if a type implements Accelerate and Speed,
+// Blanket implementation (an implementation of a trait for all types or for all types that match
+// some condition) i.e. if a type implements Accelerate and Speed,
 // then it also implements Vehicle
 impl<T: Accelerate + Speed> Vehicle for T {}
 
 // Heterogenous vector
-//
+// A vector that contains different types
 
 #[derive(Debug)]
 struct Airship {
@@ -205,7 +206,7 @@ pub fn hash_map() -> Option<i32> {
     let val = h.insert(s, 1);
 
     if let Some(val) = val {
-        println!("Overwritting {:?}", val);
+        println!("Overwriting {:?}", val);
     } else {
         println!("Writing initial value {:?}", s);
     }
@@ -241,7 +242,7 @@ impl AudioMarkers {
     pub fn new() -> Self {
         Self {
             current_marker: 0,
-            /// 10s
+            // 10s
             next_marker: 10000,
         }
     }
@@ -261,7 +262,7 @@ impl Iterator for AudioMarkers {
 }
 
 #[cfg(test)]
-mod hash_map_tests {
+mod data_structures_tests {
     use super::*;
 
     #[test]
