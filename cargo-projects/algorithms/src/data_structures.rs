@@ -2,7 +2,10 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::LinkedList;
 use std::collections::VecDeque;
+use std::fmt::Debug;
 
+// Vector - is a collection homogenous elements
+// Heterogeneous vector type can be made by using trait objects or enums (if all variants are known)
 fn vector() {
     // Vector
     let mut v = vec![];
@@ -79,6 +82,95 @@ fn vector_struct_sort() -> Vec<DeviceStatus> {
     devices.sort_by(|a, b| a.last_logged_in.cmp(&b.last_logged_in));
 
     devices
+}
+
+trait Accelerate {
+    fn accelerate(&mut self);
+}
+
+trait Speed {
+    fn speed(&self) -> u8;
+}
+
+trait Vehicle: Accelerate + Speed {}
+// Blanket implementation i.e. if a type implements Accelerate and Speed,
+// then it also implements Vehicle
+impl<T: Accelerate + Speed> Vehicle for T {}
+
+// Heterogenous vector
+//
+
+#[derive(Debug)]
+struct Airship {
+    speed: u8,
+}
+
+impl Accelerate for Airship {
+    fn accelerate(&mut self) {
+        self.speed += 10;
+    }
+}
+
+impl Speed for Airship {
+    fn speed(&self) -> u8 {
+        self.speed
+    }
+}
+
+#[derive(Debug)]
+struct Bike {
+    speed: u8,
+}
+
+impl Accelerate for Bike {
+    fn accelerate(&mut self) {
+        self.speed += 5;
+    }
+}
+
+impl Speed for Bike {
+    fn speed(&self) -> u8 {
+        self.speed
+    }
+}
+
+#[derive(Debug)]
+struct Helicopter {
+    speed: u8,
+}
+
+impl Accelerate for Helicopter {
+    fn accelerate(&mut self) {
+        self.speed += 50;
+    }
+}
+
+impl Speed for Helicopter {
+    fn speed(&self) -> u8 {
+        self.speed
+    }
+}
+
+impl Debug for dyn Accelerate {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Accelerate")
+    }
+}
+
+fn vector_heterogeneous() -> Vec<Box<dyn Vehicle>> {
+    let mut vehicles: Vec<Box<dyn Vehicle>> = vec![];
+
+    vehicles.push(Box::new(Airship { speed: 0 }));
+    vehicles.push(Box::new(Bike { speed: 0 }));
+    vehicles.push(Box::new(Helicopter { speed: 0 }));
+
+    for vehicle in &mut vehicles {
+        println!("Speed before: {:?}", vehicle.speed());
+        vehicle.accelerate();
+        println!("Speed after: {:?}", vehicle.speed());
+    }
+
+    vehicles
 }
 
 pub fn double_ended_queue() {
@@ -177,6 +269,13 @@ mod hash_map_tests {
         let actual = vector_struct_sort();
 
         assert!(actual[0].last_logged_in <= actual[1].last_logged_in);
+    }
+
+    #[test]
+    fn vector_heterogeneous_works() {
+        let actual = vector_heterogeneous();
+
+        assert!(actual.len() == 3);
     }
 
     #[test]
