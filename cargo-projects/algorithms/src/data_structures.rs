@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::LinkedList;
 use std::collections::VecDeque;
+use std::path::Iter;
 
 fn vector() {
     // Vector
@@ -113,6 +114,36 @@ pub fn hash_set<'a>() -> HashSet<&'a str> {
     audio_tracks
 }
 
+// Iterator
+
+struct AudioMarkers {
+    current_marker: u32,
+    next_marker: u32,
+}
+
+impl AudioMarkers {
+    pub fn new() -> Self {
+        Self {
+            current_marker: 0,
+            /// 10s
+            next_marker: 10000,
+        }
+    }
+}
+
+impl Iterator for AudioMarkers {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.current_marker;
+
+        self.current_marker = current + 10000;
+        self.next_marker = self.current_marker + 10000;
+
+        Some(current)
+    }
+}
+
 #[cfg(test)]
 mod hash_map_tests {
     use super::*;
@@ -126,5 +157,14 @@ mod hash_map_tests {
     fn hash_set_works() {
         let hs = hash_set();
         assert!(hs.len() == 3);
+    }
+
+    #[test]
+    fn iterator_works() {
+        let mut i = AudioMarkers::new();
+
+        assert_eq!(i.next(), Some(0));
+        assert_eq!(i.next(), Some(10000));
+        assert_eq!(i.next(), Some(20000));
     }
 }
