@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::LinkedList;
 use std::collections::VecDeque;
-use std::path::Iter;
 
 fn vector() {
     // Vector
@@ -55,6 +54,31 @@ fn vector() {
     let index = 0;
     let test = v1.get(index);
     println!("Value at index {:?}: {:?}", index, test);
+}
+
+#[derive(Debug)]
+struct DeviceStatus {
+    id: u16,
+    last_logged_in: u32,
+}
+
+impl DeviceStatus {
+    pub fn new(id: u16, last_logged_in: u32) -> Self {
+        DeviceStatus { id, last_logged_in }
+    }
+}
+
+fn vector_struct_sort() -> Vec<DeviceStatus> {
+    let mut devices = vec![
+        DeviceStatus::new(1, 1731844615),
+        DeviceStatus::new(2, 1731844615),
+        DeviceStatus::new(3, 1729072551),
+    ];
+
+    // Sort by last_logged_in field in the ascending order (earliest timestamp first)
+    devices.sort_by(|a, b| a.last_logged_in.cmp(&b.last_logged_in));
+
+    devices
 }
 
 pub fn double_ended_queue() {
@@ -147,6 +171,13 @@ impl Iterator for AudioMarkers {
 #[cfg(test)]
 mod hash_map_tests {
     use super::*;
+
+    #[test]
+    fn vector_struct_sorting_works() {
+        let actual = vector_struct_sort();
+
+        assert!(actual[0].last_logged_in <= actual[1].last_logged_in);
+    }
 
     #[test]
     fn hash_map_works() {
