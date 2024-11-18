@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::collections::LinkedList;
 use std::collections::VecDeque;
 use std::fmt::Debug;
+use std::mem;
 
 // Vector - is a collection homogenous elements
 // Heterogeneous vector type can be made by using trait objects or enums (if all variants are known)
@@ -174,8 +175,8 @@ fn vector_heterogeneous() -> Vec<Box<dyn Vehicle>> {
     vehicles
 }
 
+// VecDeque - double-ended queue implemented with a growable ring buffer
 pub fn double_ended_queue() {
-    // VecDeque - double-ended queue implemented with a growable ring buffer
     let mut vd = VecDeque::new();
 
     // [1, 2, 3]
@@ -242,7 +243,7 @@ impl AudioMarkers {
     pub fn new() -> Self {
         Self {
             current_marker: 0,
-            // 10s
+            /// 10s
             next_marker: 10000,
         }
     }
@@ -259,6 +260,57 @@ impl Iterator for AudioMarkers {
 
         Some(current)
     }
+}
+
+type BoxedNode = Option<Box<Node>>;
+
+#[derive(Debug)]
+struct Node {
+    value: u64,
+    left: BoxedNode,
+    right: BoxedNode,
+}
+
+#[derive(Debug)]
+struct BST {
+    root: BoxedNode,
+    length: u64,
+}
+
+impl BST {
+    pub fn add(&mut self, node: Node) {
+        self.length += 1;
+        let root = self.root.take();
+        self.root = self.add_recursively(root, node);
+    }
+
+    fn add_recursively(&mut self, node: BoxedNode, new_node: Node) -> BoxedNode {
+        match node {
+            Some(mut node) => {
+                if node.value >= new_node.value {
+                    node.left = self.add_recursively(node.left, new_node);
+                    Some(node)
+                } else {
+                    node.right = self.add_recursively(node.right, new_node);
+                    Some(node)
+                }
+            }
+            _ => Some(Box::new(new_node)),
+        }
+    }
+}
+
+fn binary_search_tree() {
+    let mut bst = BST {
+        root: Some(Box::new(Node {
+            value: 10,
+            left: None,
+            right: None,
+        })),
+        length: 1,
+    };
+
+    println!("BST {:?}", bst);
 }
 
 #[cfg(test)]
@@ -297,5 +349,41 @@ mod data_structures_tests {
         assert_eq!(i.next(), Some(0));
         assert_eq!(i.next(), Some(10000));
         assert_eq!(i.next(), Some(20000));
+    }
+
+    #[test]
+    fn bst_works() {
+        let n = Node {
+            value: 10,
+            left: None,
+            right: None,
+        };
+        let mut bst = BST {
+            root: Some(Box::new(n)),
+            length: 1,
+        };
+
+        let n2 = Node {
+            value: 5,
+            left: None,
+            right: None,
+        };
+        bst.add(n2);
+
+        let n3 = Node {
+            value: 12,
+            left: None,
+            right: None,
+        };
+        bst.add(n3);
+
+        let n4 = Node {
+            value: 1,
+            left: None,
+            right: None,
+        };
+        bst.add(n4);
+
+        assert!(bst.length == 4);
     }
 }
