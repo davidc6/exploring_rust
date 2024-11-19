@@ -306,15 +306,9 @@ impl BST {
 
     fn find_recursively(node: BoxedNode, value: u64) -> BoxedNode {
         match node {
-            Some(node) => {
-                if node.value > value {
-                    Self::find_recursively(node.left, value)
-                } else if node.value < value {
-                    Self::find_recursively(node.right, value)
-                } else {
-                    Some(node)
-                }
-            }
+            Some(node) if node.value > value => Self::find_recursively(node.left, value),
+            Some(node) if node.value < value => Self::find_recursively(node.right, value),
+            Some(node) => Some(node),
             None => None,
         }
     }
