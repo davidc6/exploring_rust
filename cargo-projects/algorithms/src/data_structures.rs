@@ -312,10 +312,24 @@ impl BST {
             None => None,
         }
     }
+
+    pub fn traverse(&self, cb: impl Fn(u64)) {
+        Self::traverse_in_order(&self.root, &cb);
+    }
+
+    fn traverse_in_order(node: &BoxedNode, cb: &impl Fn(u64)) {
+        if let Some(node) = node {
+            Self::traverse_in_order(&node.left, cb);
+            cb(node.value);
+            Self::traverse_in_order(&node.right, cb);
+        }
+    }
 }
 
 #[cfg(test)]
 mod data_structures_tests {
+    use std::{cell::RefCell, sync::Arc};
+
     use super::*;
 
     #[test]
@@ -430,5 +444,46 @@ mod data_structures_tests {
                 right: None
             }))
         );
+    }
+
+    #[test]
+    fn bst_traverse() {
+        let n = Node {
+            value: 10,
+            left: None,
+            right: None,
+        };
+        let mut bst = BST {
+            root: Some(Box::new(n)),
+            length: 1,
+        };
+
+        let n2 = Node {
+            value: 5,
+            left: None,
+            right: None,
+        };
+        bst.add(n2);
+
+        let n3 = Node {
+            value: 12,
+            left: None,
+            right: None,
+        };
+        bst.add(n3);
+
+        let n4 = Node {
+            value: 1,
+            left: None,
+            right: None,
+        };
+        bst.add(n4);
+
+        let val_vec = RefCell::new(vec![]);
+        bst.traverse(|val| {
+            val_vec.borrow_mut().push(val);
+        });
+
+        assert!(val_vec.borrow().len() == 4);
     }
 }
