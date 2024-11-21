@@ -11,3 +11,5 @@ pub mod ttl;
 
 #[path = "./data_structures.rs"]
 pub mod data_structures;
+
+pub mod strings;
