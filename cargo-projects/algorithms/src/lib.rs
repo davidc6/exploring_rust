@@ -13,3 +13,5 @@ pub mod ttl;
 pub mod data_structures;
 
 pub mod strings;
+
+pub mod overlapping_intervals;
