@@ -7,25 +7,25 @@ fn remove_single_vowels(input: &str) -> String {
 
     for (index, value) in input.split("").enumerate() {
         if index == 0 {
-            processed_input.push(value.to_owned());
+            processed_input.push(value);
             continue;
         }
 
         if vowels.contains(&value) && vowels.contains(&prev_char) {
-            processed_input.push(prev_char.to_owned());
-            processed_input.push(value.to_owned());
+            processed_input.push(prev_char);
+            processed_input.push(value);
             prev_char = "";
             continue;
         }
 
         if !vowels.contains(&value) {
-            processed_input.push(value.to_owned());
+            processed_input.push(value);
         }
 
         prev_char = value;
     }
 
-    processed_input.join("")
+    processed_input.join::<&str>("")
 }
 
 #[cfg(test)]
