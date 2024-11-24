@@ -7,7 +7,7 @@
 //! k smallest - max-heap
 //!
 
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap, VecDeque};
 
 fn top_1(input: Vec<i32>, k: u32) -> Vec<i32> {
     let mut b_h = BinaryHeap::from(input);
@@ -19,12 +19,6 @@ fn top_1(input: Vec<i32>, k: u32) -> Vec<i32> {
     }
 
     output
-}
-
-struct Node {
-    val: i32,
-    left: Option<Box<Node>>,
-    right: Option<Box<Node>>,
 }
 
 fn top_2(mut input: Vec<i32>, k: u32) -> Vec<i32> {
@@ -57,6 +51,54 @@ fn top_2_r(min_heap: &mut [i32], index: usize) {
     }
 }
 
+#[derive(PartialEq, Clone, Eq, Ord, PartialOrd, Debug)]
+struct Count(i32, i32);
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+struct MostFrequentFirst(Count);
+
+impl PartialOrd for MostFrequentFirst {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for MostFrequentFirst {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0 .0.cmp(&other.0 .0)
+    }
+}
+
+// Leetcode 347, Top K Frequent Elements
+fn top_3(v: Vec<i32>, k: i32) -> Vec<i32> {
+    let frequencies = v.iter().copied().fold(HashMap::new(), |mut map, val| {
+        map.entry(val)
+            .and_modify(|frequency| *frequency += 1)
+            .or_insert(1);
+        map
+    });
+
+    let mut heap = BinaryHeap::new();
+
+    for (key, freq) in frequencies {
+        // The trick here is to make integers signed (negative) so that they do not get popped()
+        if heap.len() < k as usize {
+            heap.push(MostFrequentFirst(Count(-freq, key)));
+        } else {
+            heap.push(MostFrequentFirst(Count(-freq, key)));
+            heap.pop();
+        }
+    }
+
+    let sorted = heap.into_sorted_vec();
+    let a = &sorted[(sorted.len() - k as usize)..sorted.len()];
+    let v = Vec::from(a);
+
+    let mut ans: Vec<i32> = v.iter().map(|val| val.0 .1).collect();
+    ans.reverse();
+    ans
+}
+
 #[cfg(test)]
 mod top_k_elements_tests {
     use super::*;
@@ -75,5 +117,13 @@ mod top_k_elements_tests {
         let output = top_2(v, 1);
 
         assert_eq!(output, vec![3, 8, 10, 15]);
+    }
+
+    #[test]
+    fn top_3_works() {
+        let v = vec![1, 1, 1, 2, 2, 3, 5, 5, 5, 5, 5];
+        let c = top_3(v, 2);
+
+        assert_eq!(c, vec![1, 5]);
     }
 }
