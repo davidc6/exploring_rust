@@ -17,4 +17,5 @@ pub mod strings;
 pub mod overlapping_intervals;
 pub mod top_k_elements;
 
+mod binary_tree_traversal;
 mod iterators;
