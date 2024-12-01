@@ -1,4 +1,4 @@
-fn simple_binary_search(nums: &[isize], target: isize) -> usize {
+fn simple_binary_search(nums: &[isize], target: isize) -> Option<usize> {
     let mut left = 0;
     let mut right = nums.len() - 1;
 
@@ -13,7 +13,7 @@ fn simple_binary_search(nums: &[isize], target: isize) -> usize {
         let mid = (left + right) >> 1;
 
         if nums[mid] == target {
-            return mid;
+            return Some(mid);
         }
 
         if nums[mid] < target {
@@ -27,10 +27,11 @@ fn simple_binary_search(nums: &[isize], target: isize) -> usize {
         }
     }
 
-    0
+    None
 }
 
-fn modified_binary_search_1(nums: &[isize], target: isize) -> isize {
+// Leetcode 33, Search in Rotated Sorted Array
+fn modified_binary_search_1(nums: &[isize], target: isize) -> Option<usize> {
     let mut left = 0;
     let mut right = nums.len() - 1;
 
@@ -68,9 +69,9 @@ fn modified_binary_search_1(nums: &[isize], target: isize) -> isize {
     }
 
     if nums[left] == target {
-        left as isize
+        Some(left)
     } else {
-        -1
+        None
     }
 }
 
@@ -92,7 +93,7 @@ mod binary_tree_traversal_tests {
             let (val, index) = expect;
 
             let actual = simple_binary_search(&nums, val);
-            assert_eq!(actual, index);
+            assert_eq!(actual, Some(index));
         }
     }
 
@@ -103,6 +104,6 @@ mod binary_tree_traversal_tests {
 
         let actual = modified_binary_search_1(&nums, target);
 
-        assert_eq!(actual, 5);
+        assert_eq!(actual, Some(5));
     }
 }
