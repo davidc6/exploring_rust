@@ -30,6 +30,50 @@ fn simple_binary_search(nums: &[isize], target: isize) -> usize {
     0
 }
 
+fn modified_binary_search_1(nums: &[isize], target: isize) -> isize {
+    let mut left = 0;
+    let mut right = nums.len() - 1;
+
+    // While left index is less than right index
+    while left < right {
+        // Bitwise shift
+        let mid = (left + right) >> 1;
+
+        // Right element is less or equals than middle element
+        // First test iteration "pointer" movement example
+        // e.g  [[4], 5, 6, [7], 0, 1, [2]]
+        //  left  ^      mid ^    right ^
+        if nums[0] <= nums[mid] {
+            // First element is less or equals than target
+            // AND
+            // target element is less or equals than mid element
+            // 4 is != 0
+            if nums[0] <= target && target <= nums[mid] {
+                // Move right index to middle index + 1
+                right = mid + 1;
+            } else {
+                // Move left index to middle index + 1
+                // e.g. [4, 5, 6, 7, [0], 1, 2]
+                //            left is ^
+                left = mid + 1;
+            }
+        // Middle element is less than target
+        // AND
+        // target is less or equals to last element in the array
+        } else if nums[mid] < target && target <= nums[nums.len() - 1] {
+            left = mid + 1;
+        } else {
+            right = mid;
+        }
+    }
+
+    if nums[left] == target {
+        left as isize
+    } else {
+        -1
+    }
+}
+
 #[cfg(test)]
 mod binary_tree_traversal_tests {
     use super::*;
@@ -52,7 +96,13 @@ mod binary_tree_traversal_tests {
         }
     }
 
+    #[test]
     fn binary_tree_traversal_1_works() {
-        // let nums = [4, 5, 6, 7, 0, 1, 2];
+        let nums = [4, 5, 6, 7, 0, 1, 2];
+        let target = 1;
+
+        let actual = modified_binary_search_1(&nums, target);
+
+        assert_eq!(actual, 5);
     }
 }
