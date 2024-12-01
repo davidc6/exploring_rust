@@ -30,7 +30,8 @@ fn simple_binary_search(nums: &[isize], target: isize) -> Option<usize> {
     None
 }
 
-// Leetcode 33, Search in Rotated Sorted Array
+// Leetcode 33, Search in Rotated Sorted ArrayA
+// Ref https://leetcode.com/problems/search-in-rotated-sorted-array/description/
 fn modified_binary_search_1(nums: &[isize], target: isize) -> Option<usize> {
     let mut left = 0;
     let mut right = nums.len() - 1;
@@ -75,6 +76,29 @@ fn modified_binary_search_1(nums: &[isize], target: isize) -> Option<usize> {
     }
 }
 
+fn rotate_array_right(nums: &mut [isize], times: usize) -> &mut [isize] {
+    // e.g. total 3 times
+    // [1, 2, 3, 4]
+    // [4, 1, 2, 3]
+    // [3, 4, 1, 2]
+    // [2, 3, 4, 1]
+    for _ in 0..times {
+        let last = nums[nums.len() - 1];
+
+        for i in (0..nums.len()).rev() {
+            if i == 0 {
+                break;
+            }
+
+            nums[i] = nums[i - 1];
+        }
+
+        nums[0] = last;
+    }
+
+    nums
+}
+
 #[cfg(test)]
 mod binary_tree_traversal_tests {
     use super::*;
@@ -105,5 +129,23 @@ mod binary_tree_traversal_tests {
         let actual = modified_binary_search_1(&nums, target);
 
         assert_eq!(actual, Some(5));
+    }
+
+    #[test]
+    fn rotate_array_right_works() {
+        let mut nums = [1, 2, 3, 4];
+
+        let actual = rotate_array_right(&mut nums, 3);
+
+        assert_eq!(actual, &mut [2, 3, 4, 1]);
+    }
+
+    #[test]
+    fn rotate_array_right_works_2() {
+        let mut nums = [-1, -100, 3, 99];
+
+        let actual = rotate_array_right(&mut nums, 2);
+
+        assert_eq!(actual, &mut [3, 99, -1, -100]);
     }
 }
