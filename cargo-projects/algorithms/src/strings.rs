@@ -28,6 +28,19 @@ fn remove_single_vowels(input: &str) -> String {
     processed_input.join::<&str>("")
 }
 
+fn encode_decode_strings(strs: &mut [&str]) -> String {
+    let mut result = String::new();
+
+    for value in strs {
+        let length = value.len();
+        let formatted_str = format!("${length}{value}");
+
+        result.push_str(&formatted_str);
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod string_tests {
     use super::*;
@@ -57,5 +70,12 @@ mod string_tests {
         let actual = remove_single_vowels(string);
 
         assert_eq!(actual, "caar".to_owned());
+    }
+
+    #[test]
+    fn encode_decode_strings_works() {
+        let mut strs = ["hello", "hi", "hey"];
+        let actual = encode_decode_strings(&mut strs);
+        assert_eq!(actual, "$5hello$2hi$3hey".to_owned());
     }
 }
