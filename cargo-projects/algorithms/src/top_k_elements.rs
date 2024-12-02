@@ -56,19 +56,26 @@ struct Count(i32, i32);
 #[derive(PartialEq, Eq, Clone, Debug)]
 struct MostFrequentFirst(Count);
 
+// PartialOrd - enables us to specify the behaviour of the ordered comparison operators (<, >, <=, >=)
 impl PartialOrd for MostFrequentFirst {
+    // The only method that requires implementation
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // Calling out to Ord cmp() method
         Some(self.cmp(other))
     }
 }
 
 impl Ord for MostFrequentFirst {
+    // The only method that requires implementation
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // self.0 .0 is Count and first value
+        // we compare by frequency
         self.0 .0.cmp(&other.0 .0)
     }
 }
 
 // Leetcode 347, Top K Frequent Elements
+// O (n * log( k ))
 fn top_3(input: Vec<i32>, k: i32) -> Vec<i32> {
     let frequencies = input.iter().copied().fold(HashMap::new(), |mut map, val| {
         map.entry(val)
@@ -81,12 +88,15 @@ fn top_3(input: Vec<i32>, k: i32) -> Vec<i32> {
 
     for (key, freq) in frequencies {
         // The trick here is to make integers signed (negative) so that they do not get popped()
+        // -7 -3
         if heap.len() < k as usize {
             heap.push(MostFrequentFirst(Count(-freq, key)));
         } else {
             // We want to make sure that no more than k elements are kept on the heap,
             // hence we push and pop here
             heap.push(MostFrequentFirst(Count(-freq, key)));
+            // removes the greatest item which in our case would be least negative number
+            // -7 -3 1 , 1 - gets popped
             heap.pop();
         }
     }
