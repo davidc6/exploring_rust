@@ -46,7 +46,6 @@ fn decode_strings(str: &str) -> Vec<String> {
     let mut count_i = 0;
     let mut strs = vec![];
     let mut cur_str = "".to_string();
-
     let mut on_str = false;
 
     for char in str.chars() {

@@ -19,3 +19,5 @@ pub mod top_k_elements;
 
 mod iterators;
 mod modified_binary_search;
+
+mod arrays;
