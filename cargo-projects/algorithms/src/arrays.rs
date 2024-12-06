@@ -48,9 +48,37 @@ fn product_except_self_2(nums: Vec<i32>) -> Vec<i32> {
     result
 }
 
+fn product_except_self_3(nums: Vec<i32>) -> Vec<i32> {
+    let mut result = vec![1; nums.len()];
+
+    let mut prefix = 1;
+
+    // For the length of the vector
+    // Example for array [1, 2, 4, 6]
+    // Prefix array [1, 1, 2, 8]
+    for i in 0..nums.len() {
+        result[i] = prefix;
+
+        prefix *= nums[i];
+    }
+
+    let mut postfix = 1;
+
+    // Example for array [1, 2, 4, 6]
+    // Prefix array [48, 24, 12, 8]
+    for i in (0..nums.len()).rev() {
+        // multiply existing result array by the postfix value
+        result[i] *= postfix;
+        // then multiply postfix by nums element (starting from the last one)
+        postfix *= nums[i];
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod arrays_tests {
-    use crate::arrays::product_except_self_2;
+    use crate::arrays::{product_except_self_2, product_except_self_3};
 
     use super::product_except_self;
 
@@ -86,6 +114,24 @@ mod arrays_tests {
         let nums = vec![-1, 0, 1, 2, 3];
         let actual = product_except_self_2(nums);
         let expected = [0, -6, 0, 0, 0];
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn product_except_self_works_5() {
+        let nums = vec![-1, 0, 1, 2, 3];
+        let actual = product_except_self_3(nums);
+        let expected = [0, -6, 0, 0, 0];
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn product_except_self_works_6() {
+        let nums = vec![1, 2, 4, 6];
+        let actual = product_except_self_3(nums);
+        let expected = [48, 24, 12, 8];
 
         assert_eq!(actual, expected);
     }
