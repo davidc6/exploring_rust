@@ -21,3 +21,4 @@ mod iterators;
 mod modified_binary_search;
 
 mod arrays;
+mod stack;

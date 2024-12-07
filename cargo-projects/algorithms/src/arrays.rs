@@ -48,6 +48,8 @@ fn product_except_self_2(nums: Vec<i32>) -> Vec<i32> {
     result
 }
 
+// O(n) without division operator
+// Leetcod
 fn product_except_self_3(nums: Vec<i32>) -> Vec<i32> {
     let mut result = vec![1; nums.len()];
 
