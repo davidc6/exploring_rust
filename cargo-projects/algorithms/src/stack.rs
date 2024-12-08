@@ -25,6 +25,8 @@ fn find_next_greater_elem(nums: &[i32], num: i32) -> Vec<i32> {
     vec
 }
 
+// Stack based
+// Variation of Leetcode 496, Next Greater Element I - https://leetcode.com/problems/next-greater-element-i/description/
 fn find_next_greater_elem_stack(nums: &[i32], num: i32) -> Vec<i32> {
     let mut result = vec![];
     let mut stack = vec![];
