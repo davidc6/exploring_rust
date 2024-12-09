@@ -78,9 +78,44 @@ fn product_except_self_3(nums: Vec<i32>) -> Vec<i32> {
     result
 }
 
+fn permutations(mut nums: Vec<i32>) -> Vec<Vec<i32>> {
+    let mut result = vec![];
+    let mut counter = 1;
+    let mut pointer = 0;
+
+    let nums_len = nums.len();
+    let total = if nums_len == 2 {
+        2
+    } else {
+        nums_len * (nums_len - 1)
+    };
+
+    result.push(nums.to_owned());
+
+    loop {
+        if counter == total {
+            break;
+        }
+
+        if pointer + 1 == nums_len {
+            pointer = 0;
+            continue;
+        }
+
+        nums.swap(pointer, pointer + 1);
+
+        result.push(nums.to_owned());
+
+        counter += 1;
+        pointer += 1;
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod arrays_tests {
-    use crate::arrays::{product_except_self_2, product_except_self_3};
+    use crate::arrays::{permutations, product_except_self_2, product_except_self_3};
 
     use super::product_except_self;
 
@@ -134,6 +169,31 @@ mod arrays_tests {
         let nums = vec![1, 2, 4, 6];
         let actual = product_except_self_3(nums);
         let expected = [48, 24, 12, 8];
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn permutations_works() {
+        let nums = vec![1, 2, 3];
+        let expected = vec![
+            vec![1, 2, 3],
+            vec![2, 1, 3],
+            vec![2, 3, 1],
+            vec![3, 2, 1],
+            vec![3, 1, 2],
+            vec![1, 3, 2],
+        ];
+        let actual = permutations(nums);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn permutations_works_2() {
+        let nums = vec![0, 1];
+        let expected = vec![vec![0, 1], vec![1, 0]];
+        let actual = permutations(nums);
 
         assert_eq!(actual, expected);
     }
