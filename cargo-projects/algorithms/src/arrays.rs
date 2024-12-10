@@ -113,9 +113,105 @@ fn permutations(mut nums: Vec<i32>) -> Vec<Vec<i32>> {
     result
 }
 
+// Unsorted arrays find intersection
+// O(n log k) k - being number of distinct elements
+fn intersection(mut nums_1: Vec<i32>, mut nums_2: Vec<i32>) -> Vec<i32> {
+    let mut v = vec![];
+
+    nums_1.sort();
+    nums_2.sort();
+
+    if nums_1.len() > nums_2.len() {
+        // let tmp = nums_1;
+        // nums_1 = nums_2;
+        // nums_2 = tmp;
+
+        let old_nums1 = std::mem::replace(&mut nums_1, nums_2);
+        nums_2 = old_nums1;
+    }
+
+    // 1 shortest
+    // 2 longest
+    // or equal length
+
+    // [4, 5, 6] [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    //  ^     ^            ^     ^
+
+    if nums_1.last() > nums_2.last() {
+        return v;
+    }
+
+    let mut pointer_1_l = 0;
+    let mut pointer_2_l = 0;
+
+    loop {
+        // println!("POINTER 1 {:?} {:?}", pointer_1_l, pointer_2_l);
+        if pointer_2_l == nums_2.len() && pointer_1_l + 1 < nums_1.len() {
+            pointer_1_l += 1;
+        }
+
+        if pointer_2_l == nums_2.len() && pointer_1_l == nums_1.len() {
+            return v;
+        }
+
+        let n_1 = nums_1.get(pointer_1_l);
+        let n_2 = nums_2.get(pointer_2_l);
+
+        if n_1 > n_2 {
+            pointer_2_l += 1;
+            continue;
+        }
+
+        if n_1 < n_2 {
+            return v;
+        }
+
+        if n_1 == n_2 {
+            v.push(n_1.unwrap().to_owned());
+
+            let mut pointer_1_r = pointer_1_l + 1;
+            let mut pointer_2_r = pointer_2_l + 1;
+
+            loop {
+                // println!("POINTER 1 {:?} {:?}", pointer_1_r, pointer_2_r);
+                if pointer_2_r == nums_2.len() && pointer_1_r + 1 < nums_1.len() {
+                    pointer_1_r += 1;
+                }
+
+                if pointer_2_r == nums_2.len() && pointer_1_r == nums_1.len() {
+                    return v;
+                }
+
+                let n_1 = nums_1.get(pointer_1_r);
+                let n_2 = nums_2.get(pointer_2_r);
+
+                if n_1 < n_2 {
+                    pointer_2_r += 1;
+                    continue;
+                }
+
+                if n_1 > n_2 {
+                    return v;
+                }
+
+                if n_1 == n_2 {
+                    v.push(n_1.unwrap().to_owned());
+
+                    pointer_1_r += 1;
+                    pointer_2_r += 1;
+
+                    continue;
+                }
+            }
+        }
+    }
+
+    v
+}
+
 #[cfg(test)]
 mod arrays_tests {
-    use crate::arrays::{permutations, product_except_self_2, product_except_self_3};
+    use crate::arrays::{intersection, permutations, product_except_self_2, product_except_self_3};
 
     use super::product_except_self;
 
@@ -194,6 +290,18 @@ mod arrays_tests {
         let nums = vec![0, 1];
         let expected = vec![vec![0, 1], vec![1, 0]];
         let actual = permutations(nums);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn intersection_works() {
+        let nums = vec![3, 4, 5];
+        let nums_2 = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let expected = vec![3, 4, 5];
+        let actual = intersection(nums, nums_2);
+
+        println!("WHAT {:?}", actual);
 
         assert_eq!(actual, expected);
     }
