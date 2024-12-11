@@ -287,6 +287,28 @@ mod arrays_tests {
 
     #[test]
     fn permutations_works_2() {
+        let nums = vec![1, 2, 3, 4];
+        let expected = vec![
+            vec![1, 2, 3, 4],
+            vec![2, 1, 3, 4],
+            vec![2, 3, 1, 4],
+            vec![2, 3, 4, 1],
+            vec![3, 2, 4, 1],
+            vec![3, 4, 2, 1],
+            vec![3, 4, 1, 2],
+            vec![4, 3, 1, 2],
+            vec![4, 1, 3, 2],
+            vec![4, 1, 2, 3],
+            vec![1, 4, 2, 3],
+            vec![1, 2, 4, 3],
+        ];
+        let actual = permutations(nums);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn permutations_works_3() {
         let nums = vec![0, 1];
         let expected = vec![vec![0, 1], vec![1, 0]];
         let actual = permutations(nums);
@@ -300,8 +322,6 @@ mod arrays_tests {
         let nums_2 = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
         let expected = vec![3, 4, 5];
         let actual = intersection(nums, nums_2);
-
-        println!("WHAT {:?}", actual);
 
         assert_eq!(actual, expected);
     }
