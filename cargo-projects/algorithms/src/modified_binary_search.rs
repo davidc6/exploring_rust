@@ -76,6 +76,8 @@ fn modified_binary_search_1(nums: &[isize], target: isize) -> Option<usize> {
     }
 }
 
+// Leetcode 189, Rotate Array
+// https://leetcode.com/problems/rotate-array/description/
 fn rotate_array_right(nums: &mut [isize], times: usize) -> &mut [isize] {
     // e.g. total 3 times
     // [1, 2, 3, 4]
