@@ -64,7 +64,7 @@ to it is stored in the stack
 **Is a set of rules that governs how Rust program manages memory**
 
 1. Garbage collection
-2. Explicit allocation and deallocation
+2. Explicit allocation and de-allocation
 3. Through a set of rules the compiler checks
 
 - Stack - static memory allocation (we can't modify context of this area; fixed size; high memory addresses; allocation is quicker)
@@ -112,7 +112,7 @@ fn main() {
 - Slice enables us to reference a contiguous seq of elements rather than the whole collection
   - It is a sort of a reference and does not have ownership 
   
-- Rust breaks the deadlock between safe (garbage collectoin - Haskell, JavaScript, Ruby etc) and performance (manual memory management - C, C++) and restricts how a program uses pointers. Rust's compiler checks for safety errors such as dangling pointers, double frees, using and utilizing memory and so on. Pointers are addresses in memory at compile time but Rust proofs that your code is safe.
+- Rust breaks the deadlock between safe (garbage collection - Haskell, JavaScript, Ruby etc) and performance (manual memory management - C, C++) and restricts how a program uses pointers. Rust's compiler checks for safety errors such as dangling pointers, double frees, using and utilizing memory and so on. Pointers are addresses in memory at compile time but Rust proofs that your code is safe.
 
 - In C / C++ an instance of some class owns some other object that it points to. Owning object gets to decide when to free the owned object, once the owner is destroyed it destroys its possessions. It is therefore up to you to make sure that you don't point to that object anymore.
 
@@ -127,7 +127,7 @@ fn main() {
 
 #### Slice type
 
-- Allows to reference a segment of a contigous collection rather than the whole collection
+- Allows to reference a segment of a contiguous collection rather than the whole collection
 - It is a reference so does not have ownership
 
 #### Moves
