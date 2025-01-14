@@ -3,11 +3,19 @@ use crate::{
     GenericResult,
 };
 use bytes::{Buf, Bytes};
-use std::vec::IntoIter;
+use std::{iter::Peekable, vec::IntoIter};
 
-#[derive(Debug, Default)]
+impl Default for Parser {
+    fn default() -> Self {
+        Parser {
+            segments: vec![].into_iter().peekable(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Parser {
-    segments: IntoIter<DataChunk>,
+    segments: Peekable<IntoIter<DataChunk>>,
 }
 
 impl Parser {
@@ -18,12 +26,14 @@ impl Parser {
             DataChunk::Bulk(value) => vec![DataChunk::Bulk(value)],
             DataChunk::Null => vec![DataChunk::Null],
             DataChunk::Integer(value) => vec![DataChunk::Integer(value)],
-            DataChunk::SimpleError(value) => vec![DataChunk::SimpleError(value)],
+            DataChunk::SimpleError(value) => value,
         };
 
         let segments = data_chunks_vec.into_iter();
 
-        Ok(Parser { segments })
+        Ok(Parser {
+            segments: segments.peekable(),
+        })
     }
 
     /// Tries to get next element in the collection/segments.
@@ -47,11 +57,42 @@ impl Parser {
         }
     }
 
-    pub fn enumerate(self) -> std::iter::Enumerate<IntoIter<DataChunk>> {
+    /// Enables to peek into the DataChunks iterator.
+    /// This is useful when needing to get the key,
+    /// in order to establish the node that holds the value of that key.
+    /// Peeking does not remove values and does not forward the iterator.
+    pub fn peek(&mut self) -> Option<&DataChunk> {
+        self.segments.peek()
+    }
+
+    #[allow(clippy::unwrap_in_result)]
+    pub fn peek_as_str(&mut self) -> Option<String> {
+        let segment = self.segments.peek();
+
+        match segment {
+            Some(DataChunk::Bulk(value)) => {
+                Some(std::str::from_utf8(value.chunk()).unwrap().to_owned())
+            }
+            Some(DataChunk::SimpleError(value)) => {
+                let a = value.first();
+                let a = a.unwrap();
+
+                let r = match a {
+                    DataChunk::Bulk(val) => val,
+                    _ => "hi".as_bytes(),
+                };
+
+                Some(std::str::from_utf8(r).unwrap().to_owned())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn enumerate(self) -> std::iter::Enumerate<Peekable<IntoIter<DataChunk>>> {
         self.segments.enumerate()
     }
 
-    pub fn iter(self) -> IntoIter<DataChunk> {
+    pub fn iter(self) -> Peekable<IntoIter<DataChunk>> {
         self.segments
     }
 
@@ -59,12 +100,21 @@ impl Parser {
         self.segments.len()
     }
 
+    pub fn push_up(mut self, bytes: Bytes) -> Self {
+        let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
+        let mut a = vec![DataChunk::Bulk(bytes)];
+        a.append(&mut data_chunks_collection);
+        // let a = [data_chunks_collection, [b"GET"]].concat();
+        self.segments = a.into_iter().peekable();
+        self
+    }
+
     /// Creates a new iterator by first, converting the existing iterator into the vector,
     /// pushing a value to it and then creating a brand new iterator from it.
     pub fn push(mut self, bytes: Bytes) -> Self {
         let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
         data_chunks_collection.push(DataChunk::Bulk(bytes));
-        self.segments = data_chunks_collection.into_iter();
+        self.segments = data_chunks_collection.into_iter().peekable();
         self
     }
 
@@ -74,8 +124,28 @@ impl Parser {
         // This functionality is part of the so called "client encoder".
         let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
         data_chunks_collection.push(DataChunk::Bulk(bytes));
-        self.segments = data_chunks_collection.into_iter();
+        self.segments = data_chunks_collection.into_iter().peekable();
         self
+    }
+
+    pub fn to_string(mut self) {
+        // let v = vec![];
+        // let l = self.segments.len();
+
+        // for (position, data_chunk) in self.segments.enumerate() {
+        //     // length
+        //     if position == 0 {
+        //         let a = format!("*{}", l);
+        //     }
+
+        //     // command
+        //     if position == 1 {
+        //         let l1 = data_chunk;
+        //         let a = format!("${}\r\n{}", data_chunk);
+        //     }
+        // }
+
+        // "".to_owned()
     }
 }
 

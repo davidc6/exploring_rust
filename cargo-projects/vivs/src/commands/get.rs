@@ -1,15 +1,19 @@
+use super::ask::AskCommand;
 use super::CommonCommand;
 use crate::parser::Parser;
-use crate::utils::INCORRECT_ARGS_ERR;
-use crate::{Connection, DataStore, GenericResult};
+use crate::{Connection, DataStore, GenericResult, ARGS_NUM};
+use core::str;
 use log::info;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub const GET_CMD: &str = "get";
 
+#[derive(Debug)]
 pub struct Get {
-    key: Option<String>,
+    pub key: Option<String>,
 }
+
+impl AskCommand for Get {}
 
 impl CommonCommand for Get {
     fn parse(mut data: Parser) -> Self {
@@ -22,11 +26,9 @@ impl CommonCommand for Get {
 
     async fn respond(&self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
-            conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
+            conn.write_error(ARGS_NUM.as_bytes()).await?;
             return Ok(());
         };
-
-        let mut db_guard = db.db.write().await;
 
         info!(
             "{}",
@@ -37,6 +39,14 @@ impl CommonCommand for Get {
                 self.key.as_ref().unwrap()
             )
         );
+
+        if let Some(redirect_addr) = self.check_ask(self.key.as_ref().unwrap(), conn).await {
+            conn.write_error(format!("ASK {} {}", redirect_addr.0, redirect_addr.1).as_bytes())
+                .await?;
+            return Ok(());
+        }
+
+        let mut db_guard = db.db.write().await;
 
         if let Some(value) = db_guard.get(key) {
             let mut expiries_guard = db.expirations.write().await;
@@ -53,11 +63,11 @@ impl CommonCommand for Get {
 
                     conn.write_null().await?
                 } else {
-                    conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                    conn.write_chunk(super::DataType::SimpleString, value.as_bytes())
                         .await?
                 }
             } else {
-                conn.write_chunk(super::DataType::SimpleString, Some(value.as_bytes()))
+                conn.write_chunk(super::DataType::SimpleString, value.as_bytes())
                     .await?
             }
         } else {

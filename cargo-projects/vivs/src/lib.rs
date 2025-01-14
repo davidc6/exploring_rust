@@ -1,7 +1,7 @@
 #![deny(clippy::unwrap_in_result)]
 
-use serde::Deserialize;
-use std::{fmt::Display, sync::LazyLock};
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fmt::Display, sync::LazyLock};
 use tokio::net::TcpStream;
 
 pub mod data_chunk;
@@ -56,8 +56,29 @@ pub type GenericError = Box<dyn std::error::Error + Send + Sync + 'static>;
 // For example, Result<bool> is interpreted as Result<bool, Error>
 pub type GenericResult<T> = std::result::Result<T, GenericError>;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ClusterConfig {
+    pub id: String,
+    pub ip: String,
+    pub is_self: bool,
+    pub position: (usize, usize),
+}
+
+pub type ClusterInstanceConfig = HashMap<String, ClusterConfig>;
+
 // This is the default port the server listens on
 pub const PORT: u16 = 9000;
+
+pub const FALSE_CMD: &str = "FALSECMD";
+
+pub const NO_CMD_ERR: &str = "No command supplied\r\n";
+pub const NO_CMD: &str = "NOCMD";
+
+pub const INCORRECT_ARGS_ERR: &str = "Incorrect number of arguments\r\n";
+pub const ARGS_NUM: &str = "ARGSNUM";
+
+pub const VALUE_NOT_INT_ERR: &str = "Value is not an integer\r\n";
+pub const NON_INT: &str = "NONINT";
 
 #[derive(Deserialize, Debug, Default)]
 pub struct Config {
