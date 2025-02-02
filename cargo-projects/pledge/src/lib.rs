@@ -4,6 +4,7 @@
 //! TODO
 
 use core::cmp::max;
+use libc::MAP_FAILED;
 use std::{
     alloc::{GlobalAlloc, Layout},
     ptr,
@@ -25,10 +26,21 @@ pub struct PageAllocator {}
 
 unsafe impl GlobalAlloc for PageAllocator {
     // Layout - describes a layout of memory.
-    // Returning raw unsafe pointer
+    // Returning raw unsafe pointer.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        // Helps to ensure that raw pointer is correctly aligned to a specified alignment boundary.
-        //
+        // Check whether a specific layout (description of memory size and alignment of a type)
+        // can be aligned to a desired alignment.
+
+        // Alignment is necessary for faster memory access since CPUs read in chunks,
+        // misaligned data can cause slower reads.
+        // Bad memory layout (bad memory ordering, inefficient usage etc) leads to wasted space
+        // and poor performance.
+
+        // align_to() does not add any padding to the overall size
+        // and will fail if it's less strict than the original alignment
+
+        // max - we look at either current layout minimum alignment or OS specific.
+        // If layout fais to align, we return a null mutable pointer (which has the address 0).
         let aligned_layout = match layout.align_to(max(layout.align(), *PAGE_SIZE)) {
             Ok(l) => l.pad_to_align(),
             Err(_) => return ptr::null_mut(),
@@ -43,6 +55,13 @@ unsafe impl GlobalAlloc for PageAllocator {
         //   3) read and write flags to be able to read and write to
         //   4) the memory is private to process and does not represent a file stored in memory.
         //   5) not a file in memory
+        //
+        // We get mutable raw pointer to an unsized, untyped block of memory.
+        //
+        // *mut   - mutable raw pointer that does not have any safety guarantees
+        // void_c - equivalent to C void, when the type of data is not specified.
+        //
+        //
         let address = libc::mmap(
             ptr::null_mut(),
             aligned_layout.size(),
@@ -52,12 +71,25 @@ unsafe impl GlobalAlloc for PageAllocator {
             0,
         );
 
-        address as _
+        if address == MAP_FAILED {
+            panic!("Memory mapping failed.");
+        } else {
+            // valid pointer
+            address as _
+        }
     }
 
+    // Deallocates memory by taking in a pointer to the memory block and the size of it.
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         if let Ok(aligned) = layout.align_to(max(layout.align(), *PAGE_SIZE)) {
-            libc::munmap(ptr as _, aligned.pad_to_align().size());
+            // munmap() - unmaps pages of memory.
+            // The function takes in an address (pointer) from where to start unmapping from and len bytes.
+            // It unmaps the address + len bytes.
+            let result = libc::munmap(ptr as _, aligned.pad_to_align().size());
+
+            if result != 0 {
+                panic!("Memory deallocation failed");
+            }
         }
     }
 }
