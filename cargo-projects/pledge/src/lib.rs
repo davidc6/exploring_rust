@@ -4,12 +4,14 @@
 //! TODO
 
 use core::cmp::max;
-use libc::MAP_FAILED;
+use libc::{MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::{
     alloc::{GlobalAlloc, Layout},
     ptr,
     sync::LazyLock,
 };
+
+mod block;
 
 // Unix requires to call a function to get page size
 // hence initialized lazily (when accessed) once
@@ -61,16 +63,25 @@ unsafe impl GlobalAlloc for PageAllocator {
         // *mut   - mutable raw pointer that does not have any safety guarantees
         // void_c - equivalent to C void, when the type of data is not specified.
         //
-        //
+
+        // Memory is protected for read + write only.
+        let memory_protection = PROT_READ | PROT_WRITE;
+        // Make memory private to our process.
+        let flags = MAP_PRIVATE | MAP_ANONYMOUS;
+        // From the man: some implementations require fd to be -1 if MAP_ANONYMOUS
+        // (or MAP_ANON) is specified, and portable applications
+        // should ensure this.
+        let fd = -1;
         let address = libc::mmap(
             ptr::null_mut(),
             aligned_layout.size(),
-            libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
-            -1,
+            memory_protection,
+            flags,
+            fd,
             0,
         );
 
+        // TODO: We need a better way to handle the error here ie. an Option.
         if address == MAP_FAILED {
             panic!("Memory mapping failed.");
         } else {
@@ -88,6 +99,7 @@ unsafe impl GlobalAlloc for PageAllocator {
             let result = libc::munmap(ptr as _, aligned.pad_to_align().size());
 
             if result != 0 {
+                // TODO: Is there a better way to handle this?
                 panic!("Memory deallocation failed");
             }
         }
@@ -98,6 +110,36 @@ unsafe impl GlobalAlloc for PageAllocator {
 mod tests {
     use super::*;
 
+    unsafe fn allocator_test<A: GlobalAlloc>(allocator: A) {
+        // Create a memory layout
+        let layout = Layout::new::<[i32; 100]>();
+
+        // Allocate memory
+        let mut ptr = allocator.alloc(layout);
+
+        // Check that pointer is not null
+        assert!(!ptr.is_null());
+
+        // Create a slice from a pointer
+        let slice = std::slice::from_raw_parts_mut(ptr as *mut i32, 100);
+
+        // Check that we have 100 items
+        assert_eq!(slice.len(), 100);
+
+        // Give each slice item a value
+        for (i, item) in slice.iter_mut().enumerate() {
+            *item = i as i32;
+        }
+
+        for (i, item) in slice[0..100].iter().enumerate() {
+            assert_eq!(*item, i as i32);
+        }
+    }
+
     #[test]
-    fn it_works() {}
+    fn it_works() {
+        unsafe {
+            allocator_test(PageAllocator {});
+        }
+    }
 }
