@@ -7,7 +7,7 @@ use core::cmp::max;
 use libc::{MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::{
     alloc::{GlobalAlloc, Layout},
-    ptr,
+    ptr::{self, NonNull},
     sync::LazyLock,
 };
 
@@ -23,8 +23,41 @@ fn page_size() -> usize {
     unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
 }
 
-#[derive(Default)]
-pub struct PageAllocator {}
+// NonNull here is not allowed to be a null pointer.
+type Ptr<T> = Option<NonNull<T>>;
+
+struct LinkedListNode<T> {
+    prev: Ptr<Self>,
+    next: Ptr<Self>,
+    data: T,
+}
+
+struct LinkedList<T> {
+    head: Ptr<LinkedListNode<T>>,
+    tail: Ptr<LinkedListNode<T>>,
+    length: usize,
+}
+
+impl<T> LinkedList<T> {
+    fn new() -> Self {
+        Self {
+            head: None,
+            tail: None,
+            length: 0,
+        }
+    }
+}
+
+// #[derive(Default)]
+pub struct PageAllocator {
+    free_mem_slots: LinkedList<()>, //
+}
+
+impl PageAllocator {
+    fn allocate(&self) {
+        // 1. Check for available free slots in the memory pool
+    }
+}
 
 unsafe impl GlobalAlloc for PageAllocator {
     // Layout - describes a layout of memory.
@@ -139,7 +172,9 @@ mod tests {
     #[test]
     fn it_works() {
         unsafe {
-            allocator_test(PageAllocator {});
+            allocator_test(PageAllocator {
+                free_mem_slots: LinkedList::new(),
+            });
         }
     }
 }
