@@ -23,7 +23,9 @@ fn page_size() -> usize {
     unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
 }
 
-// NonNull here is not allowed to be a null pointer.
+// NonNull here is not allowed to be a null pointer essentially.
+// NonNull does not guarantee that the memory being pointed to is valid however,
+// or that properly aligned.
 type Ptr<T> = Option<NonNull<T>>;
 
 struct LinkedListNode<T> {
