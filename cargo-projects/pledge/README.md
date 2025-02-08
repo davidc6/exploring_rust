@@ -46,3 +46,11 @@ Internal fragmentation - if an allocator serves memory bigger than the required 
 
 If a place of memory on the heap is reserved it should be owned by the process and cannot be moved until it is `free()`ed by the program. No compaction (when free memory is consolidated into a contiguous block to reduce fragmentation) can be used to free up space to combat fragmentation. Compaction can be used to in the OS to combat fragmentation. 
 
+- Region in this instance is a single fixed sized region
+
+- Memory allocated is size requested + header size.
+
+Coalescing - merging nearby free spaces.
+
+
+
