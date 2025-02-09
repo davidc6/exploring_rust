@@ -52,5 +52,14 @@ If a place of memory on the heap is reserved it should be owned by the process a
 
 Coalescing - merging nearby free spaces.
 
+### Common Memory Allocator Strategies
 
-
+0. Linear/Arena (not really useful since we cannot free memory)
+1. Free List
+    a. Best Fit
+    b. Worst Fit
+    c. First Fit
+    d. Next Fit
+2. Segregated Lists
+3. Slab Allocator
+4. Buddy Allocator
