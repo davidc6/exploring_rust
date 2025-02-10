@@ -28,6 +28,11 @@ fn page_size() -> usize {
 // or that properly aligned.
 type Ptr<T> = Option<NonNull<T>>;
 
+struct Header {
+    size: usize,
+    magic: usize,
+}
+
 struct LinkedListNode<T> {
     prev: Ptr<Self>,
     next: Ptr<Self>,
@@ -48,16 +53,48 @@ impl<T> LinkedList<T> {
             length: 0,
         }
     }
+
+    unsafe fn append(&mut self, data: T, addr: NonNull<u8>) -> NonNull<LinkedListNode<T>> {
+        let n = addr.cast::<LinkedListNode<T>>();
+
+        n.as_ptr().write(LinkedListNode {
+            prev: self.tail,
+            next: None,
+            data,
+        });
+
+        // If tail is not None then next element is appended node
+        if let Some(mut t) = self.tail {
+            t.as_mut().next = Some(n);
+        } else {
+            // else if it is None then head and tail are None so set to new node
+            self.head = Some(n)
+        }
+
+        self.tail = Some(n);
+
+        n
+    }
 }
 
 // #[derive(Default)]
 pub struct PageAllocator {
-    free_mem_slots: LinkedList<()>, //
+    slots: LinkedList<()>, //
+    size: usize,
 }
 
 impl PageAllocator {
-    fn allocate(&self) {
+    fn new(size: usize) -> Self {
+        PageAllocator {
+            slots: LinkedList::new(),
+            size,
+        }
+    }
+
+    fn allocate(&mut self, layout: Layout) {
         // 1. Check for available free slots in the memory pool
+
+        // self.slots
     }
 }
 
@@ -175,7 +212,8 @@ mod tests {
     fn it_works() {
         unsafe {
             allocator_test(PageAllocator {
-                free_mem_slots: LinkedList::new(),
+                slots: LinkedList::new(),
+                size: 0,
             });
         }
     }
