@@ -54,26 +54,42 @@ impl<T> LinkedList<T> {
         }
     }
 
-    unsafe fn append(&mut self, data: T, addr: NonNull<u8>) -> NonNull<LinkedListNode<T>> {
-        let n = addr.cast::<LinkedListNode<T>>();
+    fn head(&self) -> Ptr<LinkedListNode<T>> {
+        self.head
+    }
 
-        n.as_ptr().write(LinkedListNode {
+    fn tail(&self) -> Ptr<LinkedListNode<T>> {
+        self.tail
+    }
+
+    unsafe fn append(&mut self, data: T, addr: NonNull<u8>) -> NonNull<LinkedListNode<T>> {
+        // We need to cast to a pointer of LinkedListNode type,
+        // in order to then carry out operations on it.
+        let node = addr.cast::<LinkedListNode<T>>();
+
+        // Write to a memory location,
+        // overriding the existing value.
+        node.as_ptr().write(LinkedListNode {
             prev: self.tail,
             next: None,
             data,
         });
 
-        // If tail is not None then next element is appended node
+        // If tail is not None then next element is the appended node
         if let Some(mut t) = self.tail {
-            t.as_mut().next = Some(n);
+            t.as_mut().next = Some(node);
         } else {
             // else if it is None then head and tail are None so set to new node
-            self.head = Some(n)
+            self.head = Some(node);
         }
 
-        self.tail = Some(n);
+        self.tail = Some(node);
 
-        n
+        node
+    }
+
+    fn remove(&mut self, addr: NonNull<u8>) {
+        todo!()
     }
 }
 
@@ -187,7 +203,7 @@ mod tests {
         let layout = Layout::new::<[i32; 100]>();
 
         // Allocate memory
-        let mut ptr = allocator.alloc(layout);
+        let ptr = allocator.alloc(layout);
 
         // Check that pointer is not null
         assert!(!ptr.is_null());
