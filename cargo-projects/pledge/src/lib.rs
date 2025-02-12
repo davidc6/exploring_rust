@@ -3,6 +3,8 @@
 //! There are many ways to make it faster, examples:
 //! TODO
 
+// #![feature(allocator_api)]
+
 use core::cmp::max;
 use libc::{MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::{
@@ -63,7 +65,8 @@ impl<T> LinkedList<T> {
     }
 
     unsafe fn append(&mut self, data: T, addr: NonNull<u8>) -> NonNull<LinkedListNode<T>> {
-        // We need to cast to a pointer of LinkedListNode type,
+        // Since a (pointer) address is being passed in,
+        // we need to cast to a pointer of LinkedListNode type
         // in order to then carry out operations on it.
         let node = addr.cast::<LinkedListNode<T>>();
 
@@ -75,21 +78,30 @@ impl<T> LinkedList<T> {
             data,
         });
 
-        // If tail is not None then next element is the appended node
-        if let Some(mut t) = self.tail {
-            t.as_mut().next = Some(node);
+        // If there a tai node, we want to add append (.next) a new node to it
+        if let Some(mut tail) = self.tail {
+            tail.as_mut().next = Some(node);
         } else {
-            // else if it is None then head and tail are None so set to new node
+            // If there isn't a tail node, we set head to new node
             self.head = Some(node);
         }
 
+        // New node is the tail now
         self.tail = Some(node);
+        self.length += 1;
 
+        // Return the newly appended node
         node
     }
 
-    fn remove(&mut self, addr: NonNull<u8>) {
-        todo!()
+    unsafe fn remove(&mut self, node: NonNull<LinkedListNode<T>>) {
+        let mut next = node.as_ref().next.unwrap();
+        let mut prev = node.as_ref().prev.unwrap();
+
+        prev.as_mut().next = Some(next);
+        next.as_mut().prev = Some(prev);
+
+        self.length -= 1;
     }
 }
 
@@ -100,15 +112,35 @@ pub struct PageAllocator {
 }
 
 impl PageAllocator {
-    fn new(size: usize) -> Self {
+    pub fn new(size: usize) -> Self {
         PageAllocator {
             slots: LinkedList::new(),
             size,
         }
     }
 
-    fn allocate(&mut self, layout: Layout) {
+    // Return an address which then can be casted to a pointer
+    unsafe fn allocate(
+        &mut self,
+        layout: Layout,
+    ) -> Result<NonNull<LinkedListNode<T>>, std::alloc::AllocError> {
         // 1. Check for available free slots in the memory pool
+
+        let size = layout.size();
+
+        let fd = -1;
+        let addr = libc::mmap(
+            ptr::null_mut(),
+            size,
+            PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS,
+            fd,
+            0,
+        );
+
+        let node = self.slots.head().unwrap_unchecked();
+
+        Ok(self.slots.append((), addr))
 
         // self.slots
     }
@@ -116,8 +148,12 @@ impl PageAllocator {
 
 unsafe impl GlobalAlloc for PageAllocator {
     // Layout - describes a layout of memory.
-    // Returning raw unsafe pointer.
+    // Returning raw unsafe pointer which is the address of the allocated memory.
+    // Specifically the beginning of the memory block allocated.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        let a = self.allocate(layout).unwrap().cast().as_ptr();
+        a
+
         // Check whether a specific layout (description of memory size and alignment of a type)
         // can be aligned to a desired alignment.
 
@@ -131,10 +167,10 @@ unsafe impl GlobalAlloc for PageAllocator {
 
         // max - we look at either current layout minimum alignment or OS specific.
         // If layout fais to align, we return a null mutable pointer (which has the address 0).
-        let aligned_layout = match layout.align_to(max(layout.align(), *PAGE_SIZE)) {
-            Ok(l) => l.pad_to_align(),
-            Err(_) => return ptr::null_mut(),
-        };
+        // let aligned_layout = match layout.align_to(max(layout.align(), *PAGE_SIZE)) {
+        //     Ok(l) => l.pad_to_align(),
+        //     Err(_) => return ptr::null_mut(),
+        // };
 
         // for Unix-like systems only
         // mmap - creates a new mapping in the
@@ -153,29 +189,29 @@ unsafe impl GlobalAlloc for PageAllocator {
         //
 
         // Memory is protected for read + write only.
-        let memory_protection = PROT_READ | PROT_WRITE;
+        // let memory_protection = PROT_READ | PROT_WRITE;
         // Make memory private to our process.
-        let flags = MAP_PRIVATE | MAP_ANONYMOUS;
+        // let flags = MAP_PRIVATE | MAP_ANONYMOUS;
         // From the man: some implementations require fd to be -1 if MAP_ANONYMOUS
         // (or MAP_ANON) is specified, and portable applications
         // should ensure this.
-        let fd = -1;
-        let address = libc::mmap(
-            ptr::null_mut(),
-            aligned_layout.size(),
-            memory_protection,
-            flags,
-            fd,
-            0,
-        );
+        // let fd = -1;
+        // let address = libc::mmap(
+        //     ptr::null_mut(),
+        //     aligned_layout.size(),
+        //     memory_protection,
+        //     flags,
+        //     fd,
+        //     0,
+        // );
 
         // TODO: We need a better way to handle the error here ie. an Option.
-        if address == MAP_FAILED {
-            panic!("Memory mapping failed.");
-        } else {
-            // valid pointer
-            address as _
-        }
+        // if address == MAP_FAILED {
+        //     panic!("Memory mapping failed.");
+        // } else {
+        // valid pointer
+        // address as _
+        // }
     }
 
     // Deallocates memory by taking in a pointer to the memory block and the size of it.
