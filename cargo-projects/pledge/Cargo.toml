@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 libc = "0.2.169"
+allocator-api2 = "0.2.21"
