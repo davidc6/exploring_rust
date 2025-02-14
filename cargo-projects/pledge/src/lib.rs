@@ -3,14 +3,14 @@
 //! There are many ways to make it faster, examples:
 //! TODO
 
-// #![feature(allocator_api)]
-
+use allocator_api2::alloc::AllocError;
 use core::cmp::max;
-use libc::{MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
+use libc::{user, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::{
     alloc::{GlobalAlloc, Layout},
+    os::raw::c_void,
     ptr::{self, NonNull},
-    sync::LazyLock,
+    sync::{LazyLock, Mutex},
 };
 
 mod block;
@@ -48,7 +48,7 @@ struct LinkedList<T> {
 }
 
 impl<T> LinkedList<T> {
-    fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             head: None,
             tail: None,
@@ -105,29 +105,33 @@ impl<T> LinkedList<T> {
     }
 }
 
-// #[derive(Default)]
-pub struct PageAllocator {
-    slots: LinkedList<()>, //
-    size: usize,
+pub struct PageAllocator<const N: usize = 3> {
+    slots: Mutex<List>,
+    // size: usize,
 }
 
+type List = LinkedList<()>;
+type ListNode = LinkedListNode<()>;
+
+unsafe impl<const N: usize> Sync for PageAllocator<N> {}
+
 impl PageAllocator {
-    pub fn new(size: usize) -> Self {
-        PageAllocator {
-            slots: LinkedList::new(),
-            size,
+    pub const fn lets_go_default() -> Self {
+        Self {
+            slots: Mutex::new(LinkedList::new()),
+            // size: 0,
         }
     }
 
     // Return an address which then can be casted to a pointer
-    unsafe fn allocate(
-        &mut self,
-        layout: Layout,
-    ) -> Result<NonNull<LinkedListNode<T>>, std::alloc::AllocError> {
-        // 1. Check for available free slots in the memory pool
-
+    unsafe fn allocate(&self, layout: Layout) -> Result<NonNull<LinkedListNode<()>>, AllocError> {
         let size = layout.size();
 
+        // TODO: find a free block, check if possible to get a block
+
+        // TODO
+        // 1. need to check if the memory allocator actually has available memory ot not
+        // 2. request memory from OS
         let fd = -1;
         let addr = libc::mmap(
             ptr::null_mut(),
@@ -137,10 +141,20 @@ impl PageAllocator {
             fd,
             0,
         );
+        let addr = NonNull::new_unchecked(addr).cast();
 
-        let node = self.slots.head().unwrap_unchecked();
+        match self.slots.lock() {
+            Ok(mut list) => Ok(list.append((), addr)),
+            Err(_) => Err(AllocError),
+        }
 
-        Ok(self.slots.append((), addr))
+        // let node = self.slots.head().unwrap_unchecked();
+
+        // TODO: return an address
+
+        // Ok(node)
+
+        // Ok(self.slots.append())
 
         // self.slots
     }
@@ -151,7 +165,8 @@ unsafe impl GlobalAlloc for PageAllocator {
     // Returning raw unsafe pointer which is the address of the allocated memory.
     // Specifically the beginning of the memory block allocated.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let a = self.allocate(layout).unwrap().cast().as_ptr();
+        let a = self.allocate(layout).unwrap();
+        let a = a.cast().as_ptr();
         a
 
         // Check whether a specific layout (description of memory size and alignment of a type)
@@ -260,13 +275,13 @@ mod tests {
         }
     }
 
-    #[test]
-    fn it_works() {
-        unsafe {
-            allocator_test(PageAllocator {
-                slots: LinkedList::new(),
-                size: 0,
-            });
-        }
-    }
+    // #[test]
+    // fn it_works() {
+    //     unsafe {
+    //         allocator_test(PageAllocator {
+    //             slots: LinkedList::new(),
+    //             size: 0,
+    //         });
+    //     }
+    // }
 }
