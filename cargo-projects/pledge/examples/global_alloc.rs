@@ -11,7 +11,7 @@ fn main() {
     // In Rust land, it is an explicit re-borrow,
     // & - references a value that is dereferenced
     // *const usize - is a pointer to a constant value of type usize
-    println!("Address is: {:?}", &*thirteen_on_heap as *const usize);
+    println!("Address (box) is: {:?}", &*thirteen_on_heap as *const usize);
 
     let mut vec = Vec::with_capacity(*thirteen_on_heap);
 
@@ -19,5 +19,9 @@ fn main() {
         vec.push(i);
     }
 
-    println!("Vec {vec:?} at {:?}", vec.as_ptr());
+    println!("Address (vec) is: {:?}", vec.as_ptr());
+
+    let four_on_heap: Box<usize> = Box::new(4);
+
+    println!("Address (box 2) is: {:?}", &*four_on_heap as *const usize);
 }
