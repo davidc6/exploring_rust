@@ -9,7 +9,7 @@ use libc::{user, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::{
     alloc::{GlobalAlloc, Layout},
     os::raw::c_void,
-    ptr::{self, NonNull},
+    ptr::{self, slice_from_raw_parts, NonNull},
     sync::{LazyLock, Mutex},
 };
 
@@ -39,6 +39,7 @@ struct LinkedListNode<T> {
     prev: Ptr<Self>,
     next: Ptr<Self>,
     data: T,
+    size: usize,
 }
 
 struct LinkedList<T> {
@@ -76,6 +77,7 @@ impl<T> LinkedList<T> {
             prev: self.tail,
             next: None,
             data,
+            size: std::mem::size_of::<T>(),
         });
 
         // If there a tai node, we want to add append (.next) a new node to it
@@ -116,7 +118,7 @@ type ListNode = LinkedListNode<()>;
 unsafe impl<const N: usize> Sync for PageAllocator<N> {}
 
 impl PageAllocator {
-    pub const fn lets_go_default() -> Self {
+    pub const fn default_config() -> Self {
         Self {
             slots: Mutex::new(LinkedList::new()),
             // size: 0,
@@ -124,7 +126,7 @@ impl PageAllocator {
     }
 
     // Return an address which then can be casted to a pointer
-    unsafe fn allocate(&self, layout: Layout) -> Result<NonNull<LinkedListNode<()>>, AllocError> {
+    unsafe fn allocate(&self, layout: Layout) -> NonNull<[u8]> {
         let size = layout.size();
 
         // TODO: find a free block, check if possible to get a block
@@ -143,10 +145,20 @@ impl PageAllocator {
         );
         let addr = NonNull::new_unchecked(addr).cast();
 
-        match self.slots.lock() {
+        let a = match self.slots.lock() {
             Ok(mut list) => Ok(list.append((), addr)),
             Err(_) => Err(AllocError),
-        }
+        };
+
+        let a = a.unwrap();
+        // let b = a.as_ref()
+
+        // Ok(a)
+
+        let content_addr: NonNull<u8> = NonNull::new_unchecked(a.as_ptr()).cast();
+
+        let c = NonNull::slice_from_raw_parts(content_addr, a.as_ref().size);
+        c
 
         // let node = self.slots.head().unwrap_unchecked();
 
@@ -165,7 +177,7 @@ unsafe impl GlobalAlloc for PageAllocator {
     // Returning raw unsafe pointer which is the address of the allocated memory.
     // Specifically the beginning of the memory block allocated.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let a = self.allocate(layout).unwrap();
+        let a = self.allocate(layout);
         let a = a.cast().as_ptr();
         a
 
@@ -249,39 +261,19 @@ unsafe impl GlobalAlloc for PageAllocator {
 mod tests {
     use super::*;
 
-    unsafe fn allocator_test<A: GlobalAlloc>(allocator: A) {
-        // Create a memory layout
-        let layout = Layout::new::<[i32; 100]>();
+    #[test]
+    fn allocator_wrapper() {
+        let allocator = PageAllocator::default_config();
 
-        // Allocate memory
-        let ptr = allocator.alloc(layout);
+        unsafe {
+            let layout = Layout::array::<u8>(4096 * 2).unwrap();
+            let mut allocated = allocator.allocate(layout);
 
-        // Check that pointer is not null
-        assert!(!ptr.is_null());
+            allocated.as_mut().fill(50);
 
-        // Create a slice from a pointer
-        let slice = std::slice::from_raw_parts_mut(ptr as *mut i32, 100);
-
-        // Check that we have 100 items
-        assert_eq!(slice.len(), 100);
-
-        // Give each slice item a value
-        for (i, item) in slice.iter_mut().enumerate() {
-            *item = i as i32;
-        }
-
-        for (i, item) in slice[0..100].iter().enumerate() {
-            assert_eq!(*item, i as i32);
+            for value in allocated.as_ref() {
+                assert_eq!(value, &50);
+            }
         }
     }
-
-    // #[test]
-    // fn it_works() {
-    //     unsafe {
-    //         allocator_test(PageAllocator {
-    //             slots: LinkedList::new(),
-    //             size: 0,
-    //         });
-    //     }
-    // }
 }

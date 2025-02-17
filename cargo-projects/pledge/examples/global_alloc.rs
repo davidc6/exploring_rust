@@ -1,7 +1,7 @@
 use pledge::PageAllocator;
 
 #[global_allocator]
-static ALLOC: PageAllocator = PageAllocator::lets_go_default();
+static ALLOC: PageAllocator = PageAllocator::default_config();
 
 fn main() {
     // Allocate a value on the heap
