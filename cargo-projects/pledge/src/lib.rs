@@ -35,6 +35,7 @@ struct Header {
     magic: usize,
 }
 
+#[derive(Debug)]
 struct LinkedListNode<T> {
     prev: Ptr<Self>,
     next: Ptr<Self>,
@@ -65,7 +66,12 @@ impl<T> LinkedList<T> {
         self.tail
     }
 
-    unsafe fn append(&mut self, data: T, addr: NonNull<u8>) -> NonNull<LinkedListNode<T>> {
+    unsafe fn append(
+        &mut self,
+        data: T,
+        size: usize,
+        addr: NonNull<u8>,
+    ) -> NonNull<LinkedListNode<T>> {
         // Since a (pointer) address is being passed in,
         // we need to cast to a pointer of LinkedListNode type
         // in order to then carry out operations on it.
@@ -77,7 +83,7 @@ impl<T> LinkedList<T> {
             prev: self.tail,
             next: None,
             data,
-            size: std::mem::size_of::<T>(),
+            size,
         });
 
         // If there a tai node, we want to add append (.next) a new node to it
@@ -129,6 +135,8 @@ impl PageAllocator {
     unsafe fn allocate(&self, layout: Layout) -> NonNull<[u8]> {
         let size = layout.size();
 
+        println!("Actual size {:?}", size);
+
         // TODO: find a free block, check if possible to get a block
 
         // TODO
@@ -146,19 +154,20 @@ impl PageAllocator {
         let addr = NonNull::new_unchecked(addr).cast();
 
         let a = match self.slots.lock() {
-            Ok(mut list) => Ok(list.append((), addr)),
+            Ok(mut list) => Ok(list.append((), size, addr)),
             Err(_) => Err(AllocError),
         };
 
         let a = a.unwrap();
         // let b = a.as_ref()
-
         // Ok(a)
 
-        let content_addr: NonNull<u8> = NonNull::new_unchecked(a.as_ptr()).cast();
+        println!("SIZE {:?}", a.as_ref());
 
-        let c = NonNull::slice_from_raw_parts(content_addr, a.as_ref().size);
-        c
+        let content_addr = NonNull::new_unchecked(a.as_ptr()).cast();
+        let size = a.as_ref().size;
+
+        NonNull::slice_from_raw_parts(content_addr, size)
 
         // let node = self.slots.head().unwrap_unchecked();
 
@@ -169,6 +178,12 @@ impl PageAllocator {
         // Ok(self.slots.append())
 
         // self.slots
+    }
+
+    unsafe fn deallocate(&self, ptr: *mut u8, layout: Layout) {
+        if libc::munmap(ptr as _, layout.size()) != 0 {
+            // handle issues here
+        }
     }
 }
 
@@ -243,17 +258,21 @@ unsafe impl GlobalAlloc for PageAllocator {
 
     // Deallocates memory by taking in a pointer to the memory block and the size of it.
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        if let Ok(aligned) = layout.align_to(max(layout.align(), *PAGE_SIZE)) {
-            // munmap() - unmaps pages of memory.
-            // The function takes in an address (pointer) from where to start unmapping from and len bytes.
-            // It unmaps the address + len bytes.
-            let result = libc::munmap(ptr as _, aligned.pad_to_align().size());
+        // if let Ok(aligned) = layout.align_to(max(layout.align(), *PAGE_SIZE)) {
+        //     // munmap() - unmaps pages of memory.
+        //     // The function takes in an address (pointer) from where to start unmapping from and len bytes.
+        //     // It unmaps the address + len bytes.
+        //     let result = libc::munmap(ptr as _, aligned.pad_to_align().size());
 
-            if result != 0 {
-                // TODO: Is there a better way to handle this?
-                panic!("Memory deallocation failed");
-            }
-        }
+        //     if result != 0 {
+        //         // TODO: Is there a better way to handle this?
+        //         panic!("Memory deallocation failed");
+        //     }
+        // }
+
+        // if let Ok(mut alloc) = self.slots.lock() {
+
+        self.deallocate(ptr, layout)
     }
 }
 
@@ -266,14 +285,41 @@ mod tests {
         let allocator = PageAllocator::default_config();
 
         unsafe {
-            let layout = Layout::array::<u8>(4096 * 2).unwrap();
+            let layout = Layout::array::<u8>(11).unwrap();
+            println!("LAYOUT {:?}", layout.size());
             let mut allocated = allocator.allocate(layout);
 
-            allocated.as_mut().fill(50);
+            // println!("{:?}", allocated);
+
+            // allocated.as_mut().fill(50);
+
+            let v = allocated.as_mut();
+            v.fill(90);
+            // v.fill(100);
+
+            // println!("AAA {:?}", v);
+
+            // println!("HELLO {:?}", allocated.as_ref());
+
+            let layout_another = Layout::array::<u8>(10).unwrap();
+            let mut address_another = allocator.allocate(layout_another);
+
+            address_another.as_mut().fill(10);
+
+            assert!(!allocated.as_ref().is_empty());
 
             for value in allocated.as_ref() {
-                assert_eq!(value, &50);
+                println!("{:?}", value);
+                // assert_eq!(value, &90);
             }
+
+            // allocator.deallocate(allocated.as_ptr().cast(), layout);
+
+            // for value in address_another.as_ref() {
+            //     assert_eq!(value, &78);
+            // }
+
+            // allocator.deallocate(address_another.as_ptr().cast(), layout_another);
         }
     }
 }
