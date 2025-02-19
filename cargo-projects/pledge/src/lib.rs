@@ -135,7 +135,7 @@ impl PageAllocator {
     unsafe fn allocate(&self, layout: Layout) -> NonNull<[u8]> {
         let size = layout.size();
 
-        println!("Actual size {:?}", size);
+        // println!("Actual size {:?}", size);
 
         // TODO: find a free block, check if possible to get a block
 
@@ -162,7 +162,7 @@ impl PageAllocator {
         // let b = a.as_ref()
         // Ok(a)
 
-        println!("SIZE {:?}", a.as_ref());
+        // println!("LinkedList {:?}", a.as_ref());
 
         let content_addr = NonNull::new_unchecked(a.as_ptr()).cast();
         let size = a.as_ref().size;
@@ -170,13 +170,9 @@ impl PageAllocator {
         NonNull::slice_from_raw_parts(content_addr, size)
 
         // let node = self.slots.head().unwrap_unchecked();
-
         // TODO: return an address
-
         // Ok(node)
-
         // Ok(self.slots.append())
-
         // self.slots
     }
 
@@ -285,30 +281,24 @@ mod tests {
         let allocator = PageAllocator::default_config();
 
         unsafe {
-            let layout = Layout::array::<u8>(10).unwrap();
-            println!("LAYOUT {:?}", layout.size());
+            // Initial allocation
+            let layout = Layout::array::<u8>(8).unwrap();
             let mut allocated = allocator.allocate(layout);
 
-            // println!("{:?}", allocated);
-            // allocated.as_mut().fill(50);
+            allocated.as_mut().fill(90);
 
-            let v = allocated.as_mut();
-            v.fill(90);
-            // v.fill(100);
+            // Second allocation
+            let layout_another = Layout::array::<u8>(4096).unwrap();
+            let mut address_another = allocator.allocate(layout_another);
 
-            // println!("AAA {:?}", v);
-            // println!("HELLO {:?}", allocated.as_ref());
-
-            // let layout_another = Layout::array::<u8>(10).unwrap();
-            // let mut address_another = allocator.allocate(layout_another);
-
-            // address_another.as_mut().fill(10);
-
-            // assert!(!allocated.as_ref().is_empty());
+            address_another.as_mut().fill(10);
 
             for value in allocated.as_ref() {
-                // println!("{:?}", value);
                 assert_eq!(value, &90);
+            }
+
+            for value in address_another.as_ref() {
+                assert_eq!(value, &10);
             }
 
             // allocator.deallocate(allocated.as_ptr().cast(), layout);
