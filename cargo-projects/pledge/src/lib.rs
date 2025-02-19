@@ -285,12 +285,11 @@ mod tests {
         let allocator = PageAllocator::default_config();
 
         unsafe {
-            let layout = Layout::array::<u8>(11).unwrap();
+            let layout = Layout::array::<u8>(10).unwrap();
             println!("LAYOUT {:?}", layout.size());
             let mut allocated = allocator.allocate(layout);
 
             // println!("{:?}", allocated);
-
             // allocated.as_mut().fill(50);
 
             let v = allocated.as_mut();
@@ -298,19 +297,18 @@ mod tests {
             // v.fill(100);
 
             // println!("AAA {:?}", v);
-
             // println!("HELLO {:?}", allocated.as_ref());
 
-            let layout_another = Layout::array::<u8>(10).unwrap();
-            let mut address_another = allocator.allocate(layout_another);
+            // let layout_another = Layout::array::<u8>(10).unwrap();
+            // let mut address_another = allocator.allocate(layout_another);
 
-            address_another.as_mut().fill(10);
+            // address_another.as_mut().fill(10);
 
-            assert!(!allocated.as_ref().is_empty());
+            // assert!(!allocated.as_ref().is_empty());
 
             for value in allocated.as_ref() {
-                println!("{:?}", value);
-                // assert_eq!(value, &90);
+                // println!("{:?}", value);
+                assert_eq!(value, &90);
             }
 
             // allocator.deallocate(allocated.as_ptr().cast(), layout);
