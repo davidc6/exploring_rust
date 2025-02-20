@@ -136,7 +136,6 @@ impl PageAllocator {
         let size = layout.size();
 
         // println!("Actual size {:?}", size);
-
         // TODO: find a free block, check if possible to get a block
 
         // TODO
@@ -153,21 +152,17 @@ impl PageAllocator {
         );
         let addr = NonNull::new_unchecked(addr).cast();
 
-        let a = match self.slots.lock() {
-            Ok(mut list) => Ok(list.append((), size, addr)),
-            Err(_) => Err(AllocError),
-        };
+        // TODO: This essentially writes to an address
+        // let a = match self.slots.lock() {
+        //     Ok(mut list) => Ok(list.append((), size, addr)),
+        //     Err(_) => Err(AllocError),
+        // };
 
-        let a = a.unwrap();
-        // let b = a.as_ref()
-        // Ok(a)
+        // let a = a.unwrap();
+        // let content_addr = NonNull::new_unchecked(a.as_ptr()).cast();
+        // let size = a.as_ref().size;
 
-        // println!("LinkedList {:?}", a.as_ref());
-
-        let content_addr = NonNull::new_unchecked(a.as_ptr()).cast();
-        let size = a.as_ref().size;
-
-        NonNull::slice_from_raw_parts(content_addr, size)
+        NonNull::slice_from_raw_parts(addr, size)
 
         // let node = self.slots.head().unwrap_unchecked();
         // TODO: return an address
@@ -277,37 +272,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn allocator_wrapper() {
+    fn allocator_wrapper_works() {
         let allocator = PageAllocator::default_config();
 
         unsafe {
             // Initial allocation
-            let layout = Layout::array::<u8>(8).unwrap();
-            let mut allocated = allocator.allocate(layout);
+            // let layout = Layout::array::<u8>(8).unwrap();
+            let layout = Layout::new::<[u8; 20]>();
+            let a = layout.align_to(8).unwrap();
+            let allocated = allocator.allocate(a).as_mut();
 
-            allocated.as_mut().fill(90);
+            // fill with values
+            allocated.fill(10);
 
             // Second allocation
-            let layout_another = Layout::array::<u8>(4096).unwrap();
-            let mut address_another = allocator.allocate(layout_another);
+            // let layout_another = Layout::array::<u8>(4096).unwrap();
+            let layout_another = Layout::new::<[u8; 23]>();
+            let b = layout_another.align_to(8).unwrap();
+            let allocated_2 = allocator.allocate(b).as_mut();
 
-            address_another.as_mut().fill(10);
+            // fill with values
+            allocated_2.fill(13);
 
-            for value in allocated.as_ref() {
-                assert_eq!(value, &90);
+            for value in allocated {
+                assert!(value == &10);
             }
 
-            for value in address_another.as_ref() {
-                assert_eq!(value, &10);
-            }
-
-            // allocator.deallocate(allocated.as_ptr().cast(), layout);
-
-            // for value in address_another.as_ref() {
-            //     assert_eq!(value, &78);
-            // }
-
-            // allocator.deallocate(address_another.as_ptr().cast(), layout_another);
+            // allocator.deallocate(allocated, layout_another);
         }
     }
 }
