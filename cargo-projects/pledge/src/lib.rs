@@ -294,11 +294,17 @@ mod tests {
             // fill with values
             allocated_2.fill(13);
 
-            for value in allocated {
+            for value in allocated.iter() {
                 assert!(value == &10);
             }
 
-            // allocator.deallocate(allocated, layout_another);
+            allocator.deallocate(allocated.as_mut_ptr(), layout);
+
+            for value in allocated_2.iter() {
+                assert!(value == &13);
+            }
+
+            allocator.deallocate(allocated_2.as_mut_ptr(), layout_another);
         }
     }
 }
