@@ -116,11 +116,17 @@ impl<T> LinkedList<T> {
     }
 
     unsafe fn remove(&mut self, node: NonNull<LinkedListNode<T>>) {
-        let mut next = node.as_ref().next.unwrap();
-        let mut prev = node.as_ref().prev.unwrap();
-
-        prev.as_mut().next = Some(next);
-        next.as_mut().prev = Some(prev);
+        if self.length == 1 {
+            self.head = None;
+            self.tail = None;
+        } else if node == self.head.unwrap() {
+        } else if node == self.tail.unwrap() {
+        } else {
+            let mut next = node.as_ref().next.unwrap();
+            let mut prev = node.as_ref().prev.unwrap();
+            prev.as_mut().next = Some(next);
+            next.as_mut().prev = Some(prev);
+        }
 
         self.length -= 1;
     }
@@ -147,6 +153,8 @@ impl<T> Iterator for ChunkIter<T> {
 type FreeList = LinkedList<Chunk>;
 type FreeListNode = LinkedListNode<Chunk>;
 
+type AllocResult = Result<NonNull<[u8]>, AllocError>;
+
 impl FreeList {
     unsafe fn find_free_chunk(&self, size: usize) -> Ptr<Chunk> {
         self.iter()
@@ -156,9 +164,10 @@ impl FreeList {
 }
 
 pub struct PageAllocator<const N: usize = 3> {
-    slots: Mutex<List>,
+    // slots: Mutex<List>,
     // size: usize,
-    free_space: FreeList,
+    // free_space: FreeList,
+    allocator: Mutex<InnerAlloc>,
 }
 
 type List = LinkedList<()>;
@@ -166,40 +175,51 @@ type ListNode = LinkedListNode<()>;
 
 unsafe impl<const N: usize> Sync for PageAllocator<N> {}
 
-impl PageAllocator {
-    pub const fn default_config() -> Self {
-        Self {
-            slots: Mutex::new(LinkedList::new()),
-            // size: 0,
-            free_space: FreeList::new(),
-        }
-    }
+pub struct InnerAlloc {
+    slots: List,
+    free_space: FreeList,
+}
+
+impl InnerAlloc {
+    fn as_mut(&mut self) {}
 
     // Return an address which then can be casted to a pointer
-    unsafe fn allocate(&self, layout: Layout) -> NonNull<[u8]> {
+    unsafe fn allocate(&mut self, layout: Layout) -> NonNull<[u8]> {
+        // let A = InnerAlloc
+
         let size = layout.size();
 
         // check if free block exists that will be enough
-        // let arena = self.free_space.into_iter().find(|x| x.
+        // TODO: "size" here has to be something meaningful and not just the size of an object to allocate
         let chunk = match self.free_space.find_free_chunk(size) {
             Some(val) => val,
-            None => NonNull::new_unchecked(libc::mmap(
-                ptr::null_mut(),
-                size,
-                PROT_READ | PROT_WRITE,
-                MAP_PRIVATE | MAP_ANONYMOUS,
-                -1,
-                0,
-            ))
-            .cast(),
+            None => {
+                // Ask for memory from OS
+                let addr = NonNull::new_unchecked(libc::mmap(
+                    ptr::null_mut(),
+                    size,
+                    PROT_READ | PROT_WRITE,
+                    MAP_PRIVATE | MAP_ANONYMOUS,
+                    -1,
+                    0,
+                ))
+                .cast();
+
+                // Add to the list of free space chunks
+                self.free_space.append(
+                    Chunk {
+                        size,
+                        is_free: true,
+                    },
+                    size,
+                    addr,
+                );
+
+                addr.cast()
+            }
         };
 
-        // if chunk.is_none() {
-        //     println!("NONE");
-        // }
-
-        // println!("Actual size {:?}", size);
-        // TODO: find a free block, check if possible to get a block
+        self.free_space.remove(chunk.cast());
 
         // TODO
         // 1. need to check if the memory allocator actually has available memory ot not
@@ -221,16 +241,36 @@ impl PageAllocator {
         //     Err(_) => Err(AllocError),
         // };
 
-        // let a = a.unwrap();
-        // let content_addr = NonNull::new_unchecked(a.as_ptr()).cast();
-        // let size = a.as_ref().size;
-
         NonNull::slice_from_raw_parts(chunk.cast(), size)
     }
 
-    unsafe fn deallocate(&self, ptr: *mut u8, layout: Layout) {
+    unsafe fn deallocate(&mut self, ptr: *mut u8, layout: Layout) {
         if libc::munmap(ptr as _, layout.size()) != 0 {
             // handle issues here
+        }
+    }
+}
+
+impl PageAllocator {
+    pub const fn default_config() -> Self {
+        PageAllocator {
+            allocator: Mutex::new(InnerAlloc {
+                slots: LinkedList::new(),
+                free_space: FreeList::new(),
+            }),
+        }
+    }
+
+    unsafe fn allocate(&self, layout: Layout) -> AllocResult {
+        match self.allocator.lock() {
+            Ok(mut allocator) => Ok(allocator.allocate(layout)),
+            Err(_) => Err(AllocError),
+        }
+    }
+
+    unsafe fn deallocate(&self, ptr: *mut u8, layout: Layout) {
+        if let Ok(mut allocator) = self.allocator.lock() {
+            allocator.deallocate(ptr, layout)
         }
     }
 }
@@ -240,7 +280,9 @@ unsafe impl GlobalAlloc for PageAllocator {
     // Returning raw unsafe pointer which is the address of the allocated memory.
     // Specifically the beginning of the memory block allocated.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.allocate(layout).cast().as_ptr()
+        self.allocate(layout).unwrap().cast().as_ptr()
+
+        // self.all
 
         // Check whether a specific layout (description of memory size and alignment of a type)
         // can be aligned to a desired alignment.
@@ -335,31 +377,31 @@ mod tests {
             // let layout = Layout::array::<u8>(8).unwrap();
             let layout = Layout::new::<[u8; 20]>();
             let a = layout.align_to(8).unwrap();
-            let allocated = allocator.allocate(a).as_mut();
+            let mut allocated = allocator.allocate(a).unwrap();
 
             // fill with values
-            allocated.fill(10);
+            allocated.as_mut().fill(10);
 
             // Second allocation
             // let layout_another = Layout::array::<u8>(4096).unwrap();
             let layout_another = Layout::new::<[u8; 23]>();
             let b = layout_another.align_to(8).unwrap();
-            let allocated_2 = allocator.allocate(b).as_mut();
+            let mut allocated_2 = allocator.allocate(b).unwrap();
 
             // fill with values
-            allocated_2.fill(13);
+            allocated_2.as_mut().fill(13);
 
-            for value in allocated.iter() {
+            for value in allocated.as_ref() {
                 assert!(value == &10);
             }
 
-            allocator.deallocate(allocated.as_mut_ptr(), layout);
+            allocator.deallocate(allocated.cast().as_ptr(), layout);
 
-            for value in allocated_2.iter() {
+            for value in allocated_2.as_ref() {
                 assert!(value == &13);
             }
 
-            allocator.deallocate(allocated_2.as_mut_ptr(), layout_another);
+            allocator.deallocate(allocated_2.cast().as_ptr(), layout_another);
         }
     }
 }
