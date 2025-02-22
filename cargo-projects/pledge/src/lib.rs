@@ -8,6 +8,7 @@ use core::cmp::max;
 use libc::{user, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::{
     alloc::{GlobalAlloc, Layout},
+    fmt::Pointer,
     os::raw::c_void,
     ptr::{self, slice_from_raw_parts, NonNull},
     sync::{LazyLock, Mutex},
@@ -47,6 +48,18 @@ struct LinkedList<T> {
     head: Ptr<LinkedListNode<T>>,
     tail: Ptr<LinkedListNode<T>>,
     length: usize,
+}
+
+/// Chunk is where data is written to
+struct Chunk {
+    /// Size of the chunk in bytes
+    size: usize,
+    /// Is this block free and can it be used
+    is_free: bool,
+}
+
+struct ChunkIter<T> {
+    current: Ptr<LinkedListNode<T>>,
 }
 
 impl<T> LinkedList<T> {
@@ -111,11 +124,41 @@ impl<T> LinkedList<T> {
 
         self.length -= 1;
     }
+
+    fn iter(&self) -> ChunkIter<T> {
+        ChunkIter { current: self.head }
+    }
+}
+
+impl<T> Iterator for ChunkIter<T> {
+    type Item = NonNull<LinkedListNode<T>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let a = self.current.map(|node| unsafe {
+            self.current = node.as_ref().next;
+
+            node
+        });
+
+        a
+    }
+}
+
+type FreeList = LinkedList<Chunk>;
+type FreeListNode = LinkedListNode<Chunk>;
+
+impl FreeList {
+    unsafe fn find_free_chunk(&self, size: usize) -> Ptr<Chunk> {
+        self.iter()
+            .find(|node| node.as_ref().size >= size)
+            .map(|node| node.cast::<Chunk>())
+    }
 }
 
 pub struct PageAllocator<const N: usize = 3> {
     slots: Mutex<List>,
     // size: usize,
+    free_space: FreeList,
 }
 
 type List = LinkedList<()>;
@@ -128,6 +171,7 @@ impl PageAllocator {
         Self {
             slots: Mutex::new(LinkedList::new()),
             // size: 0,
+            free_space: FreeList::new(),
         }
     }
 
@@ -135,24 +179,43 @@ impl PageAllocator {
     unsafe fn allocate(&self, layout: Layout) -> NonNull<[u8]> {
         let size = layout.size();
 
+        // check if free block exists that will be enough
+        // let arena = self.free_space.into_iter().find(|x| x.
+        let chunk = match self.free_space.find_free_chunk(size) {
+            Some(val) => val,
+            None => NonNull::new_unchecked(libc::mmap(
+                ptr::null_mut(),
+                size,
+                PROT_READ | PROT_WRITE,
+                MAP_PRIVATE | MAP_ANONYMOUS,
+                -1,
+                0,
+            ))
+            .cast(),
+        };
+
+        // if chunk.is_none() {
+        //     println!("NONE");
+        // }
+
         // println!("Actual size {:?}", size);
         // TODO: find a free block, check if possible to get a block
 
         // TODO
         // 1. need to check if the memory allocator actually has available memory ot not
         // 2. request memory from OS
-        let fd = -1;
-        let addr = libc::mmap(
-            ptr::null_mut(),
-            size,
-            PROT_READ | PROT_WRITE,
-            MAP_PRIVATE | MAP_ANONYMOUS,
-            fd,
-            0,
-        );
-        let addr = NonNull::new_unchecked(addr).cast();
+        // let fd = -1;
+        // let addr = libc::mmap(
+        //     ptr::null_mut(),
+        //     size,
+        //     PROT_READ | PROT_WRITE,
+        //     MAP_PRIVATE | MAP_ANONYMOUS,
+        //     fd,
+        //     0,
+        // );
+        // let addr = NonNull::new_unchecked(addr).cast();
 
-        // TODO: This essentially writes to an address
+        // TODO: This essentially writes to the address above which messes up the original address
         // let a = match self.slots.lock() {
         //     Ok(mut list) => Ok(list.append((), size, addr)),
         //     Err(_) => Err(AllocError),
@@ -162,13 +225,7 @@ impl PageAllocator {
         // let content_addr = NonNull::new_unchecked(a.as_ptr()).cast();
         // let size = a.as_ref().size;
 
-        NonNull::slice_from_raw_parts(addr, size)
-
-        // let node = self.slots.head().unwrap_unchecked();
-        // TODO: return an address
-        // Ok(node)
-        // Ok(self.slots.append())
-        // self.slots
+        NonNull::slice_from_raw_parts(chunk.cast(), size)
     }
 
     unsafe fn deallocate(&self, ptr: *mut u8, layout: Layout) {
@@ -183,9 +240,7 @@ unsafe impl GlobalAlloc for PageAllocator {
     // Returning raw unsafe pointer which is the address of the allocated memory.
     // Specifically the beginning of the memory block allocated.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let a = self.allocate(layout);
-        let a = a.cast().as_ptr();
-        a
+        self.allocate(layout).cast().as_ptr()
 
         // Check whether a specific layout (description of memory size and alignment of a type)
         // can be aligned to a desired alignment.
