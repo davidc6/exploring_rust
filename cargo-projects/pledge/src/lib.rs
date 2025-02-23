@@ -16,20 +16,29 @@ use std::{
 
 mod block;
 
-// Unix requires to call a function to get page size
-// hence initialized lazily (when accessed) once
-static PAGE_SIZE: LazyLock<usize> = LazyLock::new(page_size);
-
 // We need to get the OS page size in order to create
 fn page_size() -> usize {
     // Get the size of page. A page is a contiguous block of memory
     unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
 }
 
+// Unix requires to call a function to get page size
+// hence initialized lazily (when accessed) once
+static PAGE_SIZE: LazyLock<usize> = LazyLock::new(page_size);
+
 // NonNull here is not allowed to be a null pointer essentially.
 // NonNull does not guarantee that the memory being pointed to is valid however,
 // or that properly aligned.
 type Ptr<T> = Option<NonNull<T>>;
+type AllocResult = Result<NonNull<[u8]>, AllocError>;
+
+// FreeList type aliases
+type FreeList = LinkedList<Chunk>;
+type FreeListNode = LinkedListNode<Chunk>;
+
+// List type aliases
+type List = LinkedList<()>;
+type ListNode = LinkedListNode<()>;
 
 struct Header {
     size: usize,
@@ -150,11 +159,6 @@ impl<T> Iterator for ChunkIter<T> {
     }
 }
 
-type FreeList = LinkedList<Chunk>;
-type FreeListNode = LinkedListNode<Chunk>;
-
-type AllocResult = Result<NonNull<[u8]>, AllocError>;
-
 impl FreeList {
     unsafe fn find_free_chunk(&self, size: usize) -> Ptr<Chunk> {
         self.iter()
@@ -164,14 +168,9 @@ impl FreeList {
 }
 
 pub struct PageAllocator<const N: usize = 3> {
-    // slots: Mutex<List>,
     // size: usize,
-    // free_space: FreeList,
     allocator: Mutex<InnerAlloc>,
 }
-
-type List = LinkedList<()>;
-type ListNode = LinkedListNode<()>;
 
 unsafe impl<const N: usize> Sync for PageAllocator<N> {}
 
@@ -181,23 +180,27 @@ pub struct InnerAlloc {
 }
 
 impl InnerAlloc {
-    fn as_mut(&mut self) {}
-
     // Return an address which then can be casted to a pointer
     unsafe fn allocate(&mut self, layout: Layout) -> NonNull<[u8]> {
         // let A = InnerAlloc
 
         let size = layout.size();
 
-        // check if free block exists that will be enough
+        // check if free block exists that will be enough.
         // TODO: "size" here has to be something meaningful and not just the size of an object to allocate
         let chunk = match self.free_space.find_free_chunk(size) {
             Some(val) => val,
             None => {
-                // Ask for memory from OS
+                // Ask for memory from OS using mmap() system call.
+                // This currently only works on Linux (TODO).
+                // Memory is protected for read + write only (PROT_READ | PROT_WRITE)
+                // Make memory private to our process (MAP_PRIVATE | MAP_ANONYMOUS)
+                // MAP_PRIVATE - other processes that map tha same file,
+                // cannot see updates to the mapping.
+                // MAP_ANONYMOUS - large zero-filled blocks not backed by a file
                 let addr = NonNull::new_unchecked(libc::mmap(
                     ptr::null_mut(),
-                    size,
+                    *PAGE_SIZE,
                     PROT_READ | PROT_WRITE,
                     MAP_PRIVATE | MAP_ANONYMOUS,
                     -1,
@@ -219,20 +222,15 @@ impl InnerAlloc {
             }
         };
 
+        // TODO: can we split the memory chunk to only use what we need to?
+        // i.e. we don't need 4096 bytes if we only need 128 bytes
+
+        // No longer a free chunk since it's used for allocation
         self.free_space.remove(chunk.cast());
 
         // TODO
         // 1. need to check if the memory allocator actually has available memory ot not
         // 2. request memory from OS
-        // let fd = -1;
-        // let addr = libc::mmap(
-        //     ptr::null_mut(),
-        //     size,
-        //     PROT_READ | PROT_WRITE,
-        //     MAP_PRIVATE | MAP_ANONYMOUS,
-        //     fd,
-        //     0,
-        // );
         // let addr = NonNull::new_unchecked(addr).cast();
 
         // TODO: This essentially writes to the address above which messes up the original address
@@ -246,7 +244,7 @@ impl InnerAlloc {
 
     unsafe fn deallocate(&mut self, ptr: *mut u8, layout: Layout) {
         if libc::munmap(ptr as _, layout.size()) != 0 {
-            // handle issues here
+            // TOOD: How should we handle issues here?
         }
     }
 }
@@ -318,22 +316,10 @@ unsafe impl GlobalAlloc for PageAllocator {
         // void_c - equivalent to C void, when the type of data is not specified.
         //
 
-        // Memory is protected for read + write only.
         // let memory_protection = PROT_READ | PROT_WRITE;
-        // Make memory private to our process.
-        // let flags = MAP_PRIVATE | MAP_ANONYMOUS;
         // From the man: some implementations require fd to be -1 if MAP_ANONYMOUS
         // (or MAP_ANON) is specified, and portable applications
         // should ensure this.
-        // let fd = -1;
-        // let address = libc::mmap(
-        //     ptr::null_mut(),
-        //     aligned_layout.size(),
-        //     memory_protection,
-        //     flags,
-        //     fd,
-        //     0,
-        // );
 
         // TODO: We need a better way to handle the error here ie. an Option.
         // if address == MAP_FAILED {
