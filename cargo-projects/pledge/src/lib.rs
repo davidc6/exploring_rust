@@ -53,6 +53,18 @@ struct LinkedListNode<T> {
     size: usize,
 }
 
+impl LinkedListNode<Chunk> {
+    unsafe fn from_list_node(n: NonNull<FreeListNode>) -> NonNull<Self> {
+        Self::from_addr(n.cast())
+        // NonNull::new_unchecked(n.as_ptr().cast::<Chunk>())
+    }
+
+    unsafe fn from_addr(address: NonNull<u8>) -> NonNull<Self> {
+        NonNull::new_unchecked(address.as_ptr().cast::<Self>())
+    }
+}
+
+#[derive(Debug)]
 struct LinkedList<T> {
     head: Ptr<LinkedListNode<T>>,
     tail: Ptr<LinkedListNode<T>>,
@@ -60,6 +72,7 @@ struct LinkedList<T> {
 }
 
 /// Chunk is where data is written to
+#[derive(Debug, Clone, Copy)]
 struct Chunk {
     /// Size of the chunk in bytes
     size: usize,
@@ -71,7 +84,7 @@ struct ChunkIter<T> {
     current: Ptr<LinkedListNode<T>>,
 }
 
-impl<T> LinkedList<T> {
+impl<T: std::fmt::Debug> LinkedList<T> {
     pub const fn new() -> Self {
         Self {
             head: None,
@@ -88,25 +101,27 @@ impl<T> LinkedList<T> {
         self.tail
     }
 
-    unsafe fn append(
-        &mut self,
-        data: T,
-        size: usize,
-        addr: NonNull<u8>,
-    ) -> NonNull<LinkedListNode<T>> {
+    unsafe fn append(&mut self, data: T, size: usize, addr: NonNull<u8>) -> Ptr<LinkedListNode<T>> {
         // Since a (pointer) address is being passed in,
         // we need to cast to a pointer of LinkedListNode type
         // in order to then carry out operations on it.
-        let node = addr.cast::<LinkedListNode<T>>();
+        let mut node = addr.cast::<LinkedListNode<T>>();
+
+        println!("SIZE ALLOCATION {:?}", size);
 
         // Write to a memory location,
         // overriding the existing value.
         node.as_ptr().write(LinkedListNode {
-            prev: self.tail,
+            prev: None,
             next: None,
             data,
             size,
         });
+
+        if self.length > 0 {
+            println!("ADDED");
+            node.as_mut().prev = self.tail;
+        }
 
         // If there a tai node, we want to add append (.next) a new node to it
         if let Some(mut tail) = self.tail {
@@ -120,16 +135,64 @@ impl<T> LinkedList<T> {
         self.tail = Some(node);
         self.length += 1;
 
+        println!("INSIDE APPEND {:?}", node.as_ref());
+
         // Return the newly appended node
-        node
+        Some(node)
     }
 
-    unsafe fn remove(&mut self, node: NonNull<LinkedListNode<T>>) {
+    unsafe fn insert_after(
+        &mut self,
+        mut current_node: NonNull<LinkedListNode<T>>,
+        data: T,
+        new_node_addr: NonNull<u8>,
+        size: usize,
+    ) -> NonNull<LinkedListNode<T>> {
+        let new_node = new_node_addr.cast::<LinkedListNode<T>>();
+
+        println!("================================");
+        println!("BEFORE {:?}", current_node.as_ref());
+        println!("PTR {:?}", new_node.as_ref());
+        println!("PTR ORIG {:?}", current_node.as_ref());
+
+        // Insert new node
+        new_node.as_ptr().write(LinkedListNode {
+            prev: Some(current_node),
+            next: current_node.as_ref().next,
+            data,
+            size,
+        });
+
+        println!("NEW PREV {:?}", current_node.as_ref());
+
+        if current_node == self.tail.unwrap() {
+            println!("NEW TAIL");
+            self.tail = Some(new_node);
+        } else {
+            current_node.as_ref().next.unwrap().as_mut().prev = Some(new_node);
+        }
+
+        current_node.as_mut().next = Some(new_node);
+
+        println!("NEW NEW {:?}", current_node.as_ref());
+
+        println!("================================");
+
+        self.length += 1;
+
+        new_node
+    }
+
+    unsafe fn remove(&mut self, mut node: NonNull<LinkedListNode<T>>) {
         if self.length == 1 {
             self.head = None;
             self.tail = None;
         } else if node == self.head.unwrap() {
+            node.as_mut().next.unwrap().as_mut().prev = None;
+            self.head = node.as_ref().next;
         } else if node == self.tail.unwrap() {
+            node.as_mut().prev.unwrap().as_mut().next = None;
+            self.tail = node.as_ref().prev;
         } else {
             let mut next = node.as_ref().next.unwrap();
             let mut prev = node.as_ref().prev.unwrap();
@@ -160,10 +223,13 @@ impl<T> Iterator for ChunkIter<T> {
 }
 
 impl FreeList {
-    unsafe fn find_free_chunk(&self, size: usize) -> Ptr<Chunk> {
-        self.iter()
-            .find(|node| node.as_ref().size >= size)
-            .map(|node| node.cast::<Chunk>())
+    unsafe fn find_free_chunk(&self, size: usize) -> Ptr<LinkedListNode<Chunk>> {
+        self.iter().find(|node| node.as_ref().data.size >= size)
+        // .map(|node| node.un())
+    }
+
+    unsafe fn first_from_list(&self) -> NonNull<LinkedListNode<Chunk>> {
+        self.head().unwrap()
     }
 }
 
@@ -181,26 +247,43 @@ pub struct InnerAlloc {
 
 impl InnerAlloc {
     // Return an address which then can be casted to a pointer
-    unsafe fn allocate(&mut self, layout: Layout) -> NonNull<[u8]> {
+    unsafe fn allocate(&mut self, mut layout: Layout) -> NonNull<[u8]> {
         // let A = InnerAlloc
 
         let size = layout.size();
+        let abc = self.free_space.find_free_chunk(size);
+
+        // layout = layout.pad_to_align();
+
+        println!("=======");
+        println!("SIZE TO ALLOCATE {:?}", size);
+        // println!("SIZE OF {:?}", size + layout.size());
+        if abc.is_some() {
+            println!("FREE CHUNK {:?}", abc.unwrap().as_ref());
+        } else {
+            println!("FREE CHUNK {:?}", abc);
+        }
+        println!("=======");
 
         // check if free block exists that will be enough.
         // TODO: "size" here has to be something meaningful and not just the size of an object to allocate
-        let chunk = match self.free_space.find_free_chunk(size) {
+        let mut chunk = match abc {
             Some(val) => val,
             None => {
+                let page_size = *PAGE_SIZE;
+
                 // Ask for memory from OS using mmap() system call.
                 // This currently only works on Linux (TODO).
-                // Memory is protected for read + write only (PROT_READ | PROT_WRITE)
+                // - Memory protection
+                // Memory is protected, the contents of the region can be READ and modified (WRITE)
+                // - Memory mapping
                 // Make memory private to our process (MAP_PRIVATE | MAP_ANONYMOUS)
                 // MAP_PRIVATE - other processes that map tha same file,
                 // cannot see updates to the mapping.
                 // MAP_ANONYMOUS - large zero-filled blocks not backed by a file
                 let addr = NonNull::new_unchecked(libc::mmap(
                     ptr::null_mut(),
-                    *PAGE_SIZE,
+                    page_size,
                     PROT_READ | PROT_WRITE,
                     MAP_PRIVATE | MAP_ANONYMOUS,
                     -1,
@@ -208,25 +291,75 @@ impl InnerAlloc {
                 ))
                 .cast();
 
+                println!("ADDRESS {:?}", addr);
+                println!("ADDRESS {:?}", addr.byte_add(1));
+
                 // Add to the list of free space chunks
-                self.free_space.append(
+                let node = self.free_space.append(
                     Chunk {
-                        size,
+                        size: page_size,
                         is_free: true,
                     },
-                    size,
+                    page_size,
                     addr,
                 );
 
-                addr.cast()
+                node.unwrap()
             }
         };
 
+        println!("CHUNK ORIGINAL {:?}", chunk.as_ptr());
+
+        // let mut count = 0;
+        // for c in chunk.as_ref() {
+        //     if count == 3 {
+        //         break;
+        //     }
+        //     println!("VALUE {:?}", c);
+        //     count += 1;
+        // }
+
+        println!("FIRST CHUNK {:?}", chunk.as_ref());
+
         // TODO: can we split the memory chunk to only use what we need to?
         // i.e. we don't need 4096 bytes if we only need 128 bytes
+        if chunk.as_ref().size > size {
+            println!("SIZE {:?} {:?}", chunk.as_ref().size, size);
+            println!("FREE SPACE {:?}", self.free_space);
+
+            let sss = chunk.as_ref().data.size - size;
+            println!("CALCULTED SIZE {:?}", sss);
+
+            let new_chunk = self.free_space.insert_after(
+                chunk,
+                Chunk {
+                    size: sss,
+                    is_free: true,
+                },
+                NonNull::new_unchecked(chunk.as_ptr().add(size).cast()),
+                sss,
+            );
+
+            chunk.as_mut().size = size;
+            // chunk.as_mut().data.is_free = true;
+            chunk.as_mut().data.size = size;
+
+            println!("FREE SPACE {:?}", self.free_space);
+            println!("FIRST CHUNK {:?}", chunk.as_ref());
+            println!("SECOND CHUNK {:?}", new_chunk.as_ref());
+        }
+
+        println!("FREE SPACE LENGTH: {:?}", self.free_space.length);
 
         // No longer a free chunk since it's used for allocation
-        self.free_space.remove(chunk.cast());
+        self.free_space.remove(chunk);
+
+        println!("FREE SPACE LENGTH: {:?}", self.free_space.length);
+
+        // chunk.as_mut().prev = None;
+        println!("TO BE USED: {:?}", chunk.as_ref());
+
+        println!("FREE SPACE: {:?}", self.free_space);
 
         // TODO
         // 1. need to check if the memory allocator actually has available memory ot not
@@ -239,7 +372,11 @@ impl InnerAlloc {
         //     Err(_) => Err(AllocError),
         // };
 
-        NonNull::slice_from_raw_parts(chunk.cast(), size)
+        let w = chunk.cast();
+
+        println!("SIZEY {:?} {:?}", w, size);
+
+        NonNull::slice_from_raw_parts(w, size)
     }
 
     unsafe fn deallocate(&mut self, ptr: *mut u8, layout: Layout) {
@@ -361,27 +498,28 @@ mod tests {
         unsafe {
             // Initial allocation
             // let layout = Layout::array::<u8>(8).unwrap();
-            let layout = Layout::new::<[u8; 20]>();
-            let a = layout.align_to(8).unwrap();
-            let mut allocated = allocator.allocate(a).unwrap();
+            let layout = Layout::new::<[u8; 8]>();
+            // let layout = layout.align()
+            let mut allocated = allocator.allocate(layout).unwrap();
 
             // fill with values
             allocated.as_mut().fill(10);
 
             // Second allocation
-            // let layout_another = Layout::array::<u8>(4096).unwrap();
-            let layout_another = Layout::new::<[u8; 23]>();
-            let b = layout_another.align_to(8).unwrap();
-            let mut allocated_2 = allocator.allocate(b).unwrap();
+            // // let layout_another = Layout::array::<u8>(4096).unwrap();
+            let layout_another = Layout::new::<[u8; 16]>();
+            // // let layout_another = Layout::array::<u8>(64).unwrap();
+            // // let b = layout_another.align_to(8).unwrap();
+            let mut allocated_2 = allocator.allocate(layout_another).unwrap();
 
-            // fill with values
+            // // // fill with values
             allocated_2.as_mut().fill(13);
 
             for value in allocated.as_ref() {
                 assert!(value == &10);
             }
 
-            allocator.deallocate(allocated.cast().as_ptr(), layout);
+            allocator.deallocate(allocated_2.cast().as_ptr(), layout);
 
             for value in allocated_2.as_ref() {
                 assert!(value == &13);
