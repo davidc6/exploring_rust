@@ -107,8 +107,6 @@ impl<T: std::fmt::Debug> LinkedList<T> {
         // in order to then carry out operations on it.
         let mut node = addr.cast::<LinkedListNode<T>>();
 
-        println!("SIZE ALLOCATION {:?}", size);
-
         // Write to a memory location,
         // overriding the existing value.
         node.as_ptr().write(LinkedListNode {
@@ -119,7 +117,6 @@ impl<T: std::fmt::Debug> LinkedList<T> {
         });
 
         if self.length > 0 {
-            println!("ADDED");
             node.as_mut().prev = self.tail;
         }
 
@@ -135,8 +132,6 @@ impl<T: std::fmt::Debug> LinkedList<T> {
         self.tail = Some(node);
         self.length += 1;
 
-        println!("INSIDE APPEND {:?}", node.as_ref());
-
         // Return the newly appended node
         Some(node)
     }
@@ -150,11 +145,6 @@ impl<T: std::fmt::Debug> LinkedList<T> {
     ) -> NonNull<LinkedListNode<T>> {
         let new_node = new_node_addr.cast::<LinkedListNode<T>>();
 
-        println!("================================");
-        println!("BEFORE {:?}", current_node.as_ref());
-        println!("PTR {:?}", new_node.as_ref());
-        println!("PTR ORIG {:?}", current_node.as_ref());
-
         // Insert new node
         new_node.as_ptr().write(LinkedListNode {
             prev: Some(current_node),
@@ -163,20 +153,13 @@ impl<T: std::fmt::Debug> LinkedList<T> {
             size,
         });
 
-        println!("NEW PREV {:?}", current_node.as_ref());
-
         if current_node == self.tail.unwrap() {
-            println!("NEW TAIL");
             self.tail = Some(new_node);
         } else {
             current_node.as_ref().next.unwrap().as_mut().prev = Some(new_node);
         }
 
         current_node.as_mut().next = Some(new_node);
-
-        println!("NEW NEW {:?}", current_node.as_ref());
-
-        println!("================================");
 
         self.length += 1;
 
@@ -253,18 +236,6 @@ impl InnerAlloc {
         let size = layout.size();
         let abc = self.free_space.find_free_chunk(size);
 
-        // layout = layout.pad_to_align();
-
-        println!("=======");
-        println!("SIZE TO ALLOCATE {:?}", size);
-        // println!("SIZE OF {:?}", size + layout.size());
-        if abc.is_some() {
-            println!("FREE CHUNK {:?}", abc.unwrap().as_ref());
-        } else {
-            println!("FREE CHUNK {:?}", abc);
-        }
-        println!("=======");
-
         // check if free block exists that will be enough.
         // TODO: "size" here has to be something meaningful and not just the size of an object to allocate
         let mut chunk = match abc {
@@ -291,9 +262,6 @@ impl InnerAlloc {
                 ))
                 .cast();
 
-                println!("ADDRESS {:?}", addr);
-                println!("ADDRESS {:?}", addr.byte_add(1));
-
                 // Add to the list of free space chunks
                 let node = self.free_space.append(
                     Chunk {
@@ -308,27 +276,10 @@ impl InnerAlloc {
             }
         };
 
-        println!("CHUNK ORIGINAL {:?}", chunk.as_ptr());
-
-        // let mut count = 0;
-        // for c in chunk.as_ref() {
-        //     if count == 3 {
-        //         break;
-        //     }
-        //     println!("VALUE {:?}", c);
-        //     count += 1;
-        // }
-
-        println!("FIRST CHUNK {:?}", chunk.as_ref());
-
         // TODO: can we split the memory chunk to only use what we need to?
         // i.e. we don't need 4096 bytes if we only need 128 bytes
         if chunk.as_ref().size > size {
-            println!("SIZE {:?} {:?}", chunk.as_ref().size, size);
-            println!("FREE SPACE {:?}", self.free_space);
-
             let sss = chunk.as_ref().data.size - size;
-            println!("CALCULTED SIZE {:?}", sss);
 
             let new_chunk = self.free_space.insert_after(
                 chunk,
@@ -343,23 +294,10 @@ impl InnerAlloc {
             chunk.as_mut().size = size;
             // chunk.as_mut().data.is_free = true;
             chunk.as_mut().data.size = size;
-
-            println!("FREE SPACE {:?}", self.free_space);
-            println!("FIRST CHUNK {:?}", chunk.as_ref());
-            println!("SECOND CHUNK {:?}", new_chunk.as_ref());
         }
-
-        println!("FREE SPACE LENGTH: {:?}", self.free_space.length);
 
         // No longer a free chunk since it's used for allocation
         self.free_space.remove(chunk);
-
-        println!("FREE SPACE LENGTH: {:?}", self.free_space.length);
-
-        // chunk.as_mut().prev = None;
-        println!("TO BE USED: {:?}", chunk.as_ref());
-
-        println!("FREE SPACE: {:?}", self.free_space);
 
         // TODO
         // 1. need to check if the memory allocator actually has available memory ot not
@@ -373,8 +311,6 @@ impl InnerAlloc {
         // };
 
         let w = chunk.cast();
-
-        println!("SIZEY {:?} {:?}", w, size);
 
         NonNull::slice_from_raw_parts(w, size)
     }
@@ -417,8 +353,6 @@ unsafe impl GlobalAlloc for PageAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         self.allocate(layout).unwrap().cast().as_ptr()
 
-        // self.all
-
         // Check whether a specific layout (description of memory size and alignment of a type)
         // can be aligned to a desired alignment.
 
@@ -431,7 +365,7 @@ unsafe impl GlobalAlloc for PageAllocator {
         // and will fail if it's less strict than the original alignment
 
         // max - we look at either current layout minimum alignment or OS specific.
-        // If layout fais to align, we return a null mutable pointer (which has the address 0).
+        // If layout fails to align, we return a null mutable pointer (which has the address 0).
         // let aligned_layout = match layout.align_to(max(layout.align(), *PAGE_SIZE)) {
         //     Ok(l) => l.pad_to_align(),
         //     Err(_) => return ptr::null_mut(),
@@ -508,11 +442,9 @@ mod tests {
             // Second allocation
             // // let layout_another = Layout::array::<u8>(4096).unwrap();
             let layout_another = Layout::new::<[u8; 16]>();
-            // // let layout_another = Layout::array::<u8>(64).unwrap();
-            // // let b = layout_another.align_to(8).unwrap();
             let mut allocated_2 = allocator.allocate(layout_another).unwrap();
 
-            // // // fill with values
+            // fill with values
             allocated_2.as_mut().fill(13);
 
             for value in allocated.as_ref() {
