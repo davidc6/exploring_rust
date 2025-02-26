@@ -56,7 +56,6 @@ struct LinkedListNode<T> {
 impl LinkedListNode<Chunk> {
     unsafe fn from_list_node(n: NonNull<FreeListNode>) -> NonNull<Self> {
         Self::from_addr(n.cast())
-        // NonNull::new_unchecked(n.as_ptr().cast::<Chunk>())
     }
 
     unsafe fn from_addr(address: NonNull<u8>) -> NonNull<Self> {
@@ -195,20 +194,17 @@ impl<T> Iterator for ChunkIter<T> {
     type Item = NonNull<LinkedListNode<T>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let a = self.current.map(|node| unsafe {
+        self.current.map(|node| unsafe {
             self.current = node.as_ref().next;
 
             node
-        });
-
-        a
+        })
     }
 }
 
 impl FreeList {
     unsafe fn find_free_chunk(&self, size: usize) -> Ptr<LinkedListNode<Chunk>> {
         self.iter().find(|node| node.as_ref().data.size >= size)
-        // .map(|node| node.un())
     }
 
     unsafe fn first_from_list(&self) -> NonNull<LinkedListNode<Chunk>> {
@@ -217,22 +213,18 @@ impl FreeList {
 }
 
 pub struct PageAllocator<const N: usize = 3> {
-    // size: usize,
     allocator: Mutex<InnerAlloc>,
 }
 
 unsafe impl<const N: usize> Sync for PageAllocator<N> {}
 
 pub struct InnerAlloc {
-    slots: List,
     free_space: FreeList,
 }
 
 impl InnerAlloc {
     // Return an address which then can be casted to a pointer
-    unsafe fn allocate(&mut self, mut layout: Layout) -> NonNull<[u8]> {
-        // let A = InnerAlloc
-
+    unsafe fn allocate(&mut self, layout: Layout) -> NonNull<[u8]> {
         let size = layout.size();
         let abc = self.free_space.find_free_chunk(size);
 
@@ -281,7 +273,7 @@ impl InnerAlloc {
         if chunk.as_ref().size > size {
             let sss = chunk.as_ref().data.size - size;
 
-            let new_chunk = self.free_space.insert_after(
+            self.free_space.insert_after(
                 chunk,
                 Chunk {
                     size: sss,
@@ -292,7 +284,6 @@ impl InnerAlloc {
             );
 
             chunk.as_mut().size = size;
-            // chunk.as_mut().data.is_free = true;
             chunk.as_mut().data.size = size;
         }
 
@@ -326,7 +317,6 @@ impl PageAllocator {
     pub const fn default_config() -> Self {
         PageAllocator {
             allocator: Mutex::new(InnerAlloc {
-                slots: LinkedList::new(),
                 free_space: FreeList::new(),
             }),
         }
@@ -403,20 +393,6 @@ unsafe impl GlobalAlloc for PageAllocator {
 
     // Deallocates memory by taking in a pointer to the memory block and the size of it.
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        // if let Ok(aligned) = layout.align_to(max(layout.align(), *PAGE_SIZE)) {
-        //     // munmap() - unmaps pages of memory.
-        //     // The function takes in an address (pointer) from where to start unmapping from and len bytes.
-        //     // It unmaps the address + len bytes.
-        //     let result = libc::munmap(ptr as _, aligned.pad_to_align().size());
-
-        //     if result != 0 {
-        //         // TODO: Is there a better way to handle this?
-        //         panic!("Memory deallocation failed");
-        //     }
-        // }
-
-        // if let Ok(mut alloc) = self.slots.lock() {
-
         self.deallocate(ptr, layout)
     }
 }
@@ -433,18 +409,16 @@ mod tests {
             // Initial allocation
             // let layout = Layout::array::<u8>(8).unwrap();
             let layout = Layout::new::<[u8; 8]>();
-            // let layout = layout.align()
             let mut allocated = allocator.allocate(layout).unwrap();
 
-            // fill with values
+            // Fill with values
             allocated.as_mut().fill(10);
 
             // Second allocation
-            // // let layout_another = Layout::array::<u8>(4096).unwrap();
             let layout_another = Layout::new::<[u8; 16]>();
             let mut allocated_2 = allocator.allocate(layout_another).unwrap();
 
-            // fill with values
+            // Fill with values
             allocated_2.as_mut().fill(13);
 
             for value in allocated.as_ref() {
