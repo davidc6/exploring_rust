@@ -115,6 +115,7 @@ impl<T: std::fmt::Debug> LinkedList<T> {
             size,
         });
 
+        // We don't want to have to set the previous value if there not nodes yet
         if self.length > 0 {
             node.as_mut().prev = self.tail;
         }
