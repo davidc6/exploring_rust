@@ -4,35 +4,33 @@
 //! TODO
 
 use allocator_api2::alloc::AllocError;
-use core::cmp::max;
-use libc::{user, MAP_ANONYMOUS, MAP_FAILED, MAP_PRIVATE, PROT_READ, PROT_WRITE};
+use libc::{MAP_ANONYMOUS, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::{
     alloc::{GlobalAlloc, Layout},
-    fmt::Pointer,
-    os::raw::c_void,
-    ptr::{self, slice_from_raw_parts, NonNull},
+    ptr::{self, NonNull},
     sync::{LazyLock, Mutex},
 };
 
 mod block;
 
-// We need to get the OS page size in order to create
+/// We need to get the OS page size in order to create
 fn page_size() -> usize {
     // Get the size of page. A page is a contiguous block of memory
     unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
 }
 
-// Unix requires to call a function to get page size
-// hence initialized lazily (when accessed) once
+/// Unix requires to call a function to get the page size
+/// hence initialized lazily (only when accessed) once.
 static PAGE_SIZE: LazyLock<usize> = LazyLock::new(page_size);
 
-// NonNull here is not allowed to be a null pointer essentially.
-// NonNull does not guarantee that the memory being pointed to is valid however,
-// or that properly aligned.
+/// NonNull does not guarantee that the memory that is pointed to is valid.
+/// It is essentially just a wrapper type that reinforces that the pointer isn't null.
+/// It is not allowed to be a null therefore and must always be ensured that it's non-null.
 type Ptr<T> = Option<NonNull<T>>;
 type AllocResult = Result<NonNull<[u8]>, AllocError>;
 
-// FreeList type aliases
+/// FreeList type aliases.
+/// Free list keeps track of the free memory chunks.
 type FreeList = LinkedList<Chunk>;
 type FreeListNode = LinkedListNode<Chunk>;
 
@@ -46,7 +44,7 @@ struct Header {
 }
 
 #[derive(Debug)]
-struct LinkedListNode<T> {
+pub(crate) struct LinkedListNode<T> {
     prev: Ptr<Self>,
     next: Ptr<Self>,
     data: T,
@@ -227,11 +225,11 @@ impl InnerAlloc {
     // Return an address which then can be casted to a pointer
     unsafe fn allocate(&mut self, layout: Layout) -> NonNull<[u8]> {
         let size = layout.size();
-        let abc = self.free_space.find_free_chunk(size);
+        let free_chunk = self.free_space.find_free_chunk(size);
 
         // check if free block exists that will be enough.
         // TODO: "size" here has to be something meaningful and not just the size of an object to allocate
-        let mut chunk = match abc {
+        let mut chunk = match free_chunk {
             Some(val) => val,
             None => {
                 let page_size = *PAGE_SIZE;
@@ -272,16 +270,16 @@ impl InnerAlloc {
         // TODO: can we split the memory chunk to only use what we need to?
         // i.e. we don't need 4096 bytes if we only need 128 bytes
         if chunk.as_ref().size > size {
-            let sss = chunk.as_ref().data.size - size;
+            let chunk_size = chunk.as_ref().data.size - size;
 
             self.free_space.insert_after(
                 chunk,
                 Chunk {
-                    size: sss,
+                    size: chunk_size,
                     is_free: true,
                 },
                 NonNull::new_unchecked(chunk.as_ptr().add(size).cast()),
-                sss,
+                chunk_size,
             );
 
             chunk.as_mut().size = size;
@@ -290,6 +288,7 @@ impl InnerAlloc {
 
         // No longer a free chunk since it's used for allocation
         self.free_space.remove(chunk);
+        chunk.as_mut().data.is_free = false;
 
         // TODO
         // 1. need to check if the memory allocator actually has available memory ot not
