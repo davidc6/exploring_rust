@@ -307,9 +307,21 @@ impl InnerAlloc {
     }
 
     unsafe fn deallocate(&mut self, ptr: *mut u8, layout: Layout) {
+        // TODO
+        // 1. get the chunk from the pointer
+        // let chunk = NonNull::new_unchecked(ptr).cast::<LinkedListNode<Chunk>>();
+
+        if self.free_space.length != 0 {
+            return;
+        }
+
         if libc::munmap(ptr as _, layout.size()) != 0 {
             // TOOD: How should we handle issues here?
         }
+
+        // 2. can we merge surrounding block?
+
+        // 3. append to free chunks list
     }
 }
 
@@ -425,7 +437,7 @@ mod tests {
                 assert!(value == &10);
             }
 
-            allocator.deallocate(allocated_2.cast().as_ptr(), layout);
+            allocator.deallocate(allocated.cast().as_ptr(), layout);
 
             for value in allocated_2.as_ref() {
                 assert!(value == &13);
