@@ -217,8 +217,14 @@ pub struct PageAllocator<const N: usize = 3> {
 
 unsafe impl<const N: usize> Sync for PageAllocator<N> {}
 
+struct Region {
+    blocks: LinkedList<Chunk>,
+    length: usize,
+}
+
 pub struct InnerAlloc {
     free_space: FreeList,
+    region: Region,
 }
 
 impl InnerAlloc {
@@ -333,6 +339,10 @@ impl PageAllocator {
         PageAllocator {
             allocator: Mutex::new(InnerAlloc {
                 free_space: FreeList::new(),
+                region: Region {
+                    blocks: LinkedList::new(),
+                    length: 0,
+                },
             }),
         }
     }
