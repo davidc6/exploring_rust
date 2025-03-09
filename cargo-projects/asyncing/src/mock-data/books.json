@@ -1,0 +1,19 @@
+{
+    "data": [
+        {
+            "id": "1",
+            "name": "The Rust Programming Book",
+            "year": "2018"
+        },
+        {
+            "id": "2",
+            "name": "Rust For Rustaceans",
+            "year": "2021"
+        },
+        {
+            "id": "3",
+            "name": "Programming Rust",
+            "year": "2021"
+        }
+    ]
+}
