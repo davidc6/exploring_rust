@@ -1,3 +1,4 @@
+use axum::{routing::get, serve::Listener, Router};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -36,12 +37,12 @@ struct EndpointResponse {
     data: Vec<BookData>,
 }
 
+async fn root() {}
+
 #[tokio::main]
 async fn main() {
-    let books = api_call().await.unwrap_or_else(|e| {
-        println!("{:?}", e);
-        Vec::default()
-    });
+    let app = Router::new().route("/", get(root));
 
-    println!("{:#?}", books);
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
