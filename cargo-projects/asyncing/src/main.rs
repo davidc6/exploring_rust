@@ -37,7 +37,9 @@ struct EndpointResponse {
     data: Vec<BookData>,
 }
 
-async fn root() {}
+async fn root() -> String {
+    "Hello, world!\n".to_owned()
+}
 
 #[tokio::main]
 async fn main() {
