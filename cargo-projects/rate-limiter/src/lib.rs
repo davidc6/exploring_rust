@@ -1,4 +1,8 @@
-use std::time::{Duration, SystemTime};
+#[cfg(feature = "mock-instant")]
+use mock_instant::thread_local::SystemTime;
+use std::time::Duration;
+#[cfg(not(feature = "mock-instant"))]
+use std::time::SystemTime;
 
 #[derive(Debug)]
 pub struct RateLimiter {
@@ -57,16 +61,19 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "mock-instant")]
     fn quota_reset_works() {
-        let mut rate_limiter = RateLimiter::new(10);
+        let actions_per_second = 10;
+        let mut rate_limiter = RateLimiter::new(actions_per_second);
 
-        for _ in 0..10 {
+        for _ in 0..actions_per_second - 1 {
             assert!(!rate_limiter.is_quota_exceeded());
         }
 
-        assert!(rate_limiter.is_quota_exceeded());
+        assert!(rate_limiter.current_quota == 9);
+        assert!(!rate_limiter.is_quota_exceeded());
 
-        std::thread::sleep(Duration::from_millis(1000));
+        mock_instant::thread_local::MockClock::advance_system_time(Duration::from_millis(1000));
 
         assert!(!rate_limiter.is_quota_exceeded());
     }

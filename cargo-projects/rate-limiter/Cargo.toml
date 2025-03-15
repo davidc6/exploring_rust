@@ -4,3 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+mock_instant = { version = "0.5.3", optional = true }
+
+[features]
+# this is to mock std::time features
+mock-instant = ["dep:mock_instant"]
