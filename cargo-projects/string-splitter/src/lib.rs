@@ -1,4 +1,5 @@
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+mod split_splitter_b;
+
 pub struct StringSplitter<'a> {
     leftover: &'a str,
     delimiter: &'a str,
@@ -20,8 +21,8 @@ impl<'a> Iterator for StringSplitter<'a> {
         for (index, char) in self.leftover.chars().enumerate() {
             // Last word since it's length is the same as index + 1
             if index + 1 == self.leftover.len() {
-                let word = &self.leftover[0..index + 1];
-                self.leftover = &self.leftover[0..0];
+                let word = &self.leftover[..index + 1];
+                self.leftover = &self.leftover[..0];
                 println!("AHA {word}");
                 println!("WORDO {:?}", self.leftover);
                 return Some(word);
@@ -50,9 +51,9 @@ mod tests {
     #[test]
     fn it_works() {
         let haystack = "hello world this is mars";
-        let string_splitter: Vec<_> = StringSplitter::new(haystack, " ").collect();
+        let string_splitter = StringSplitter::new(haystack, " ");
         let expected = vec!["hello", "world", "this", "is", "mars"];
 
-        assert_eq!(string_splitter, expected);
+        assert!(string_splitter.eq(expected.into_iter()));
     }
 }
