@@ -23,3 +23,5 @@ mod modified_binary_search;
 mod arrays;
 mod stack;
 mod trees;
+
+mod factorial;
