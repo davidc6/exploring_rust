@@ -29,6 +29,13 @@ impl Future for TimerFuture {
     // Unit type
     type Output = ();
 
+    // Allows us to check if the value is available.
+    // When the response is available then it is returned in a wrapped Poll::Ready(T)
+    // Poll::Pending signals to the caller that the valus is not available yet.
+    //
+    // Pin - similar to &mut Self but pinned to a memory location
+    // Context - is to pass a Waker to the async task (Timer). The waker
+    // allows the async task to signal that it finished (timer is complete).
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         // Get the lock to the shared state.
         let mut shared_state = self.shared_state.lock().unwrap();
