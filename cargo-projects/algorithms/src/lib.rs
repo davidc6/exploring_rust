@@ -24,5 +24,7 @@ mod arrays;
 mod stack;
 mod trees;
 
+mod async_rust;
 mod factorial;
 mod validation;
+mod waker_timer;
