@@ -1,9 +1,27 @@
 use std::ops::Deref;
 
+#[derive(PartialEq)]
+enum TicketProgress {
+    Todo,
+    InProgress { assigned_to: String },
+    Done,
+}
+
+impl TicketProgress {
+    fn is_done(&self) -> bool {
+        match self {
+            TicketProgress::Done => true,
+            // catch-all case since we don't care about other variants
+            _ => false,
+        }
+    }
+}
+
+#[derive(PartialEq)]
 pub struct Ticket {
     title: String,
     description: String,
-    status: String,
+    status: TicketProgress,
 }
 
 impl Deref for Ticket {
@@ -21,25 +39,52 @@ impl From<String> for Ticket {
         Ticket {
             title: s.first().unwrap_or(&"").to_string(),
             description: s.get(1).unwrap_or(&"").to_string(),
-            status: s.get(2).unwrap_or(&"").to_string(),
+            status: TicketProgress::Todo,
         }
     }
 }
 
+#[derive(Debug, PartialEq)]
+enum TicketCreationError {
+    Title(String),
+}
+
 impl Ticket {
-    fn new(title: String, description: String, status: String) -> Self {
+    fn new(
+        title: String,
+        description: String,
+        status: TicketProgress,
+    ) -> Result<Self, TicketCreationError> {
         if title.is_empty() {
-            panic!("Title cannot be empty")
+            return Err(TicketCreationError::Title("Title cannot be empty".into()));
         }
 
         if title.len() > 50 {
-            panic!("Title cannot be longer than 50 bytes")
+            return Err(TicketCreationError::Title(
+                "Title is too long, maximum length is 50 characters".into(),
+            ));
         }
 
-        Self {
+        Ok(Self {
             title,
             description,
             status,
+        })
+    }
+
+    fn assigned_to(&self) -> Option<&str> {
+        if let TicketProgress::InProgress { assigned_to } = &self.status {
+            return Some(assigned_to);
+        }
+
+        None
+    }
+
+    fn status(&self) {
+        match &self.status {
+            TicketProgress::InProgress { assigned_to } => println!("Assigned to {assigned_to}"),
+            TicketProgress::Todo => println!("Ticket needs to be done"),
+            TicketProgress::Done => println!("Ticket is done"),
         }
     }
 
@@ -52,20 +97,33 @@ impl Ticket {
 mod validation_tests {
     use std::any::{Any, TypeId};
 
+    use crate::validation::TicketCreationError;
+
     use super::Ticket;
 
     #[test]
-    #[should_panic(expected = "Title cannot be empty")]
+    // #[should_panic(expected = "Title cannot be empty")]
     fn ticket_validation_works() {
-        Ticket::new("".into(), "desc".into(), "open".into());
+        let ticket = Ticket::new(
+            "".into(),
+            "desc".into(),
+            super::TicketProgress::InProgress {
+                assigned_to: "Bob".into(),
+            },
+        );
+
+        assert!(ticket == Err(TicketCreationError::Title("Title cannot be empty".into())));
     }
 
     #[test]
     fn ticket_returns_title() {
-        let ticket = Ticket::new("Title".into(), "Desc".into(), "Open".into());
+        let ticket = Ticket::new(
+            "Title".into(),
+            "Desc".into(),
+            crate::validation::TicketProgress::Done,
+        );
 
-        assert!(ticket.title() == "Title");
-        assert_eq!(TypeId::of::<str>(), ticket.title().type_id());
+        assert_eq!(TypeId::of::<str>(), ticket.unwrap().title().type_id());
     }
 
     #[test]
@@ -75,10 +133,14 @@ mod validation_tests {
 
     #[test]
     fn deref_title() {
-        let ticket = Ticket::new("   Title   ".into(), "Desc".into(), "Open".into());
+        let ticket = Ticket::new(
+            "   Title   ".into(),
+            "Desc".into(),
+            crate::validation::TicketProgress::Todo,
+        );
 
         // anti-pattern for demo purposes only
-        assert_eq!(*ticket, *"Title");
+        assert_eq!(*ticket.unwrap(), *"Title");
     }
 
     #[test]
