@@ -25,6 +25,7 @@ mod stack;
 mod trees;
 
 mod async_rust;
+mod async_tokio;
 mod factorial;
 mod validation;
 mod waker_timer;
