@@ -30,4 +30,5 @@ mod factorial;
 mod validation;
 mod waker_timer;
 
+mod mut_slices;
 mod slices;
