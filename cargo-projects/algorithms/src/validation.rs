@@ -1,6 +1,45 @@
-use std::{ops::Deref, thread::Scope};
+use std::ops::Deref;
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone)]
+struct TicketStore {
+    tickets: Vec<Ticket>,
+}
+
+impl TicketStore {
+    fn new() -> Self {
+        Self { tickets: vec![] }
+    }
+
+    pub fn add_ticket(&mut self, ticket: Ticket) {
+        self.tickets.push(ticket);
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<Ticket> {
+        self.tickets.iter()
+    }
+}
+
+// impl Iterator for TicketStore {
+//     type Item = Ticket;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let a = self.tickets.iter().next();
+//         a.cloned()
+//     }
+// }
+
+// Consuming (self) iterator, returns owned value
+// Downside: original collection can no longer be used
+impl IntoIterator for TicketStore {
+    type Item = Ticket;
+    type IntoIter = std::vec::IntoIter<Ticket>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.tickets.into_iter()
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
 enum TicketProgress {
     Todo,
     InProgress { assigned_to: String },
@@ -49,7 +88,7 @@ impl TicketProgress {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Ticket {
     title: String,
     description: String,
@@ -134,7 +173,7 @@ impl Ticket {
 
 #[cfg(test)]
 mod validation_tests {
-    use crate::validation::TicketProgress;
+    use crate::validation::{TicketProgress, TicketStore};
 
     use super::{Ticket, TicketCreationError};
     use std::any::{Any, TypeId};
@@ -219,5 +258,54 @@ mod validation_tests {
 
         let status = TicketProgress::try_from("done").unwrap();
         assert_eq!(status, TicketProgress::Done);
+    }
+
+    #[test]
+    fn add_ticket() {
+        let mut store = TicketStore::new();
+
+        let ticket = Ticket {
+            title: "Title".into(),
+            description: "Description".into(),
+            status: TicketProgress::Todo,
+        };
+        store.add_ticket(ticket);
+
+        let ticket = Ticket {
+            title: "Title 2".into(),
+            description: "Description 2".into(),
+            status: TicketProgress::InProgress {
+                assigned_to: "".to_owned(),
+            },
+        };
+        store.add_ticket(ticket);
+
+        let tickets: Vec<_> = store.clone().into_iter().collect();
+        assert_eq!(tickets, store.tickets);
+    }
+
+    #[test]
+    fn add_ticket_2() {
+        let mut store = TicketStore::new();
+
+        let ticket = Ticket {
+            title: "Title".into(),
+            description: "Description".into(),
+            status: TicketProgress::Todo,
+        };
+        store.add_ticket(ticket);
+
+        let ticket = Ticket {
+            title: "Title 2".into(),
+            description: "Description 2".into(),
+            status: TicketProgress::InProgress {
+                assigned_to: "".to_owned(),
+            },
+        };
+        store.add_ticket(ticket);
+
+        let tickets: Vec<&Ticket> = store.iter().collect();
+        let tickets2: Vec<&Ticket> = store.iter().collect();
+        assert_eq!(tickets, tickets2);
     }
 }
