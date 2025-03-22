@@ -39,6 +39,31 @@ impl IntoIterator for TicketStore {
     }
 }
 
+/// Lifetimes are essentially labels that tell the compiler
+/// how long a reference is valid for. The name how long
+/// a reference is valid.
+///
+/// Lifetime of a reference is constrained by the scope of
+/// the value it refers to.
+///
+/// Rus compiler makes sure that the reference of a value
+/// is not used once the value is dropped (dangling pointers, use-after-free).
+///
+/// Lifetimes naming is important when it comes to multiple
+/// references.
+impl<'a> IntoIterator for &'a TicketStore {
+    // This is the type to iterate over
+    // In this example it's &Ticket
+    type Item = &'a Ticket;
+    // The iterator type returned by the into_iter() method
+    // In this example it's immutable slice iterator over tickets
+    type IntoIter = std::slice::Iter<'a, Ticket>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.tickets.iter()
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 enum TicketProgress {
     Todo,
@@ -306,6 +331,31 @@ mod validation_tests {
 
         let tickets: Vec<&Ticket> = store.iter().collect();
         let tickets2: Vec<&Ticket> = store.iter().collect();
+        assert_eq!(tickets, tickets2);
+    }
+
+    #[test]
+    fn add_ticket_3() {
+        let mut store = TicketStore::new();
+
+        let ticket = Ticket {
+            title: "Title 3".into(),
+            description: "Description 3".into(),
+            status: TicketProgress::Todo,
+        };
+        store.add_ticket(ticket);
+
+        let ticket = Ticket {
+            title: "Title 4".into(),
+            description: "Description 4".into(),
+            status: TicketProgress::InProgress {
+                assigned_to: "".to_owned(),
+            },
+        };
+        store.add_ticket(ticket);
+
+        let tickets: Vec<&Ticket> = store.iter().collect();
+        let tickets2: Vec<&Ticket> = (&store).into_iter().collect();
         assert_eq!(tickets, tickets2);
     }
 }
