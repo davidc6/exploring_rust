@@ -6,4 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.97"
+thiserror = "2.0.12"
 time = "0.3.36"
+tokio = { version = "1.44.1", features = ["full"] }
+
+[profile.dev]
+overflow-checks = true
+
+[profile.release]
+overflow-checks = true

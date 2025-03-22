@@ -1,10 +1,42 @@
-use std::ops::Deref;
+use std::{ops::Deref, thread::Scope};
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum TicketProgress {
     Todo,
     InProgress { assigned_to: String },
     Done,
+}
+
+#[derive(thiserror::Error, Debug, PartialEq)]
+#[error("Ticket status is not known")]
+struct StatusParseError {
+    invalid_status: String,
+}
+
+impl TryFrom<&str> for TicketProgress {
+    type Error = StatusParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        // important to use as_str() here to extract &str slice from String
+        match value.to_lowercase().as_str() {
+            "todo" => Ok(TicketProgress::Todo),
+            "inprogress" => Ok(TicketProgress::InProgress {
+                assigned_to: "".to_owned(),
+            }),
+            "done" => Ok(TicketProgress::Done),
+            _ => Err(StatusParseError {
+                invalid_status: value.to_string(),
+            }),
+        }
+    }
+}
+
+impl TryFrom<String> for TicketProgress {
+    type Error = StatusParseError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        value.as_str().try_into()
+    }
 }
 
 impl TicketProgress {
@@ -44,9 +76,14 @@ impl From<String> for Ticket {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(thiserror::Error, Debug, PartialEq)]
 enum TicketCreationError {
-    Title(String),
+    #[error("Title cannot be empty")]
+    TitleEmpty,
+    #[error("Title cannot be longer than 50 bytes")]
+    TitleLength,
+    #[error("Description cannot be longer than 500 bytes")]
+    DescriptionEmpty,
 }
 
 impl Ticket {
@@ -56,13 +93,15 @@ impl Ticket {
         status: TicketProgress,
     ) -> Result<Self, TicketCreationError> {
         if title.is_empty() {
-            return Err(TicketCreationError::Title("Title cannot be empty".into()));
+            return Err(TicketCreationError::TitleEmpty);
         }
 
         if title.len() > 50 {
-            return Err(TicketCreationError::Title(
-                "Title is too long, maximum length is 50 characters".into(),
-            ));
+            return Err(TicketCreationError::TitleLength);
+        }
+
+        if description.len() > 500 {
+            return Err(TicketCreationError::DescriptionEmpty);
         }
 
         Ok(Self {
@@ -95,11 +134,10 @@ impl Ticket {
 
 #[cfg(test)]
 mod validation_tests {
+    use crate::validation::TicketProgress;
+
+    use super::{Ticket, TicketCreationError};
     use std::any::{Any, TypeId};
-
-    use crate::validation::TicketCreationError;
-
-    use super::Ticket;
 
     #[test]
     // #[should_panic(expected = "Title cannot be empty")]
@@ -112,7 +150,7 @@ mod validation_tests {
             },
         );
 
-        assert!(ticket == Err(TicketCreationError::Title("Title cannot be empty".into())));
+        assert!(ticket == Err(TicketCreationError::TitleEmpty));
     }
 
     #[test]
@@ -147,5 +185,39 @@ mod validation_tests {
     fn from_works() {
         let ticket = Ticket::from("Title, Description, Status".to_owned());
         assert_eq!(ticket.title(), "Title");
+    }
+
+    #[test]
+    fn test_try_from_string() {
+        let status = TicketProgress::try_from("ToDO".to_string()).unwrap();
+        assert_eq!(status, TicketProgress::Todo);
+
+        let status = TicketProgress::try_from("inproGress".to_string()).unwrap();
+        assert_eq!(
+            status,
+            TicketProgress::InProgress {
+                assigned_to: "".to_string()
+            }
+        );
+
+        let status = TicketProgress::try_from("Done".to_string()).unwrap();
+        assert_eq!(status, TicketProgress::Done);
+    }
+
+    #[test]
+    fn test_try_from_str() {
+        let status = TicketProgress::try_from("todo").unwrap();
+        assert_eq!(status, TicketProgress::Todo);
+
+        let status = TicketProgress::try_from("inprogress").unwrap();
+        assert_eq!(
+            status,
+            TicketProgress::InProgress {
+                assigned_to: "".to_owned()
+            }
+        );
+
+        let status = TicketProgress::try_from("done").unwrap();
+        assert_eq!(status, TicketProgress::Done);
     }
 }
