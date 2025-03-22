@@ -17,6 +17,24 @@ impl TicketStore {
     pub fn iter(&self) -> std::slice::Iter<Ticket> {
         self.tickets.iter()
     }
+
+    /// Get all tickets that have Todo status from the available tickets
+    /// impl trait - return a type without specifying the name
+    pub fn todos(&self) -> Vec<&Ticket> {
+        self.tickets
+            .iter()
+            .filter(|ticket| ticket.status == TicketProgress::Todo)
+            .collect()
+    }
+
+    pub fn in_progress(&self) -> impl Iterator<Item = &Ticket> {
+        self.tickets.iter().filter(|ticket| {
+            ticket.status
+                == TicketProgress::InProgress {
+                    assigned_to: "".to_owned(),
+                }
+        })
+    }
 }
 
 // impl Iterator for TicketStore {
@@ -357,5 +375,55 @@ mod validation_tests {
         let tickets: Vec<&Ticket> = store.iter().collect();
         let tickets2: Vec<&Ticket> = (&store).into_iter().collect();
         assert_eq!(tickets, tickets2);
+    }
+
+    #[test]
+    fn todos() {
+        let mut store = TicketStore::new();
+
+        let ticket_todo = Ticket {
+            title: "Title 3".into(),
+            description: "Description 3".into(),
+            status: TicketProgress::Todo,
+        };
+        store.add_ticket(ticket_todo.clone());
+
+        let ticket = Ticket {
+            title: "Title 4".into(),
+            description: "Description 4".into(),
+            status: TicketProgress::InProgress {
+                assigned_to: "".to_owned(),
+            },
+        };
+        store.add_ticket(ticket);
+
+        let todos: Vec<&Ticket> = store.todos();
+        assert_eq!(todos.len(), 1);
+        assert_eq!(todos[0], &ticket_todo);
+    }
+
+    #[test]
+    fn in_progress() {
+        let mut store = TicketStore::new();
+
+        let ticket = Ticket {
+            title: "Title".into(),
+            description: "Description".into(),
+            status: TicketProgress::Todo,
+        };
+        store.add_ticket(ticket);
+
+        let in_progress = Ticket {
+            title: "Title 2".into(),
+            description: "Description 2".into(),
+            status: TicketProgress::InProgress {
+                assigned_to: "".to_owned(),
+            },
+        };
+        store.add_ticket(in_progress.clone());
+
+        let in_progress_tickets: Vec<&Ticket> = store.in_progress().collect();
+        assert_eq!(in_progress_tickets.len(), 1);
+        assert_eq!(in_progress_tickets[0], &in_progress);
     }
 }
