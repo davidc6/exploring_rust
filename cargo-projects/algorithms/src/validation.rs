@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, Index, IndexMut};
 
 #[derive(Clone)]
 struct TicketStore {
@@ -57,6 +57,48 @@ impl From<String> for Ticket {
     }
 }
 
+// TicketId - index type
+// Index - read-only access
+impl Index<TicketId> for TicketStore {
+    // The type that is retrieved using the index
+    type Output = Ticket;
+
+    fn index(&self, index: TicketId) -> &Self::Output {
+        let ticket = self
+            .tickets
+            .iter()
+            .find(|&ticket| ticket.id == index)
+            .unwrap();
+
+        ticket
+    }
+}
+
+impl Index<&TicketId> for TicketStore {
+    type Output = Ticket;
+
+    fn index(&self, index: &TicketId) -> &Self::Output {
+        &self[*index]
+    }
+}
+
+impl IndexMut<TicketId> for TicketStore {
+    fn index_mut(&mut self, index: TicketId) -> &mut Self::Output {
+        let t = self
+            .tickets
+            .iter_mut()
+            .find(|ticket| ticket.id == index)
+            .unwrap();
+        t
+    }
+}
+
+impl IndexMut<&TicketId> for TicketStore {
+    fn index_mut(&mut self, index: &TicketId) -> &mut Self::Output {
+        &mut self[*index]
+    }
+}
+
 impl TicketStore {
     fn new() -> Self {
         Self {
@@ -93,7 +135,6 @@ impl TicketStore {
     }
 
     pub fn get(&self, id: TicketId) -> Option<&Ticket> {
-        println!("TICKETS {:?}", self.tickets);
         self.tickets.iter().find(|ticket| ticket.id == id)
     }
 
@@ -507,5 +548,63 @@ mod validation_tests {
         let ticket2 = store.get(id2).unwrap();
 
         assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn indexing_works() {
+        let mut store = TicketStore::new();
+
+        let draft1 = DraftTicket {
+            title: "Title".into(),
+            description: "Description".into(),
+        };
+        let id1 = store.add_draft(draft1.clone());
+        let ticket1 = &store[id1];
+        assert_eq!(draft1.title, ticket1.title);
+        assert_eq!(draft1.description, ticket1.description);
+        assert_eq!(ticket1.status, TicketProgress::Todo);
+
+        let draft2 = DraftTicket {
+            title: "Title".into(),
+            description: "Description".into(),
+        };
+        let id2 = store.add_draft(draft2);
+        let ticket2 = &store[&id2];
+
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn index_mut_works() {
+        let mut store = TicketStore::new();
+
+        let draft = DraftTicket {
+            title: "Title 1".into(),
+            description: "Desc 1".into(),
+        };
+        let id = store.add_ticket(draft.clone());
+        let ticket = &store[id];
+        assert_eq!(draft.title, ticket.title);
+        assert_eq!(draft.description, ticket.description);
+        assert_eq!(ticket.status, TicketProgress::Todo);
+
+        let ticket = &mut store[id];
+        ticket.status = TicketProgress::InProgress {
+            assigned_to: "".into(),
+        };
+
+        let ticket = &store[id];
+        assert_eq!(
+            ticket.status,
+            TicketProgress::InProgress {
+                assigned_to: "".into()
+            }
+        );
+
+        let ticket = &mut store[&id];
+        ticket.status = TicketProgress::Done;
+
+        let ticket = &store[id];
+        assert_eq!(ticket.status, TicketProgress::Done);
     }
 }
