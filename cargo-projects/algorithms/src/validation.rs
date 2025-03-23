@@ -3,19 +3,98 @@ use std::ops::Deref;
 #[derive(Clone)]
 struct TicketStore {
     tickets: Vec<Ticket>,
+    ticket_counter: u32,
+}
+
+#[derive(Clone)]
+struct DraftTicket {
+    pub title: String,
+    pub description: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct TicketId(u32);
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Ticket {
+    id: TicketId,
+    title: String,
+    description: String,
+    status: TicketProgress,
+}
+
+impl From<DraftTicket> for Ticket {
+    fn from(value: DraftTicket) -> Self {
+        let DraftTicket { title, description } = value;
+
+        Ticket {
+            id: TicketId(1),
+            title,
+            description,
+            status: TicketProgress::Todo,
+        }
+    }
+}
+
+impl Deref for Ticket {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.title.trim()
+    }
+}
+
+impl From<String> for Ticket {
+    fn from(value: String) -> Self {
+        let s: Vec<_> = value.split(',').collect();
+
+        Ticket {
+            id: TicketId(s.first().unwrap_or(&"1").parse::<u32>().unwrap()),
+            title: s.get(1).unwrap_or(&"").to_string().trim().to_string(),
+            description: s.get(2).unwrap_or(&"").to_string(),
+            status: TicketProgress::Todo,
+        }
+    }
 }
 
 impl TicketStore {
     fn new() -> Self {
-        Self { tickets: vec![] }
+        Self {
+            tickets: vec![],
+            ticket_counter: 0,
+        }
     }
 
-    pub fn add_ticket(&mut self, ticket: Ticket) {
-        self.tickets.push(ticket);
+    pub fn add_ticket<T: Into<Ticket>>(&mut self, ticket: T) -> TicketId {
+        let mut t = ticket.into();
+
+        self.ticket_counter += 1;
+        let c = self.ticket_counter;
+        t.id = TicketId(c);
+
+        self.tickets.push(t.clone());
+        TicketId(c)
+    }
+
+    pub fn add_draft<T: Into<Ticket>>(&mut self, draft_ticket: T) -> TicketId {
+        // let t = Ticket::from(draft_ticket);
+        // let id = t.id;
+        let mut t: Ticket = draft_ticket.into();
+
+        self.ticket_counter += 1;
+        t.id = TicketId(self.ticket_counter);
+
+        self.tickets.push(t.clone());
+        TicketId(self.ticket_counter)
     }
 
     pub fn iter(&self) -> std::slice::Iter<Ticket> {
         self.tickets.iter()
+    }
+
+    pub fn get(&self, id: TicketId) -> Option<&Ticket> {
+        println!("TICKETS {:?}", self.tickets);
+        self.tickets.iter().find(|ticket| ticket.id == id)
     }
 
     /// Get all tickets that have Todo status from the available tickets
@@ -36,15 +115,6 @@ impl TicketStore {
         })
     }
 }
-
-// impl Iterator for TicketStore {
-//     type Item = Ticket;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let a = self.tickets.iter().next();
-//         a.cloned()
-//     }
-// }
 
 // Consuming (self) iterator, returns owned value
 // Downside: original collection can no longer be used
@@ -131,33 +201,6 @@ impl TicketProgress {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
-pub struct Ticket {
-    title: String,
-    description: String,
-    status: TicketProgress,
-}
-
-impl Deref for Ticket {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.title.trim()
-    }
-}
-
-impl From<String> for Ticket {
-    fn from(value: String) -> Self {
-        let s: Vec<_> = value.split(',').collect();
-
-        Ticket {
-            title: s.first().unwrap_or(&"").to_string(),
-            description: s.get(1).unwrap_or(&"").to_string(),
-            status: TicketProgress::Todo,
-        }
-    }
-}
-
 #[derive(thiserror::Error, Debug, PartialEq)]
 enum TicketCreationError {
     #[error("Title cannot be empty")]
@@ -170,6 +213,7 @@ enum TicketCreationError {
 
 impl Ticket {
     fn new(
+        id: String,
         title: String,
         description: String,
         status: TicketProgress,
@@ -187,6 +231,7 @@ impl Ticket {
         }
 
         Ok(Self {
+            id: TicketId(1),
             title,
             description,
             status,
@@ -216,7 +261,7 @@ impl Ticket {
 
 #[cfg(test)]
 mod validation_tests {
-    use crate::validation::{TicketProgress, TicketStore};
+    use crate::validation::{DraftTicket, TicketId, TicketProgress, TicketStore};
 
     use super::{Ticket, TicketCreationError};
     use std::any::{Any, TypeId};
@@ -225,6 +270,7 @@ mod validation_tests {
     // #[should_panic(expected = "Title cannot be empty")]
     fn ticket_validation_works() {
         let ticket = Ticket::new(
+            "".into(),
             "".into(),
             "desc".into(),
             super::TicketProgress::InProgress {
@@ -238,6 +284,7 @@ mod validation_tests {
     #[test]
     fn ticket_returns_title() {
         let ticket = Ticket::new(
+            "1".into(),
             "Title".into(),
             "Desc".into(),
             crate::validation::TicketProgress::Done,
@@ -248,12 +295,13 @@ mod validation_tests {
 
     #[test]
     fn ticket_size() {
-        assert_eq!(size_of::<Ticket>(), 72);
+        assert_eq!(size_of::<Ticket>(), 80);
     }
 
     #[test]
     fn deref_title() {
         let ticket = Ticket::new(
+            "id".into(),
             "   Title   ".into(),
             "Desc".into(),
             crate::validation::TicketProgress::Todo,
@@ -265,7 +313,7 @@ mod validation_tests {
 
     #[test]
     fn from_works() {
-        let ticket = Ticket::from("Title, Description, Status".to_owned());
+        let ticket = Ticket::from("1, Title, Description, Status".to_owned());
         assert_eq!(ticket.title(), "Title");
     }
 
@@ -308,6 +356,7 @@ mod validation_tests {
         let mut store = TicketStore::new();
 
         let ticket = Ticket {
+            id: TicketId(1),
             title: "Title".into(),
             description: "Description".into(),
             status: TicketProgress::Todo,
@@ -315,6 +364,7 @@ mod validation_tests {
         store.add_ticket(ticket);
 
         let ticket = Ticket {
+            id: TicketId(2),
             title: "Title 2".into(),
             description: "Description 2".into(),
             status: TicketProgress::InProgress {
@@ -332,6 +382,7 @@ mod validation_tests {
         let mut store = TicketStore::new();
 
         let ticket = Ticket {
+            id: TicketId(1),
             title: "Title".into(),
             description: "Description".into(),
             status: TicketProgress::Todo,
@@ -339,6 +390,7 @@ mod validation_tests {
         store.add_ticket(ticket);
 
         let ticket = Ticket {
+            id: TicketId(2),
             title: "Title 2".into(),
             description: "Description 2".into(),
             status: TicketProgress::InProgress {
@@ -357,6 +409,7 @@ mod validation_tests {
         let mut store = TicketStore::new();
 
         let ticket = Ticket {
+            id: TicketId(3),
             title: "Title 3".into(),
             description: "Description 3".into(),
             status: TicketProgress::Todo,
@@ -364,6 +417,7 @@ mod validation_tests {
         store.add_ticket(ticket);
 
         let ticket = Ticket {
+            id: TicketId(4),
             title: "Title 4".into(),
             description: "Description 4".into(),
             status: TicketProgress::InProgress {
@@ -382,6 +436,7 @@ mod validation_tests {
         let mut store = TicketStore::new();
 
         let ticket_todo = Ticket {
+            id: TicketId(1),
             title: "Title 3".into(),
             description: "Description 3".into(),
             status: TicketProgress::Todo,
@@ -389,6 +444,7 @@ mod validation_tests {
         store.add_ticket(ticket_todo.clone());
 
         let ticket = Ticket {
+            id: TicketId(1),
             title: "Title 4".into(),
             description: "Description 4".into(),
             status: TicketProgress::InProgress {
@@ -407,6 +463,7 @@ mod validation_tests {
         let mut store = TicketStore::new();
 
         let ticket = Ticket {
+            id: TicketId(1),
             title: "Title".into(),
             description: "Description".into(),
             status: TicketProgress::Todo,
@@ -414,6 +471,7 @@ mod validation_tests {
         store.add_ticket(ticket);
 
         let in_progress = Ticket {
+            id: TicketId(2),
             title: "Title 2".into(),
             description: "Description 2".into(),
             status: TicketProgress::InProgress {
@@ -425,5 +483,29 @@ mod validation_tests {
         let in_progress_tickets: Vec<&Ticket> = store.in_progress().collect();
         assert_eq!(in_progress_tickets.len(), 1);
         assert_eq!(in_progress_tickets[0], &in_progress);
+    }
+
+    #[test]
+    fn into_ticket_works() {
+        let mut store = TicketStore::new();
+
+        let draft1 = DraftTicket {
+            title: "Title 1".into(),
+            description: "desc 1".into(),
+        };
+        let id1 = store.add_draft(draft1.clone());
+        let ticket1 = store.get(id1).unwrap();
+        assert_eq!(draft1.title, ticket1.title);
+        assert_eq!(draft1.description, ticket1.description);
+        assert_eq!(ticket1.status, TicketProgress::Todo);
+
+        let draft2 = DraftTicket {
+            title: "Title 2".into(),
+            description: "Desc 2".into(),
+        };
+        let id2 = store.add_ticket(draft2);
+        let ticket2 = store.get(id2).unwrap();
+
+        assert_ne!(id1, id2);
     }
 }
