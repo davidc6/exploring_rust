@@ -209,11 +209,46 @@ fn intersection(mut nums_1: Vec<i32>, mut nums_2: Vec<i32>) -> Vec<i32> {
     v
 }
 
+fn sum_of_three_integers(nums: Vec<u32>, num: u32) -> bool {
+    let mut start_index: usize = 0;
+    let mut mid_index: usize = 1;
+    let mut end_index: usize = 2;
+
+    loop {
+        let sum = nums.get(start_index).unwrap()
+            + nums.get(mid_index).unwrap()
+            + nums.get(end_index).unwrap();
+
+        if sum == num {
+            return true;
+        }
+
+        if start_index + 2 == nums.len() - 1 {
+            return false;
+        }
+
+        if mid_index + 1 == nums.len() - 1 {
+            start_index += 1;
+            mid_index = start_index + 1;
+            end_index = mid_index + 1;
+            continue;
+        }
+
+        if end_index == nums.len() - 1 {
+            mid_index += 1;
+            end_index = mid_index + 1;
+            continue;
+        }
+
+        end_index += 1;
+    }
+}
+
 #[cfg(test)]
 mod arrays_tests {
     use crate::arrays::{intersection, permutations, product_except_self_2, product_except_self_3};
 
-    use super::product_except_self;
+    use super::{product_except_self, sum_of_three_integers};
 
     #[test]
     fn product_except_self_works() {
@@ -324,5 +359,20 @@ mod arrays_tests {
         let actual = intersection(nums, nums_2);
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn sum_of_three_ints_works() {
+        let nums = vec![3, 7, 1, 2, 8, 4, 5];
+        let number = 21;
+
+        let actual = sum_of_three_integers(nums, number);
+        assert!(!actual);
+
+        let nums = vec![3, 7, 1, 2, 9, 4, 5];
+        let number = 21;
+
+        let actual = sum_of_three_integers(nums, number);
+        assert!(actual);
     }
 }
