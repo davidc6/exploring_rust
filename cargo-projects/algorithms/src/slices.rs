@@ -1,3 +1,24 @@
+/// &[u8], &mut [u8] - pointer to a portion of an array or vector (has pointer and length).
+use std::collections::HashMap;
+
+fn count_vowels<'a>(some_collection: &'a [&str]) -> HashMap<&'a str, u8> {
+    let mut chars_count = HashMap::new();
+    let vowels = ['a', 'e', 'i', 'o', 'u', 'y'];
+
+    for &value in some_collection {
+        for char in value.chars() {
+            if vowels.contains(&char) {
+                chars_count
+                    .entry(value)
+                    .and_modify(|val| *val += 1)
+                    .or_insert(1);
+            }
+        }
+    }
+
+    chars_count
+}
+
 fn sum(values: &[i32]) -> i32 {
     if values.is_empty() {
         return 0;
@@ -18,6 +39,21 @@ fn sum(values: &[i32]) -> i32 {
 #[cfg(test)]
 mod sum_tests {
     use super::*;
+
+    #[test]
+    fn slicing_some_works() {
+        let values = vec!["hello", "world", "this", "is", "me"];
+
+        let actual = count_vowels(&values);
+        let mut expected = HashMap::new();
+        expected.insert("hello", 2);
+        expected.insert("world", 1);
+        expected.insert("this", 1);
+        expected.insert("is", 1);
+        expected.insert("me", 1);
+
+        assert!(actual == expected);
+    }
 
     #[test]
     fn empty() {
