@@ -1,7 +1,11 @@
 /// & - a reference in Rust is a basic pointer type, single machine word bolding the address of the referrer.
 /// In Rust (&) means borrowing a reference to x.
 /// 
-/// References are never null in (safe) Rust
+/// Both & and * hold an address for some memory.
+/// 
+/// * - we cannot dereference a raw pointer without the unsafe keyword.
+/// 
+/// References are never null in (safe) Rust.
 /// 
 /// Box - is the simplest way to allocate a value on a heap (it's an owning pointer when the owner is dropped
 /// the referent is dropped also). Non-owning types are references.
