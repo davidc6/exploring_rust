@@ -1,15 +1,12 @@
-use std::fmt;
-
 use axum::{
-    body::Body,
     debug_handler,
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::get,
-    serve::Listener,
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -57,13 +54,7 @@ async fn get_books() -> (StatusCode, Response) {
                 data: vec![],
             })
             .into_response(),
-            // Body::new(Json(OkResponse {
-            //     data: [],
-            //     status: ResponseStatus::Fail.to_string(),
-            // }))
-            // .into_response(),
         );
-        // return (StatusCode::BAD_REQUEST, Body::empty()).into_response();
     };
 
     let r = res.json::<EndpointResponse>().await.unwrap();
@@ -76,13 +67,6 @@ async fn get_books() -> (StatusCode, Response) {
         .into_response(),
     )
 }
-
-// let data = response
-//     .json::<EndpointResponse>()
-//     .await
-//     .map_err(ApiError::JsonParserError)?;
-
-// Ok(data.data)
 
 #[derive(Debug, Serialize, Deserialize)]
 struct BookData {
