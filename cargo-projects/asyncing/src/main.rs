@@ -42,6 +42,12 @@ struct OkResponse {
     status: String,
 }
 
+#[derive(Deserialize, Serialize)]
+struct ErrorResponse {
+    status: String,
+    message: String,
+}
+
 #[debug_handler]
 async fn get_books() -> (StatusCode, Response) {
     let response = reqwest::get(BOOKS_URL).await;
@@ -49,9 +55,9 @@ async fn get_books() -> (StatusCode, Response) {
     let Ok(res) = response else {
         return (
             StatusCode::BAD_REQUEST,
-            Json(OkResponse {
+            Json(ErrorResponse {
                 status: ResponseStatus::Error.to_string(),
-                data: vec![],
+                message: "There has been an error with the request".to_owned(),
             })
             .into_response(),
         );
