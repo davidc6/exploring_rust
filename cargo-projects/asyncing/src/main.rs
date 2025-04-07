@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::net::SocketAddr;
 use thiserror::Error;
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 
 #[derive(Error, Debug)]
 pub enum ApiError {
@@ -98,12 +100,19 @@ async fn list_books() -> Response {
 
 #[tokio::main]
 async fn main() {
+    // 1. Logging initialisation
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env()
+                .or_else(|_| EnvFilter::try_new("asyncing=error,tower_http=warn"))
+                .unwrap(),
+        )
+        .init();
+
     let app = Router::new()
         .route("/", get(root))
-        .route("/books", get(list_books));
-
-    // Print only "info" logs if RUST_ENV is not set
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+        .route("/books", get(list_books))
+        .layer(TraceLayer::new_for_http());
 
     let address = SocketAddr::from(([0, 0, 0, 0], 3000));
     info!("Starting server on {}", address);
