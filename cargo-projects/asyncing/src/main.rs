@@ -48,6 +48,25 @@ struct ErrorResponse {
     message: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct BookData {
+    id: String,
+    name: String,
+    year: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct EndpointResponse {
+    data: Vec<BookData>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct EndpointError {}
+
+async fn root() -> String {
+    "Hello, world!\n".to_owned()
+}
+
 #[debug_handler]
 async fn list_books() -> Response {
     let response = reqwest::get(BOOKS_URL).await;
@@ -73,25 +92,6 @@ async fn list_books() -> Response {
                 .into_response()
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct BookData {
-    id: String,
-    name: String,
-    year: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct EndpointResponse {
-    data: Vec<BookData>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct EndpointError {}
-
-async fn root() -> String {
-    "Hello, world!\n".to_owned()
 }
 
 #[tokio::main]
