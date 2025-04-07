@@ -60,9 +60,6 @@ struct EndpointResponse {
     data: Vec<BookData>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct EndpointError {}
-
 async fn root() -> String {
     "Hello, world!\n".to_owned()
 }
