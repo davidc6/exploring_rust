@@ -5,8 +5,11 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use env_logger::{self, Env};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::net::SocketAddr;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -79,6 +82,8 @@ async fn list_books() -> Response {
             .into_response(),
         Err(e) => {
             // TODO: add tracing
+            error!("{}", e);
+
             (
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
@@ -97,6 +102,12 @@ async fn main() {
         .route("/", get(root))
         .route("/books", get(list_books));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    // Print only "info" logs if RUST_ENV is not set
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
+    let address = SocketAddr::from(([0, 0, 0, 0], 3000));
+    info!("Starting server on {}", address);
+
+    let listener = tokio::net::TcpListener::bind(address).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
