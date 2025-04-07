@@ -17,7 +17,7 @@ pub enum ApiError {
     JsonParserError(reqwest::Error),
 }
 
-const BOOKS_URL: &str = "https://raw.githubusercontent.co/davidc6/exploring_rust/refs/heads/main/cargo-projects/asyncing/src/mock-data/books.json";
+const BOOKS_URL: &str = "https://raw.githubusercontent.com/davidc6/exploring_rust/refs/heads/main/cargo-projects/asyncing/src/mock-data/books.json";
 
 #[derive(Deserialize, Serialize)]
 enum ResponseStatus {
@@ -38,8 +38,8 @@ impl fmt::Display for ResponseStatus {
 
 #[derive(Deserialize, Serialize)]
 struct OkResponse {
-    data: Vec<BookData>,
     status: String,
+    data: Vec<BookData>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -49,29 +49,30 @@ struct ErrorResponse {
 }
 
 #[debug_handler]
-async fn get_books() -> (StatusCode, Response) {
+async fn list_books() -> Response {
     let response = reqwest::get(BOOKS_URL).await;
 
-    let Ok(res) = response else {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                status: ResponseStatus::Error.to_string(),
-                message: "There has been an error with the request".to_owned(),
-            })
+    match response {
+        Ok(res) => (
+            StatusCode::OK,
+            Json(OkResponse {
+                status: ResponseStatus::Success.to_string(),
+                data: res.json::<EndpointResponse>().await.unwrap().data,
+            }),
+        )
             .into_response(),
-        );
-    };
-
-    let r = res.json::<EndpointResponse>().await.unwrap();
-    (
-        StatusCode::OK,
-        Json(OkResponse {
-            status: ResponseStatus::Success.to_string(),
-            data: r.data,
-        })
-        .into_response(),
-    )
+        Err(e) => {
+            // TODO: add tracing
+            (
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    status: ResponseStatus::Error.to_string(),
+                    message: "There has been an error with the request".to_owned(),
+                }),
+            )
+                .into_response()
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -97,7 +98,7 @@ async fn root() -> String {
 async fn main() {
     let app = Router::new()
         .route("/", get(root))
-        .route("/books", get(get_books));
+        .route("/books", get(list_books));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
