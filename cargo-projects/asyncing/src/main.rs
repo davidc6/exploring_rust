@@ -102,7 +102,23 @@ async fn list_books() -> Response {
 
 #[tokio::main]
 async fn main() {
+    // Tracing allows us to record structured events with additional information.
+    // "Spans" are the building blocks of tracing that have start and end times, other
+    // relevant metadata, may be entered and exited by the flow of execution and may exist
+    // with a nested tree of similar spans. A span is a logical unit of work in completing
+    // a user request.
+    //
     // 1. Logging initialisation
+    //
+    // Env filter is a layer (a composable handler for tracing events)
+    // that filters spans (units of work or operation)
+    // and events (structured logs) based on filter directives.
+    //
+    // A span tracks a specific request operation enabling
+    // us to see what happened with a certain timeframe.
+    // Example: https://opentelemetry.io/docs/concepts/signals/traces/#spans
+    //
+    // with_env_filter() - determine if a span or event is enabled by looking at the EnvFilter
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
