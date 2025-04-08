@@ -71,6 +71,8 @@ async fn root() -> String {
 
 #[debug_handler]
 async fn list_books() -> Response {
+    info!("Handling list_books request");
+
     let response = reqwest::get(BOOKS_URL).await;
 
     match response {
