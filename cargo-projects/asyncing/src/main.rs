@@ -122,7 +122,7 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
-                .or_else(|_| EnvFilter::try_new("asyncing=error,tower_http=warn"))
+                .or_else(|_| EnvFilter::try_new("asyncing=info,tower_http=debug"))
                 .unwrap(),
         )
         .init();
