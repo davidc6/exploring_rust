@@ -65,7 +65,6 @@ struct LRU<T: Clone> {
 }
 
 // Doubly LinkedList - to track most frequently accessed items (head) and least frequently accessed items (tail)
-
 // Hashmap - to get location in the linked list instantly
 
 impl<T: Clone + Debug> LRU<T> {
