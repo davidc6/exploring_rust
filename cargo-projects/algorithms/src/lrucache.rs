@@ -1,11 +1,6 @@
+/// Doubly LinkedList - to track most frequently accessed items (head) and least frequently accessed items (tail)
+/// Hashmap - to get location in the linked list instantly
 use std::{collections::HashMap, fmt::Debug};
-
-#[derive(Debug)]
-struct LinkedList<T: Clone> {
-    head: Option<Box<Node<T>>>,
-    tail: Option<Box<Node<T>>>,
-    val: Option<T>,
-}
 
 #[derive(Debug, Clone)]
 struct Node<T>
@@ -14,6 +9,13 @@ where
 {
     next: Option<Box<Node<T>>>,
     prev: Option<Box<Node<T>>>,
+    val: Option<T>,
+}
+
+#[derive(Debug)]
+struct LinkedList<T: Clone> {
+    head: Option<Box<Node<T>>>,
+    tail: Option<Box<Node<T>>>,
     val: Option<T>,
 }
 
@@ -33,28 +35,30 @@ impl<T: Clone> LinkedList<T> {
             val: Some(val.clone()),
         };
 
+        // Initial append
         if self.head.is_none() {
             self.head = Some(Box::new(node.clone()));
             self.tail = Some(Box::new(node.clone()));
             return self.head.clone();
         }
 
-        // take tail
         let mut tail = self.tail.clone().unwrap();
 
+        // If we have more than one node, previous will be set
         let Some(tail_previous) = tail.prev.as_mut() else {
             tail.prev = self.head.clone();
             tail.val = Some(val.clone());
+
             let new_node = Some(Box::new(*tail));
             self.tail = new_node.clone();
+
             return new_node;
         };
 
         tail_previous.next = Some(Box::new(node.clone()));
-        let w = &tail_previous.as_mut().next;
-        let mut p = w.clone().unwrap().next;
-        p = Some(Box::new(*tail));
-        p
+        self.tail = tail_previous.next.clone();
+
+        self.tail.clone()
     }
 }
 
@@ -63,9 +67,6 @@ struct LRU<T: Clone> {
     map: HashMap<String, Option<Box<Node<T>>>>,
     linked_list: LinkedList<T>,
 }
-
-// Doubly LinkedList - to track most frequently accessed items (head) and least frequently accessed items (tail)
-// Hashmap - to get location in the linked list instantly
 
 impl<T: Clone + Debug> LRU<T> {
     fn new(capacity: u32) -> Self {
@@ -78,13 +79,11 @@ impl<T: Clone + Debug> LRU<T> {
     fn get(&self, key: &str) -> Option<T> {
         let hash = self.map.get(key);
 
-        if let Some(h) = hash {
-            if let Some(v) = h {
-                return v.clone().val;
-            }
+        if let Some(Some(h)) = hash {
+            return h.clone().val;
         }
 
-        return None;
+        None
     }
 
     fn put(&mut self, key: &str, value: T) {
@@ -117,7 +116,11 @@ mod lru_tests {
         assert_eq!(lru.get("key"), Some(100));
 
         lru.put("key-2", 13);
+        lru.put("key-3", 19);
+        lru.put("key-4", 197);
 
         assert_eq!(lru.get("key-2"), Some(13));
+        assert_eq!(lru.get("key-3"), Some(19));
+        assert_eq!(lru.get("key-4"), Some(197));
     }
 }
