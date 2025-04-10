@@ -35,4 +35,4 @@ mod hashmap_operations;
 mod mut_slices;
 mod slices;
 
-mod lrucache;
+mod cache;
