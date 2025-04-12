@@ -1,15 +1,16 @@
 use std::{
+    borrow::Borrow,
     collections::{HashMap, LinkedList},
     hash::Hash,
 };
 
-struct LRUCache<'a, T> {
+struct LRUCache<T> {
     data: LinkedList<T>,
-    map: HashMap<T, Option<&'a T>>,
+    map: HashMap<T, Option<T>>,
     capacity: usize,
 }
 
-impl<T: Eq + Hash + Clone> LRUCache<'_, T> {
+impl<T: Eq + Hash + Clone> LRUCache<T> {
     fn new(capacity: usize) -> Self {
         Self {
             data: LinkedList::new(),
@@ -18,15 +19,19 @@ impl<T: Eq + Hash + Clone> LRUCache<'_, T> {
         }
     }
 
-    fn get(&self, val: &T) -> Option<&T> {
+    fn get(&self, val: &T) -> Option<&T>
+    where
+        T: Borrow<T>,
+    {
         let location = self.map.get(val);
         let loc = location?;
-        *loc
+        loc.as_ref()
     }
 
-    fn put<'a>(&'a mut self, value: T) {
-        // self.data.push_back(value.clone());
-        // self.map.insert(value, self.data.back());
+    fn put(&mut self, value: T) {
+        self.data.push_back(value.clone());
+        let node = self.data.back();
+        self.map.insert(value, node.cloned());
     }
 }
 
@@ -44,9 +49,14 @@ mod std_ll_lru_tests {
 
     #[test]
     fn works_2() {
-        let l = LRUCache::new(1);
+        let mut l = LRUCache::new(1);
         let actual = l.get(&"hello");
 
         assert_eq!(actual, None);
+
+        l.put("hello");
+        let g = l.get(&"hello").cloned();
+
+        assert_eq!(g, Some(&"hello").map(|v| &**v));
     }
 }
