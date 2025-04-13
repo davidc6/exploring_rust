@@ -23,12 +23,19 @@ impl<T: Eq + Hash + Clone> LRUCache<T> {
     where
         T: Borrow<T>,
     {
+        // TODO, when we access the node we need to move it
+        // to the head of the linked list since
+        // it's last accessed element. For that we need a reference to Node.
         let location = self.map.get(val);
-        let loc = location?;
-        loc.as_ref()
+        location?.as_ref()
     }
 
     fn put(&mut self, value: T) {
+        // We are at capacity so remove LRU value
+        if self.capacity == self.data.len() {
+            self.data.pop_back();
+        }
+
         self.data.push_back(value.clone());
         let node = self.data.back();
         self.map.insert(value, node.cloned());
