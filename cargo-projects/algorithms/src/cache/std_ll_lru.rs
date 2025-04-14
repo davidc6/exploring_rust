@@ -1,8 +1,7 @@
 use std::{
     borrow::Borrow,
-    collections::{HashMap, LinkedList, VecDeque},
+    collections::{HashMap, VecDeque},
     hash::Hash,
-    rc::Rc,
 };
 
 struct LRUCache<T> {
