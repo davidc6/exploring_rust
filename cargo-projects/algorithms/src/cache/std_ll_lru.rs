@@ -1,6 +1,5 @@
 use std::{
-    // borrow::Borrow,
-    cell::{Ref, RefCell},
+    cell::RefCell,
     collections::{HashMap, VecDeque},
     fmt::Debug,
     hash::Hash,
@@ -34,8 +33,8 @@ impl<T: Debug> LRUCacheVec<T> {
         Self {
             head: RefCell::new(None),
             tail: RefCell::new(None),
-            capacity,
             cache: RefCell::new(Vec::new()),
+            capacity,
         }
     }
 
@@ -50,39 +49,83 @@ impl<T: Debug> LRUCacheVec<T> {
             value,
         };
 
-        // #1 - The list is empty.
+        // #1 - The list is empty
         if self.head.borrow().is_none() {
-            let mut m = self.cache.borrow_mut();
-            m.push(Some(node));
-
-            let position = m.len() - 1;
-
-            // head and tail as the same index
-            self.head = RefCell::new(Some(position));
-            self.tail = RefCell::new(Some(position));
-            return;
-        }
-
-        // list is filled
-        if self.cache.borrow().len() == self.capacity {
-            //
-            let tail_index = self.tail.borrow().unwrap();
             let mut cache_mut = self.cache.borrow_mut();
-            let tail = cache_mut.get_mut(tail_index).unwrap();
+            cache_mut.push(Some(node));
 
-            let new_tail_index = tail.as_ref().unwrap().prev.unwrap();
-            // self.cache.swap_remove(tail_index);
-            node.prev = None;
-            node.next = Some(self.head.borrow().unwrap());
-            self.head = RefCell::new(Some(tail_index));
-            let _ = std::mem::replace(&mut self.cache.borrow().get(tail_index), Some(&Some(node)));
+            let index = cache_mut.len() - 1;
+
+            // head and tail as the same index since no items in the list yet
+            self.head = RefCell::new(Some(index));
+            self.tail = RefCell::new(Some(index));
 
             return;
         }
 
-        // list has space
+        // #2 - The list is filled
+        if self.cache.borrow().len() == self.capacity {
+            let mut cache_mut = self.cache.borrow_mut();
+
+            // Since there are values in the list,
+            // We know that there is a tail so we can unwrap here.
+            let head_index = self.head.borrow().unwrap();
+            let tail_index = self.tail.borrow().unwrap();
+
+            // New node is head so nothing to link to previously
+            node.prev = None;
+            node.next = Some(head_index);
+
+            // TODO, deal with the previous node - remove tail
+            // 1. get previous node, which becomes tail now and set next to None
+            // let previous_tail = cache_mut.get_mut(tail_index).unwrap();
+
+            // get previous to tail element index
+            let index_of_prev_to_tail_element = if let Some(val) = cache_mut.get_mut(tail_index) {
+                // val.unwrap().prev.unwrap()
+                if let Some(v) = val {
+                    println!("NODE {:?}", v);
+
+                    v.prev.unwrap_or(0)
+                } else {
+                    0
+                }
+            } else {
+                0
+            };
+
+            // set previous to tail element next to None
+            if let Some(val_node) = cache_mut.get_mut(index_of_prev_to_tail_element) {
+                // let mut v = val_node.unwrap();
+                // v.next = None;
+
+                if let Some(val) = val_node {
+                    val.prev = None;
+                }
+            } else {
+                return;
+            };
+
+            // set tail to new element
+            self.tail = RefCell::new(Some(index_of_prev_to_tail_element));
+
+            if let Some(val) = cache_mut.get_mut(tail_index) {
+                if let Some(v) = val {
+                    *val = Some(node);
+                }
+            }
+
+            // TODO previous head needs prev set to new head
+
+            println!("TAIL INDEX {:?}", tail_index);
+            self.head = RefCell::new(Some(tail_index));
+
+            return;
+        }
+
+        // #3 - The list has space
         let mut cache_mut = self.cache.borrow_mut();
-        let position = cache_mut.len() - 1;
+        let position = cache_mut.len();
 
         let current_node = cache_mut
             .get_mut(self.head.borrow().unwrap())
@@ -93,20 +136,14 @@ impl<T: Debug> LRUCacheVec<T> {
         node.prev = None;
         node.next = Some(self.head.borrow().unwrap());
 
-        // let mut cache_mut = self.cache.borrow_mut();
-        // let position = cache_mut.len() - 1;
-
-        // current_node..unwrap().prev = Some(position);
-
         // previous head should have previous set to new head index
-        if let Some(a) = current_node {
-            a.prev = Some(position);
+        if let Some(node_mut) = current_node {
+            node_mut.prev = Some(position);
         };
 
         cache_mut.push(Some(node));
 
-        // let b_i = self.head.borrow_mut();
-        self.head = RefCell::new(Some(position + 1));
+        self.head = RefCell::new(Some(position));
 
         // cache_mut[position].as_mut().unwrap().next = *self.head.borrow();
         // self.head = RefCell::new(Some(position));
@@ -322,8 +359,10 @@ mod std_ll_lru_tests {
         cache.put(3);
         cache.put(4);
         cache.put(5);
+        // cache.put(6); // should remove 1
+        // cache.put(7); // should remove 2
 
-        for val in cache.cache.into_inner() {
+        for val in cache.cache.borrow().iter() {
             println!("{:?}", val);
         }
 
