@@ -26,14 +26,16 @@ pub struct LRUCacheVec<T> {
     tail: RefCell<Option<usize>>,
     capacity: usize,
     cache: RefCell<Vec<Option<Node<T>>>>,
+    map: HashMap<T, usize>,
 }
 
-impl<T: Debug> LRUCacheVec<T> {
+impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCacheVec<T> {
     fn new(capacity: usize) -> Self {
         Self {
             head: RefCell::new(None),
             tail: RefCell::new(None),
             cache: RefCell::new(Vec::new()),
+            map: HashMap::new(),
             capacity,
         }
     }
@@ -46,7 +48,7 @@ impl<T: Debug> LRUCacheVec<T> {
         let mut node = Node {
             prev: None,
             next: None,
-            value,
+            value: value.clone(),
         };
 
         // #1 - The list is empty
@@ -55,6 +57,9 @@ impl<T: Debug> LRUCacheVec<T> {
             cache_mut.push(Some(node));
 
             let index = cache_mut.len() - 1;
+
+            // Update HashMap
+            self.map.insert(value, index);
 
             // head and tail as the same index since no items in the list yet
             self.head = RefCell::new(Some(index));
@@ -81,26 +86,17 @@ impl<T: Debug> LRUCacheVec<T> {
             // let previous_tail = cache_mut.get_mut(tail_index).unwrap();
 
             // get previous to tail element index
-            let index_of_prev_to_tail_element = if let Some(val) = cache_mut.get_mut(tail_index) {
-                // val.unwrap().prev.unwrap()
-                if let Some(v) = val {
-                    println!("NODE {:?}", v);
-
-                    v.prev.unwrap_or(0)
-                } else {
-                    0
-                }
+            let index_of_prev_to_tail_element = if let Some(Some(v)) = cache_mut.get_mut(tail_index)
+            {
+                v.prev.unwrap_or(0)
             } else {
                 0
             };
 
             // set previous to tail element next to None
             if let Some(val_node) = cache_mut.get_mut(index_of_prev_to_tail_element) {
-                // let mut v = val_node.unwrap();
-                // v.next = None;
-
                 if let Some(val) = val_node {
-                    val.prev = None;
+                    val.next = None;
                 }
             } else {
                 return;
@@ -109,15 +105,18 @@ impl<T: Debug> LRUCacheVec<T> {
             // set tail to new element
             self.tail = RefCell::new(Some(index_of_prev_to_tail_element));
 
-            if let Some(val) = cache_mut.get_mut(tail_index) {
-                if let Some(v) = val {
-                    *val = Some(node);
-                }
+            if let Some(Some(val)) = cache_mut.get_mut(head_index) {
+                val.prev = Some(tail_index);
             }
 
-            // TODO previous head needs prev set to new head
+            if let Some(val) = cache_mut.get_mut(tail_index) {
+                let key = &val.as_ref().unwrap().value;
+                self.map.remove(key);
+                self.map.insert(value, tail_index);
 
-            println!("TAIL INDEX {:?}", tail_index);
+                *val = Some(node);
+            }
+
             self.head = RefCell::new(Some(tail_index));
 
             return;
@@ -125,7 +124,7 @@ impl<T: Debug> LRUCacheVec<T> {
 
         // #3 - The list has space
         let mut cache_mut = self.cache.borrow_mut();
-        let position = cache_mut.len();
+        let index = cache_mut.len();
 
         let current_node = cache_mut
             .get_mut(self.head.borrow().unwrap())
@@ -138,12 +137,15 @@ impl<T: Debug> LRUCacheVec<T> {
 
         // previous head should have previous set to new head index
         if let Some(node_mut) = current_node {
-            node_mut.prev = Some(position);
+            node_mut.prev = Some(index);
         };
+
+        // Update HashMap
+        self.map.insert(value, index);
 
         cache_mut.push(Some(node));
 
-        self.head = RefCell::new(Some(position));
+        self.head = RefCell::new(Some(index));
 
         // cache_mut[position].as_mut().unwrap().next = *self.head.borrow();
         // self.head = RefCell::new(Some(position));
@@ -201,6 +203,10 @@ impl<T: Debug> LRUCacheVec<T> {
         element.as_mut().unwrap().next = Some(self.head.borrow().unwrap());
         let mut a = self.head.borrow_mut();
         *a = value_index;
+    }
+
+    fn lookup(&self, val: T) -> Option<T> {
+        None
     }
 }
 
@@ -359,8 +365,8 @@ mod std_ll_lru_tests {
         cache.put(3);
         cache.put(4);
         cache.put(5);
-        // cache.put(6); // should remove 1
-        // cache.put(7); // should remove 2
+        cache.put(6); // should remove 1
+                      // cache.put(7); // should remove 2
 
         for val in cache.cache.borrow().iter() {
             println!("{:?}", val);
@@ -369,6 +375,14 @@ mod std_ll_lru_tests {
         println!("HEAD {:?}", cache.head);
         println!("TAIL {:?}", cache.tail);
 
+        println!("MAP {:?}", cache.map);
+
         // cache.get(&3);
+    }
+
+    fn lru_get_works_without_values() {
+        // let mut cache = LRUCacheVec::new(5);
+
+        // assert_eq!(cache.get(&1), None);
     }
 }
