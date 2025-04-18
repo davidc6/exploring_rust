@@ -151,7 +151,7 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCacheVec<T> {
         // self.head = RefCell::new(Some(position));
     }
 
-    fn get(&self, value: &T)
+    fn get(&self, value: &T) -> Option<T>
     where
         T: PartialEq + Eq,
     {
@@ -169,40 +169,54 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCacheVec<T> {
         // a.as_mut().unwrap().next = None;
 
         // #2
-        let mut value_index = None;
-        for (index, val) in self.cache.borrow_mut().iter().enumerate() {
-            if *value == val.as_ref().unwrap().value {
-                value_index = Some(index);
-                break;
-            }
-        }
+        // let mut value_index = None;
+        // for (index, val) in self.cache.borrow_mut().iter().enumerate() {
+        //     if *value == val.as_ref().unwrap().value {
+        //         value_index = Some(index);
+        //         break;
+        //     }
+        // }
 
-        if value_index.is_none() {
-            return;
-        }
+        // if value_index.is_none() {
+        //     return;
+        // }
 
-        let mut vec_cache = self.cache.borrow_mut();
-        let element = vec_cache.get(value_index.unwrap()).unwrap();
-        let prev_element_index = element.as_ref().unwrap().prev;
-        let next_element_index = element.as_ref().unwrap().next;
+        // let mut vec_cache = self.cache.borrow_mut();
+        // let element = vec_cache.get(value_index.unwrap()).unwrap();
+        // let prev_element_index = element.as_ref().unwrap().prev;
+        // let next_element_index = element.as_ref().unwrap().next;
 
         // let mut vec_cache_mut = vec_cache;
-        if prev_element_index.is_some() {
-            let prev_element_mut = vec_cache.get_mut(prev_element_index.unwrap()).unwrap();
-            prev_element_mut.as_mut().unwrap().next = next_element_index;
-        }
+        // if prev_element_index.is_some() {
+        //     let prev_element_mut = vec_cache.get_mut(prev_element_index.unwrap()).unwrap();
+        //     prev_element_mut.as_mut().unwrap().next = next_element_index;
+        // }
 
-        if next_element_index.is_some() {
-            let next_element_mut = vec_cache.get_mut(next_element_index.unwrap()).unwrap();
-            next_element_mut.as_mut().unwrap().prev = prev_element_index;
-        }
+        // if next_element_index.is_some() {
+        //     let next_element_mut = vec_cache.get_mut(next_element_index.unwrap()).unwrap();
+        //     next_element_mut.as_mut().unwrap().prev = prev_element_index;
+        // }
 
         // actual element
-        let element = vec_cache.get_mut(value_index.unwrap()).unwrap();
-        element.as_mut().unwrap().prev = None;
-        element.as_mut().unwrap().next = Some(self.head.borrow().unwrap());
-        let mut a = self.head.borrow_mut();
-        *a = value_index;
+        // let element = vec_cache.get_mut(value_index.unwrap()).unwrap();
+        // element.as_mut().unwrap().prev = None;
+        // element.as_mut().unwrap().next = Some(self.head.borrow().unwrap());
+        // let mut a = self.head.borrow_mut();
+        // *a = value_index;
+
+        // --------
+        let Some(index) = self.map.get(value) else {
+            return None;
+        };
+
+        let cache = self.cache.borrow();
+        // let node = cache.get(*index).unwrap().as_ref().unwrap();
+
+        if let Some(Some(n)) = cache.get(*index) {
+            Some(n.value.clone())
+        } else {
+            None
+        }
     }
 
     fn lookup(&self, val: T) -> Option<T> {
@@ -228,7 +242,6 @@ impl<T: Eq + Hash + Clone + Debug> LRUCache<T> {
         // it's last accessed element. For that we need a reference to Node.
         let mut map_mut = self.map.borrow_mut();
         let val_index = map_mut.get(val);
-        println!("MAP {:?}", map_mut);
         let loc = val_index?;
 
         // Interior mutability
@@ -380,9 +393,32 @@ mod std_ll_lru_tests {
         // cache.get(&3);
     }
 
-    fn lru_get_works_without_values() {
-        // let mut cache = LRUCacheVec::new(5);
+    #[test]
+    fn lru_works_when_empty_cache() {
+        let cache = LRUCacheVec::new(5);
 
-        // assert_eq!(cache.get(&1), None);
+        assert_eq!(cache.get(&1), None);
+    }
+
+    #[test]
+    fn lru_works_when_single_item_is_put_in_cache() {
+        let mut cache = LRUCacheVec::new(5);
+        cache.put(1);
+
+        assert_eq!(cache.get(&1), Some(1));
+    }
+
+    #[test]
+    fn lru_works_when_at_capacity() {
+        let mut cache = LRUCacheVec::new(5);
+        let v: Vec<u32> = (1..=5).collect();
+
+        for val in v.iter() {
+            cache.put(val);
+        }
+
+        for val in v.iter() {
+            assert_eq!(cache.get(&val), Some(val));
+        }
     }
 }
