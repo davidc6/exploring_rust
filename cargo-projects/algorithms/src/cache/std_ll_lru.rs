@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Debug, hash::Hash};
+use std::{borrow::Borrow, cell::RefCell, collections::HashMap, fmt::Debug, hash::Hash};
 
 #[derive(Debug)]
 pub struct Node<T> {
@@ -139,70 +139,66 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCacheVec<T> {
 
     pub fn get(&self, value: &T) -> Option<T>
     where
-        T: PartialEq + Eq,
+        T: PartialEq + Eq + Borrow<T>,
     {
-        // self
-        // let n
-        // self.cache.push(
-
-        // TODO
-        // remove last element (tail)
-        // let position = self.tail.unwrap();
-        // let mut element = self.cache.get_mut(position).unwrap();
-
-        // let prev = element.as_mut().unwrap().prev.unwrap();
-        // let mut a = self.cache.get_mut(prev).unwrap();
-        // a.as_mut().unwrap().next = None;
-
-        // #2
-        // let mut value_index = None;
-        // for (index, val) in self.cache.borrow_mut().iter().enumerate() {
-        //     if *value == val.as_ref().unwrap().value {
-        //         value_index = Some(index);
-        //         break;
-        //     }
-        // }
-
-        // if value_index.is_none() {
-        //     return;
-        // }
-
-        // let mut vec_cache = self.cache.borrow_mut();
-        // let element = vec_cache.get(value_index.unwrap()).unwrap();
-        // let prev_element_index = element.as_ref().unwrap().prev;
-        // let next_element_index = element.as_ref().unwrap().next;
-
-        // let mut vec_cache_mut = vec_cache;
-        // if prev_element_index.is_some() {
-        //     let prev_element_mut = vec_cache.get_mut(prev_element_index.unwrap()).unwrap();
-        //     prev_element_mut.as_mut().unwrap().next = next_element_index;
-        // }
-
-        // if next_element_index.is_some() {
-        //     let next_element_mut = vec_cache.get_mut(next_element_index.unwrap()).unwrap();
-        //     next_element_mut.as_mut().unwrap().prev = prev_element_index;
-        // }
-
-        // actual element
-        // let element = vec_cache.get_mut(value_index.unwrap()).unwrap();
-        // element.as_mut().unwrap().prev = None;
-        // element.as_mut().unwrap().next = Some(self.head.borrow().unwrap());
-        // let mut a = self.head.borrow_mut();
-        // *a = value_index;
-
-        // --------
         let Some(index) = self.map.get(value) else {
             return None;
         };
 
-        let cache = self.cache.borrow();
-        // let node = cache.get(*index).unwrap().as_ref().unwrap();
+        let mut value_to_return = None;
 
-        if let Some(Some(n)) = cache.get(*index) {
-            Some(n.value.clone())
-        } else {
-            None
+        // Get current element's previous and next node indices
+        let (previous_index, next_index) = {
+            let mut cache = self.cache.borrow();
+
+            if let Some(elem) = cache.get(*index) {
+                let previous_element_index = elem.as_ref().unwrap().prev;
+                let next_element_index = elem.as_ref().unwrap().next;
+                (previous_element_index, next_element_index)
+            } else {
+                (None, None)
+            }
+        };
+
+        // Update previous element's next index (to contain current element's next element index)
+        if let Some(prev_index) = previous_index {
+            let mut cache = self.cache.borrow_mut();
+            if let Some(Some(elem)) = cache.get_mut(prev_index) {
+                elem.next = next_index;
+            }
         }
+
+        // Update next element's prev index (to contain current element's prev element index)
+        if let Some(nxt_index) = next_index {
+            let mut cache = self.cache.borrow_mut();
+            if let Some(Some(elem)) = cache.get_mut(nxt_index) {
+                elem.prev = previous_index;
+            }
+        }
+
+        // Set current element to become head
+        let mut cache = self.cache.borrow_mut();
+        if let Some(Some(elem)) = cache.get_mut(*index) {
+            {
+                elem.prev = None;
+                elem.next = *self.head.borrow();
+                value_to_return = Some(elem.value.clone());
+            }
+        }
+
+        // Update head
+        let mut head_mut = self.head.borrow_mut();
+        *head_mut = Some(*index);
+
+        value_to_return
+    }
+
+    pub fn head(&self) -> Option<usize> {
+        *self.head.borrow()
+    }
+
+    pub fn tail(&self) -> Option<usize> {
+        *self.tail.borrow()
     }
 
     fn lookup(&self, val: T) -> Option<T> {
@@ -330,16 +326,19 @@ mod std_ll_lru_tests {
             cache.put(val);
         }
 
-        let head = cache.head.borrow().unwrap();
-        let tail = cache.head.borrow().unwrap();
+        let head = cache.head();
+        let tail = cache.tail();
 
-        assert_eq!(head, 4);
-        assert_eq!(tail, 0);
+        assert_eq!(head, Some(4));
+        assert_eq!(tail, Some(0));
 
+        // Calling get() method updates the head index
         cache.get(&3);
 
-        let head = cache.head.borrow().unwrap();
+        let head = cache.head();
+        let tail = cache.tail();
 
-        assert_eq!(head, 4);
+        assert_eq!(head, Some(2));
+        assert_eq!(tail, Some(0));
     }
 }
