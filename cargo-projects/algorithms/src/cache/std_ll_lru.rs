@@ -421,4 +421,81 @@ mod std_ll_lru_tests {
             assert_eq!(cache.get(&val), Some(val));
         }
     }
+
+    #[test]
+    fn lru_works_when_over_capacity() {
+        let mut cache = LRUCacheVec::new(5);
+        let v: Vec<u32> = (1..=5).collect();
+
+        for val in v.iter() {
+            cache.put(val);
+        }
+
+        cache.put(&6);
+
+        let expected = [6, 2, 3, 4, 5];
+
+        for val in expected.iter() {
+            assert_eq!(cache.get(&val), Some(val));
+        }
+
+        cache.put(&7);
+
+        let expected = [7, 6, 3, 4, 5];
+
+        for val in expected.iter() {
+            assert_eq!(cache.get(&val), Some(val));
+        }
+    }
+
+    #[test]
+    fn lru_works_when_completely_replaced_by() {
+        let mut cache = LRUCacheVec::new(5);
+
+        // Initial 1 to 5 value insertion
+        let v: Vec<u32> = (1..=5).collect();
+
+        for val in v.iter() {
+            cache.put(val);
+        }
+
+        for val in v.iter() {
+            assert_eq!(cache.get(&val), Some(val));
+        }
+
+        // Follow up with 6 to 10 values to completely replace the cache with new values
+        let v: Vec<u32> = (6..=10).collect();
+
+        for val in v.iter() {
+            cache.put(val);
+        }
+
+        let expected = [10, 9, 8, 7, 6];
+
+        for val in expected.iter() {
+            assert_eq!(cache.get(&val), Some(val));
+        }
+    }
+
+    #[test]
+    fn lru_works_on_get_operation() {
+        let mut cache = LRUCacheVec::new(5);
+        let v: Vec<u32> = (1..=5).collect();
+
+        for val in v.into_iter() {
+            cache.put(val);
+        }
+
+        let head = cache.head.borrow().unwrap();
+        let tail = cache.head.borrow().unwrap();
+
+        assert_eq!(head, 4);
+        assert_eq!(tail, 0);
+
+        cache.get(&3);
+
+        let head = cache.head.borrow().unwrap();
+
+        assert_eq!(head, 4);
+    }
 }
