@@ -13,8 +13,12 @@ pub struct Node<T> {
     value: T,
 }
 
+/// LRUCache struct holds cache data and
+/// information related to it, such as
+/// head and tail pointers (least and most
+/// recently accessed items), cache capacity.
 #[derive(Debug)]
-pub struct LRUCacheVec<T> {
+pub struct LRUCache<T> {
     head: RefCell<Option<usize>>,
     tail: RefCell<Option<usize>>,
     capacity: usize,
@@ -22,9 +26,9 @@ pub struct LRUCacheVec<T> {
     map: HashMap<T, usize>,
 }
 
-impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCacheVec<T> {
+impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
     pub fn new(capacity: usize) -> Self {
-        LRUCacheVec {
+        LRUCache {
             head: RefCell::new(None),
             tail: RefCell::new(None),
             cache: RefCell::new(Vec::new()),
@@ -250,13 +254,51 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCacheVec<T> {
     }
 }
 
+struct LRUCacheState<'a, T>
+where
+    T: 'a,
+{
+    current_element: Option<usize>,
+    lru_cache: Ref<'a, Vec<Option<Node<T>>>>,
+}
+
+impl<'a, T: Hash + Eq + PartialEq + Debug + Clone + 'a> LRUCacheState<'a, T> {
+    fn new(lru_cache: &'a LRUCache<T>) -> Self {
+        let data = lru_cache.cache.borrow();
+
+        LRUCacheState {
+            current_element: lru_cache.head(),
+            lru_cache: data,
+        }
+    }
+}
+
+impl<'a, T: 'a> Iterator for LRUCacheState<'a, T> {
+    type Item = &'a Node<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let old_index = self.current_element.unwrap();
+        let w = self.lru_cache.get(old_index);
+
+        let res = if let Some(Some(el)) = w {
+            Some(el)
+        } else {
+            None
+        };
+
+        self.current_element = Some(self.current_element.unwrap() + 1);
+
+        res
+    }
+}
+
 #[cfg(test)]
 mod std_ll_lru_tests {
-    use super::LRUCacheVec;
+    use super::LRUCache;
 
     #[test]
     fn lru_works_when_empty_cache() {
-        let cache = LRUCacheVec::new(5);
+        let cache = LRUCache::new(5);
         let a = cache.get(&1);
 
         assert!(a.is_none());
@@ -264,7 +306,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_single_item_is_put_in_cache() {
-        let mut cache = LRUCacheVec::new(5);
+        let mut cache = LRUCache::new(5);
         cache.put(1);
 
         let actual = *cache.get(&1).unwrap();
@@ -274,7 +316,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_at_capacity() {
-        let mut cache = LRUCacheVec::new(5);
+        let mut cache = LRUCache::new(5);
         let v: Vec<u32> = (1..=5).collect();
 
         for val in v.iter() {
@@ -289,7 +331,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_over_capacity() {
-        let mut cache = LRUCacheVec::new(5);
+        let mut cache = LRUCache::new(5);
         let v: Vec<u32> = (1..=5).collect();
 
         for val in v.iter() {
@@ -315,7 +357,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_completely_replaced_by() {
-        let mut cache = LRUCacheVec::new(3);
+        let mut cache = LRUCache::new(3);
 
         // Initial 1 to 5 value insertion
         let v: Vec<u32> = (1..=3).collect();
@@ -363,7 +405,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_on_get_operation() {
-        let mut cache = LRUCacheVec::new(5);
+        let mut cache = LRUCache::new(5);
         let v: Vec<u32> = (1..=5).collect();
 
         for val in v.into_iter() {
