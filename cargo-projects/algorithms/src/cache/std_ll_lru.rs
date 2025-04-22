@@ -4,12 +4,16 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     hash::Hash,
+    rc::Rc,
 };
+
+type Entry<T> = Option<Rc<RefCell<Node<T>>>>;
+type Position = Option<Rc<RefCell<usize>>>;
 
 #[derive(Debug)]
 pub struct Node<T> {
-    prev: Option<usize>,
-    next: Option<usize>,
+    prev: Position,
+    next: Position,
     value: T,
 }
 
@@ -82,7 +86,7 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
 
             // New node is head so nothing to link to previously
             node.prev = None;
-            node.next = Some(head_index);
+            node.next = Some(Rc::new(RefCell::new(head_index)));
 
             // TODO, deal with the previous node - remove tail
             // 1. get previous node, which becomes tail now and set next to None
@@ -92,9 +96,9 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
             let tail_prev_index = if let Some(Some(elem)) = cache_mut.get_mut(tail_index) {
                 // If there's only one element in cache then it's head and tail,
                 // therefore prev and next are None.
-                elem.prev.unwrap_or(0)
+                elem.prev.clone().unwrap_or(Rc::new(RefCell::new(0)))
             } else {
-                0
+                Rc::new(RefCell::new(0))
             };
 
             // println!("")
@@ -105,6 +109,7 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
             // set previous to tail element next to None (since we are removing the tail element)
             // println!("TAIL TAIL {:?}", tail_prev_index);
 
+            let tail_prev_index = tail_prev_index.clone().take();
             if let Some(Some(val_node)) = cache_mut.get_mut(tail_prev_index) {
                 val_node.next = None;
             } else {
@@ -121,7 +126,7 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
             self.tail = RefCell::new(Some(tail_prev_index));
 
             if let Some(Some(val)) = cache_mut.get_mut(head_index) {
-                val.prev = Some(tail_index);
+                val.prev = Some(Rc::new(RefCell::new(tail_index)));
             }
 
             // Update with the new node
@@ -149,30 +154,20 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
         //     .as_mut();
 
         // new head
+        let head = self.head.borrow().unwrap();
         node.prev = None;
-        node.next = Some(self.head.borrow().unwrap());
+        node.next = Some(Rc::new(RefCell::new(head)));
 
         // previous head should have previous set to new head index
         if let Some(Some(node_mut)) = cache_mut.get_mut(self.head.borrow().unwrap()) {
-            node_mut.prev = Some(index);
+            node_mut.prev = Some(Rc::new(RefCell::new(index)));
             // node_mut.next = node.
         };
 
-        // TODO, previous is always set to none for some reason
-
         // Update HashMap
         self.map.insert(value, index);
-
         cache_mut.push(Some(node));
-
         self.head = RefCell::new(Some(index));
-
-        // drop(cache_mut);
-
-        // println!("CACHE {:?}", self.cache);
-
-        // cache_mut[position].as_mut().unwrap().next = *self.head.borrow();
-        // self.head = RefCell::new(Some(position));
     }
 
     pub fn get(&self, value: &T) -> Option<Ref<T>>
@@ -180,15 +175,16 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
         T: PartialEq + Eq + Borrow<T>,
     {
         let index = self.map.get(value)?;
-        // let mut value_to_return = None;
 
         // Get current element's previous and next node indices
         let (previous_index, next_index) = {
             let cache = self.cache.borrow();
 
             if let Some(elem) = cache.get(*index) {
-                let previous_element_index = elem.as_ref().unwrap().prev;
-                let next_element_index = elem.as_ref().unwrap().next;
+                let elem_ref = elem.as_ref().unwrap();
+                let previous_element_index = elem_ref.prev.clone();
+                let next_element_index = elem_ref.next.clone();
+
                 (previous_element_index, next_element_index)
             } else {
                 (None, None)
@@ -196,10 +192,10 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
         };
 
         // Update previous element's next index (to contain current element's next element index)
-        if let Some(prev_index) = previous_index {
+        if let Some(ref prev_index) = previous_index {
             let mut cache = self.cache.borrow_mut();
-            if let Some(Some(elem)) = cache.get_mut(prev_index) {
-                elem.prev = Some(*index);
+            if let Some(Some(elem)) = cache.get_mut(*prev_index.borrow_mut()) {
+                elem.prev = Some(Rc::new(RefCell::new(*index)));
                 elem.next = None;
             }
         }
@@ -207,38 +203,40 @@ impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
         // Update next element's prev index (to contain current element's prev element index)
         if let Some(nxt_index) = next_index {
             let mut cache = self.cache.borrow_mut();
-            if let Some(Some(elem)) = cache.get_mut(nxt_index) {
-                elem.prev = Some(*index);
+            let n = nxt_index.clone().take();
+            if let Some(Some(elem)) = cache.get_mut(n) {
+                elem.prev = Some(Rc::new(RefCell::new(*index)));
             }
         }
 
         // HEAD - Set current element to become head
-        let mut cache = self.cache.borrow_mut();
-        if let Some(Some(elem)) = cache.get_mut(*index) {
-            elem.prev = None;
-            elem.next = *self.head.borrow();
-            // value_to_return = Some(elem.value.clone());
+        {
+            let mut cache = self.cache.borrow_mut();
+            if let Some(Some(elem)) = cache.get_mut(*index) {
+                let h = self.head.borrow().unwrap();
+                elem.prev = None;
+                elem.next = Some(Rc::new(RefCell::new(h)));
+                // value_to_return = Some(elem.value.clone());
+            }
         }
 
         // Update head
         let mut head_mut = self.head.borrow_mut();
         *head_mut = Some(*index);
 
+        // Update tail
         let mut tail_mut = self.tail.borrow_mut();
-        *tail_mut = Some(previous_index.unwrap_or(0));
-
-        drop(cache);
+        let i = previous_index.clone().unwrap_or(Rc::new(RefCell::new(0)));
+        *tail_mut = Some(i.clone().take());
 
         let elem = self.cache.borrow();
-        if let Some(Some(ele)) = elem.get(*index) {
+        if let Some(Some(_)) = elem.get(*index) {
             Some(Ref::map(elem, |e| {
                 &e.get(*index).unwrap().as_ref().unwrap().value
             }))
         } else {
             None
         }
-
-        // value_to_return
     }
 
     pub fn head(&self) -> Option<usize> {
@@ -259,12 +257,12 @@ where
     T: 'a,
 {
     current_element: Option<usize>,
-    lru_cache: Ref<'a, Vec<Option<Node<T>>>>,
+    lru_cache: Rc<Ref<'a, Vec<Option<Node<T>>>>>,
 }
 
 impl<'a, T: Hash + Eq + PartialEq + Debug + Clone + 'a> LRUCacheState<'a, T> {
     fn new(lru_cache: &'a LRUCache<T>) -> Self {
-        let data = lru_cache.cache.borrow();
+        let data = Rc::new(lru_cache.cache.borrow());
 
         LRUCacheState {
             current_element: lru_cache.head(),
@@ -288,7 +286,9 @@ impl<'a, T: 'a> Iterator for LRUCacheState<'a, T> {
 
         self.current_element = Some(self.current_element.unwrap() + 1);
 
-        res
+        // res <---- FIX THIS
+        // res
+        None
     }
 }
 
@@ -426,5 +426,32 @@ mod std_ll_lru_tests {
 
         assert_eq!(head, Some(2));
         assert_eq!(tail, Some(0));
+    }
+
+    #[test]
+    fn lru_works_on_get_operation_next() {
+        let mut cache = LRUCache::new(5);
+        let v: Vec<u32> = (1..=5).collect();
+
+        for val in v.into_iter() {
+            cache.put(val);
+        }
+
+        // for value in cache.cache.into_inner() {}
+
+        // let head = cache.head();
+        // let tail = cache.tail();
+
+        // assert_eq!(head, Some(4));
+        // assert_eq!(tail, Some(0));
+
+        // // Calling get() method updates the head index
+        // cache.get(&3);
+
+        // let head = cache.head();
+        // let tail = cache.tail();
+
+        // assert_eq!(head, Some(2));
+        // assert_eq!(tail, Some(0));
     }
 }
