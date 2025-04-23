@@ -2,6 +2,7 @@ use std::{
     borrow::Borrow,
     cell::{Ref, RefCell},
     collections::HashMap,
+    default,
     fmt::Debug,
     hash::Hash,
     rc::Rc,
@@ -30,8 +31,18 @@ pub struct LRUCache<T> {
     map: HashMap<T, usize>,
 }
 
-impl<T: Debug + Eq + PartialEq + Hash + Clone> LRUCache<T> {
-    pub fn new(capacity: usize) -> Self {
+impl<T: Clone + Debug + Eq + Hash + PartialEq> Default for LRUCache<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
+    pub fn new() -> Self {
+        Self::with_capacity(10)
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
         LRUCache {
             head: RefCell::new(None),
             tail: RefCell::new(None),
@@ -298,7 +309,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_empty_cache() {
-        let cache = LRUCache::new(5);
+        let cache = LRUCache::with_capacity(5);
         let a = cache.get(&1);
 
         assert!(a.is_none());
@@ -306,7 +317,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_single_item_is_put_in_cache() {
-        let mut cache = LRUCache::new(5);
+        let mut cache = LRUCache::with_capacity(5);
         cache.put(1);
 
         let actual = *cache.get(&1).unwrap();
@@ -316,7 +327,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_at_capacity() {
-        let mut cache = LRUCache::new(5);
+        let mut cache = LRUCache::with_capacity(5);
         let v: Vec<u32> = (1..=5).collect();
 
         for val in v.iter() {
@@ -331,7 +342,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_over_capacity() {
-        let mut cache = LRUCache::new(5);
+        let mut cache = LRUCache::with_capacity(5);
         let v: Vec<u32> = (1..=5).collect();
 
         for val in v.iter() {
@@ -357,7 +368,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_when_completely_replaced_by() {
-        let mut cache = LRUCache::new(3);
+        let mut cache = LRUCache::with_capacity(3);
 
         // Initial 1 to 5 value insertion
         let v: Vec<u32> = (1..=3).collect();
@@ -405,7 +416,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_on_get_operation() {
-        let mut cache = LRUCache::new(5);
+        let mut cache = LRUCache::with_capacity(5);
         let v: Vec<u32> = (1..=5).collect();
 
         for val in v.into_iter() {
@@ -430,7 +441,7 @@ mod std_ll_lru_tests {
 
     #[test]
     fn lru_works_on_get_operation_next() {
-        let mut cache = LRUCache::new(5);
+        let mut cache = LRUCache::with_capacity(5);
         let v: Vec<u32> = (1..=5).collect();
 
         for val in v.into_iter() {
