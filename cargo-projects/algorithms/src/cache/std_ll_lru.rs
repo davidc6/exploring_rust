@@ -2,10 +2,11 @@ use std::{
     borrow::Borrow,
     cell::{Ref, RefCell},
     collections::HashMap,
-    default,
     fmt::Debug,
     hash::Hash,
+    ops::{Deref, DerefMut},
     rc::Rc,
+    slice::IterMut,
 };
 
 type Entry<T> = Option<Rc<RefCell<Node<T>>>>;
@@ -16,6 +17,20 @@ pub struct Node<T> {
     prev: Position,
     next: Position,
     value: T,
+}
+
+impl<T> Deref for Node<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T> DerefMut for Node<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
 }
 
 /// LRUCache struct holds cache data and
@@ -93,17 +108,11 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
             let head_index = self.head.borrow().unwrap();
             let tail_index = self.tail.borrow().unwrap();
 
-            // println!("HEAD {:?} TAIL {:?}", head_index, tail_index);
-
             // New node is head so nothing to link to previously
             node.prev = None;
             node.next = Some(Rc::new(RefCell::new(head_index)));
 
-            // TODO, deal with the previous node - remove tail
-            // 1. get previous node, which becomes tail now and set next to None
-            // let previous_tail = cache_mut.get_mut(tail_index).unwrap();
-
-            // get previous to tail element index
+            // Get previous to tail element index
             let tail_prev_index = if let Some(Some(elem)) = cache_mut.get_mut(tail_index) {
                 // If there's only one element in cache then it's head and tail,
                 // therefore prev and next are None.
@@ -112,14 +121,6 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
                 Rc::new(RefCell::new(0))
             };
 
-            // println!("")
-            // println!("TAIL PREV {:?}", tail_prev_index);
-
-            // let index_of_prev_to_tail_element = tail_prev.as_ref().unwrap().prev.unwrap();
-
-            // set previous to tail element next to None (since we are removing the tail element)
-            // println!("TAIL TAIL {:?}", tail_prev_index);
-
             let tail_prev_index = tail_prev_index.clone().take();
             if let Some(Some(val_node)) = cache_mut.get_mut(tail_prev_index) {
                 val_node.next = None;
@@ -127,13 +128,7 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
                 return;
             };
 
-            // let next_to_head_element = cache_mut.get_mut(head_index).unwrap();
-            // let index_of_next_to_head_element =
-
-            // previous to tail (next to none)
-            // previous head prev to head
-
-            // set tail to new element
+            // Set tail to new element
             self.tail = RefCell::new(Some(tail_prev_index));
 
             if let Some(Some(val)) = cache_mut.get_mut(head_index) {
@@ -159,11 +154,6 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         let mut cache_mut = self.cache.borrow_mut();
         let index = cache_mut.len(); // new head location
 
-        // let current_node = cache_mut
-        //     .get_mut(self.head.borrow().unwrap())
-        //     .unwrap()
-        //     .as_mut();
-
         // new head
         let head = self.head.borrow().unwrap();
         node.prev = None;
@@ -172,7 +162,6 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         // previous head should have previous set to new head index
         if let Some(Some(node_mut)) = cache_mut.get_mut(self.head.borrow().unwrap()) {
             node_mut.prev = Some(Rc::new(RefCell::new(index)));
-            // node_mut.next = node.
         };
 
         // Update HashMap
@@ -261,47 +250,62 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
     fn lookup(&self, val: T) -> Option<T> {
         None
     }
-}
 
-struct LRUCacheState<'a, T>
-where
-    T: 'a,
-{
-    current_element: Option<usize>,
-    lru_cache: Rc<Ref<'a, Vec<Option<Node<T>>>>>,
-}
+    pub fn iter_mut(&mut self) -> IterMut<'_, Option<Node<T>>> {
+        let head_index = self.head.borrow().unwrap();
+        // let head_mut = self.cache.get_mut();
+        let vec_mut = self.cache.get_mut().iter_mut();
+        // let mut node_mut = vec_mut.get_mut(head_index).unwrap().iter_mut();
 
-impl<'a, T: Hash + Eq + PartialEq + Debug + Clone + 'a> LRUCacheState<'a, T> {
-    fn new(lru_cache: &'a LRUCache<T>) -> Self {
-        let data = Rc::new(lru_cache.cache.borrow());
+        vec_mut
 
-        LRUCacheState {
-            current_element: lru_cache.head(),
-            lru_cache: data,
-        }
+        // IterMut { this: node_mut }
     }
 }
 
-impl<'a, T: 'a> Iterator for LRUCacheState<'a, T> {
-    type Item = &'a Node<T>;
+// struct IterMut<'a, T> {
+//     this: &'a mut Option<&'a mut Node<T>>,
+// }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let old_index = self.current_element.unwrap();
-        let w = self.lru_cache.get(old_index);
+// struct LRUCacheState<'a, T>
+// where
+//     T: 'a,
+// {
+//     current_element: Option<usize>,
+//     lru_cache: Rc<Ref<'a, Vec<Option<Node<T>>>>>,
+// }
 
-        let res = if let Some(Some(el)) = w {
-            Some(el)
-        } else {
-            None
-        };
+// impl<'a, T: Hash + Eq + PartialEq + Debug + Clone + 'a> LRUCacheState<'a, T> {
+//     fn new(lru_cache: &'a LRUCache<T>) -> Self {
+//         let data = Rc::new(lru_cache.cache.borrow());
 
-        self.current_element = Some(self.current_element.unwrap() + 1);
+//         LRUCacheState {
+//             current_element: lru_cache.head(),
+//             lru_cache: data,
+//         }
+//     }
+// }
 
-        // res <---- FIX THIS
-        // res
-        None
-    }
-}
+// impl<'a, T: 'a> Iterator for LRUCacheState<'a, T> {
+//     type Item = &'a Node<T>;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let old_index = self.current_element?;
+//         let element = self.lru_cache.get(old_index)?;
+
+//         let res = if let Some(el) = element {
+//             Some(el)
+//         } else {
+//             None
+//         };
+
+//         self.current_element = Some(self.current_element.unwrap() + 1);
+
+//         // res <---- FIX THIS
+//         res
+//         // None
+//     }
+// }
 
 #[cfg(test)]
 mod std_ll_lru_tests {
@@ -446,6 +450,14 @@ mod std_ll_lru_tests {
 
         for val in v.into_iter() {
             cache.put(val);
+        }
+
+        for val in cache.iter_mut() {
+            // let a = val.as_mut().unwrap();
+            // a.value
+            println!("BEFORE {:?}", val.as_ref().unwrap().value);
+            val.as_mut().unwrap().value = 11;
+            println!("AFTER {:?}", val.as_ref().unwrap().value);
         }
 
         // for value in cache.cache.into_inner() {}
