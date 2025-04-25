@@ -1,12 +1,12 @@
 use std::{
     borrow::Borrow,
-    cell::{Ref, RefCell},
+    cell::{Ref, RefCell, RefMut},
     collections::HashMap,
     fmt::Debug,
     hash::Hash,
     ops::{Deref, DerefMut},
     rc::Rc,
-    slice::IterMut,
+    // slice::IterMut,
 };
 
 type Entry<T> = Option<Rc<RefCell<Node<T>>>>;
@@ -251,21 +251,50 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         None
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, Option<Node<T>>> {
-        let head_index = self.head.borrow().unwrap();
-        // let head_mut = self.cache.get_mut();
-        let vec_mut = self.cache.get_mut().iter_mut();
-        // let mut node_mut = vec_mut.get_mut(head_index).unwrap().iter_mut();
+    // pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+    //     let head_index = self.head.borrow().unwrap();
+    //     // let head_mut = self.cache.get_mut();
+    //     let vec_mut = self.cache.get_mut();
+    //     let mut node_mut = vec_mut.get_mut(head_index).unwrap().as_mut();
+    //     // let mut node_mut = vec_mut.get_mut(head_index).unwrap().iter_mut();
 
-        vec_mut
+    //     // vec_mut
 
-        // IterMut { this: node_mut }
+    //     IterMut {
+    //         this: &mut node_mut,
+    //     }
+    // }
+}
+
+pub struct IterMut<'a, T> {
+    // A wrapper for mutably borrowed value (from RefCell)
+    this: RefMut<'a, Vec<Option<Node<T>>>>,
+}
+
+impl<'a, T> IntoIterator for &'a mut LRUCache<T> {
+    type Item = &'a mut Node<T>;
+    type IntoIter = IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        // We mutably borrow from RefCell here
+        IterMut {
+            this: self.cache.borrow_mut(),
+        }
     }
 }
 
-// struct IterMut<'a, T> {
-//     this: &'a mut Option<&'a mut Node<T>>,
-// }
+impl<'a, T> Iterator for IterMut<'a, T> {
+    // We want to get a mutable reference to Node
+    type Item = &'a mut Node<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // TODO - this is impossible to achieve since
+        // let node = self.this.get_mut(0).unwrap();
+        // let node = node.as_mut();
+        // node
+        None
+    }
+}
 
 // struct LRUCacheState<'a, T>
 // where
@@ -452,12 +481,17 @@ mod std_ll_lru_tests {
             cache.put(val);
         }
 
-        for val in cache.iter_mut() {
+        println!("BOLOG {:?}", cache);
+
+        for val in &mut cache {
+            println!("IN LOOP ");
             // let a = val.as_mut().unwrap();
             // a.value
-            println!("BEFORE {:?}", val.as_ref().unwrap().value);
-            val.as_mut().unwrap().value = 11;
-            println!("AFTER {:?}", val.as_ref().unwrap().value);
+            let a = val.value;
+            println!("SOme value {:?}", a);
+            // println!("BEFORE {:?}", val.as_ref().unwrap().value);
+            // val.as_mut().unwrap().value = 11;
+            // println!("AFTER {:?}", val.as_ref().unwrap().value);
         }
 
         // for value in cache.cache.into_inner() {}
