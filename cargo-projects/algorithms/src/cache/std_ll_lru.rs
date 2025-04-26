@@ -42,7 +42,8 @@ pub struct LRUCache<T> {
     head: RefCell<Option<usize>>,
     tail: RefCell<Option<usize>>,
     capacity: usize,
-    cache: RefCell<Vec<Option<Node<T>>>>,
+    // cache: RefCell<Vec<Option<Node<T>>>>,
+    cache: Vec<Rc<RefCell<Option<Node<T>>>>>,
     map: HashMap<T, usize>,
 }
 
@@ -61,7 +62,7 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         LRUCache {
             head: RefCell::new(None),
             tail: RefCell::new(None),
-            cache: RefCell::new(Vec::new()),
+            cache: Vec::new(),
             map: HashMap::new(),
             capacity,
         }
@@ -80,10 +81,11 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
 
         // #1 - The list is empty
         if self.head.borrow().is_none() {
-            let mut cache_mut = self.cache.borrow_mut();
-            cache_mut.push(Some(node));
+            // let l = self.cache;
+            // let mut cache_mut = self.cache;
+            self.cache.push(Rc::new(RefCell::new(Some(node))));
 
-            let index = cache_mut.len() - 1;
+            let index = self.cache.len() - 1;
 
             // Update HashMap
             self.map.insert(value, index);
@@ -96,9 +98,7 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         }
 
         // #2 - The list is filled
-        if self.cache.borrow().len() == self.capacity {
-            let mut cache_mut = self.cache.borrow_mut();
-
+        if self.cache.len() == self.capacity {
             if self.capacity == 1 {
                 // TODO
             }
@@ -113,17 +113,27 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
             node.next = Some(Rc::new(RefCell::new(head_index)));
 
             // Get previous to tail element index
-            let tail_prev_index = if let Some(Some(elem)) = cache_mut.get_mut(tail_index) {
+            // let tail_prev_index = if let Some(Some(elem)) = cache_mut.get_mut(tail_index) {
+            let tail_prev = self.cache.get_mut(tail_index);
+            let tail_prev_index = if let Some(elem) = tail_prev {
                 // If there's only one element in cache then it's head and tail,
                 // therefore prev and next are None.
-                elem.prev.clone().unwrap_or(Rc::new(RefCell::new(0)))
+                let b = elem.clone();
+                let b = &*b;
+                let p = b.borrow();
+                let p = p.as_ref().unwrap().prev.clone();
+                p.unwrap_or(Rc::new(RefCell::new(0)))
             } else {
                 Rc::new(RefCell::new(0))
             };
 
             let tail_prev_index = tail_prev_index.clone().take();
-            if let Some(Some(val_node)) = cache_mut.get_mut(tail_prev_index) {
-                val_node.next = None;
+
+            if let Some(val_node) = self.cache.get_mut(tail_prev_index) {
+                let mut v = val_node.clone();
+                let mut v = v.borrow_mut();
+                let v = v.as_mut().unwrap();
+                v.next = None;
             } else {
                 return;
             };
@@ -131,18 +141,24 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
             // Set tail to new element
             self.tail = RefCell::new(Some(tail_prev_index));
 
-            if let Some(Some(val)) = cache_mut.get_mut(head_index) {
-                val.prev = Some(Rc::new(RefCell::new(tail_index)));
+            if let Some(val) = self.cache.get_mut(head_index) {
+                let v = val.clone();
+                let mut v = v.borrow_mut();
+                let v = v.as_mut().unwrap();
+                v.prev = Some(Rc::new(RefCell::new(tail_index)));
             }
 
             // Update with the new node
-            if let Some(val) = cache_mut.get_mut(tail_index) {
-                let key = &val.as_ref().unwrap().value;
+            if let Some(val) = self.cache.get_mut(tail_index) {
+                let v = val.clone();
+                let v = v.as_ref().borrow();
+                let v = v.as_ref();
+                let key = &v.unwrap().value;
 
                 self.map.remove(key);
                 self.map.insert(value, tail_index);
 
-                *val = Some(node);
+                *val = Rc::new(RefCell::new(Some(node)));
             }
 
             self.head = RefCell::new(Some(tail_index));
@@ -151,8 +167,7 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         }
 
         // #3 - The list has space
-        let mut cache_mut = self.cache.borrow_mut();
-        let index = cache_mut.len(); // new head location
+        let index = self.cache.len(); // new head location
 
         // new head
         let head = self.head.borrow().unwrap();
@@ -160,17 +175,20 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         node.next = Some(Rc::new(RefCell::new(head)));
 
         // previous head should have previous set to new head index
-        if let Some(Some(node_mut)) = cache_mut.get_mut(self.head.borrow().unwrap()) {
-            node_mut.prev = Some(Rc::new(RefCell::new(index)));
+        if let Some(node_mut) = self.cache.get_mut(self.head.borrow().unwrap()) {
+            let v = node_mut.clone();
+            let mut v = v.borrow_mut();
+            let v = v.as_mut().unwrap();
+            v.prev = Some(Rc::new(RefCell::new(index)));
         };
 
         // Update HashMap
         self.map.insert(value, index);
-        cache_mut.push(Some(node));
+        self.cache.push(Rc::new(RefCell::new(Some(node))));
         self.head = RefCell::new(Some(index));
     }
 
-    pub fn get(&self, value: &T) -> Option<Ref<T>>
+    pub fn get(&self, value: &T) -> Option<T>
     where
         T: PartialEq + Eq + Borrow<T>,
     {
@@ -178,10 +196,14 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
 
         // Get current element's previous and next node indices
         let (previous_index, next_index) = {
-            let cache = self.cache.borrow();
+            let cache = self.cache.clone();
 
             if let Some(elem) = cache.get(*index) {
-                let elem_ref = elem.as_ref().unwrap();
+                let elem = elem.clone();
+                let mut elem_ref = elem.borrow_mut();
+                let elem_ref = elem_ref.as_mut().unwrap();
+
+                // let elem_ref = elem.as_ref().unwrap();
                 let previous_element_index = elem_ref.prev.clone();
                 let next_element_index = elem_ref.next.clone();
 
@@ -193,8 +215,15 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
 
         // Update previous element's next index (to contain current element's next element index)
         if let Some(ref prev_index) = previous_index {
-            let mut cache = self.cache.borrow_mut();
-            if let Some(Some(elem)) = cache.get_mut(*prev_index.borrow_mut()) {
+            let mut cache = self.cache.clone();
+            let w = prev_index.clone();
+            let i = *w.as_ref().borrow();
+            // let i = *i.borrow_mut();
+            if let Some(elem) = cache.get_mut(i) {
+                let elem = elem.clone();
+                let mut elem_ref = elem.borrow_mut();
+                let elem = elem_ref.as_mut().unwrap();
+
                 elem.prev = Some(Rc::new(RefCell::new(*index)));
                 elem.next = None;
             }
@@ -202,18 +231,26 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
 
         // Update next element's prev index (to contain current element's prev element index)
         if let Some(nxt_index) = next_index {
-            let mut cache = self.cache.borrow_mut();
+            let mut cache = self.cache.clone();
             let n = nxt_index.clone().take();
-            if let Some(Some(elem)) = cache.get_mut(n) {
+            if let Some(elem) = cache.get_mut(n) {
+                let elem = elem.clone();
+                let mut elem_ref = elem.borrow_mut();
+                let elem = elem_ref.as_mut().unwrap();
+
                 elem.prev = Some(Rc::new(RefCell::new(*index)));
             }
         }
 
         // HEAD - Set current element to become head
         {
-            let mut cache = self.cache.borrow_mut();
-            if let Some(Some(elem)) = cache.get_mut(*index) {
+            let mut cache = self.cache.clone();
+            if let Some(elem) = cache.get_mut(*index) {
                 let h = self.head.borrow().unwrap();
+                let elem = elem.clone();
+                let mut elem = elem.borrow_mut();
+                let elem = elem.as_mut().unwrap();
+
                 elem.prev = None;
                 elem.next = Some(Rc::new(RefCell::new(h)));
                 // value_to_return = Some(elem.value.clone());
@@ -229,14 +266,26 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         let i = previous_index.clone().unwrap_or(Rc::new(RefCell::new(0)));
         *tail_mut = Some(i.clone().take());
 
-        let elem = self.cache.borrow();
-        if let Some(Some(_)) = elem.get(*index) {
-            Some(Ref::map(elem, |e| {
-                &e.get(*index).unwrap().as_ref().unwrap().value
-            }))
-        } else {
-            None
-        }
+        let cache = self.cache.clone();
+
+        let a = cache.get(*index);
+        let a = a.unwrap();
+        let a = a.as_ref().borrow();
+        let a = a.as_ref().unwrap().value.clone();
+        Some(a)
+
+        // if let Some(elem) = cache.get(*index) {
+        //     // let elem = elem.clone();
+
+        //     // let elem = elem;
+        //     // let elem = *elem;
+        //     let elem = elem.as_ref().borrow();
+        //     // let elem_ref = elem_ref.as_mut().unwrap();
+
+        //     Some(Ref::map(elem, |e| &e.unwrap().value))
+        // } else {
+        //     None
+        // }
     }
 
     pub fn head(&self) -> Option<usize> {
@@ -266,33 +315,73 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
     // }
 }
 
-pub struct IterMut<'a, T> {
+pub struct IterMut<T> {
     // A wrapper for mutably borrowed value (from RefCell)
-    this: RefMut<'a, Vec<Option<Node<T>>>>,
+    this: Vec<Rc<RefCell<Option<Node<T>>>>>,
+    count: usize,
+    head: usize,
 }
 
 impl<'a, T> IntoIterator for &'a mut LRUCache<T> {
-    type Item = &'a mut Node<T>;
-    type IntoIter = IterMut<'a, T>;
+    type Item = Rc<RefCell<Option<Node<T>>>>;
+    type IntoIter = IterMut<T>;
 
     fn into_iter(self) -> Self::IntoIter {
         // We mutably borrow from RefCell here
         IterMut {
-            this: self.cache.borrow_mut(),
+            this: self.cache.clone(),
+            count: 0,
+            head: self.head.borrow().unwrap(),
         }
     }
 }
 
-impl<'a, T> Iterator for IterMut<'a, T> {
+impl<T> Iterator for IterMut<T> {
     // We want to get a mutable reference to Node
-    type Item = &'a mut Node<T>;
+    type Item = Rc<RefCell<Option<Node<T>>>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // TODO - this is impossible to achieve since
-        // let node = self.this.get_mut(0).unwrap();
-        // let node = node.as_mut();
+        // let mut node = self.this;
+
+        // Some(Ref::map(self.this, |e| {
+        //     let a = e.get(0);
+        //     a.unwrap()
+        // }))
+
+        // let node = node.get_mut(1).unwrap().as_mut();
         // node
-        None
+        // None
+
+        let old_count = self.count;
+        self.count += 1;
+        let head = self.head;
+
+        let n = self.this.clone();
+
+        if n.len() == old_count {
+            return None;
+        }
+
+        let w = n.get(head).unwrap().clone();
+        let w_1 = w.clone();
+        let w_2 = w_1.as_ref();
+        let w_21 = &w_2.borrow();
+        let w_22 = w_21.as_ref().unwrap();
+        let w_3 = w_22.next.as_ref();
+
+        if w_3.is_none() {
+            Some(w)
+        } else {
+            let w_3 = w_3.unwrap();
+            let w_4 = w_3.as_ref();
+            let w_5 = w_4.borrow();
+            let w_6 = *w_5;
+
+            self.head = w_6;
+
+            Some(w)
+        }
     }
 }
 
@@ -353,7 +442,7 @@ mod std_ll_lru_tests {
         let mut cache = LRUCache::with_capacity(5);
         cache.put(1);
 
-        let actual = *cache.get(&1).unwrap();
+        let actual = cache.get(&1).unwrap();
 
         assert!(actual == 1);
     }
@@ -368,7 +457,7 @@ mod std_ll_lru_tests {
         }
 
         for val in v.iter() {
-            let a = *cache.get(&val).unwrap();
+            let a = cache.get(&val).unwrap();
             assert_eq!(a, val);
         }
     }
@@ -387,7 +476,7 @@ mod std_ll_lru_tests {
         let expected = [6, 2, 3, 4, 5];
 
         for val in expected.iter() {
-            assert!(*cache.get(&val).unwrap() == val);
+            assert!(cache.get(&val).unwrap() == val);
         }
 
         cache.put(&7);
@@ -395,7 +484,7 @@ mod std_ll_lru_tests {
         let expected = [7, 6, 3, 4, 5];
 
         for val in expected.iter() {
-            assert!(*cache.get(&val).unwrap() == val);
+            assert!(cache.get(&val).unwrap() == val);
         }
     }
 
@@ -414,7 +503,7 @@ mod std_ll_lru_tests {
         println!("OLD MAP {:?}", cache.cache);
 
         for val in v.iter() {
-            assert!(*cache.get(&val).unwrap() == val);
+            assert!(cache.get(&val).unwrap() == val);
         }
 
         // for val in cache.cache.into_inner() {
@@ -481,14 +570,13 @@ mod std_ll_lru_tests {
             cache.put(val);
         }
 
-        println!("BOLOG {:?}", cache);
+        // println!("BOLOG {:?}", cache);
 
         for val in &mut cache {
-            println!("IN LOOP ");
+            // println!("IN LOOP ");
             // let a = val.as_mut().unwrap();
-            // a.value
-            let a = val.value;
-            println!("SOme value {:?}", a);
+            // a.value;
+            println!("Node {:?}", val);
             // println!("BEFORE {:?}", val.as_ref().unwrap().value);
             // val.as_mut().unwrap().value = 11;
             // println!("AFTER {:?}", val.as_ref().unwrap().value);
