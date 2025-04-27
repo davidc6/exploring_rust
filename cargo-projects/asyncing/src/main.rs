@@ -11,8 +11,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::net::SocketAddr;
 use thiserror::Error;
+use tokio::sync::watch;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
+
+mod file_changes_api;
+use file_changes_api::{read_file, watch_for_file_changes};
 
 #[derive(Error, Debug)]
 pub enum ApiError {
@@ -102,6 +106,29 @@ async fn list_books() -> Response {
 
 #[tokio::main]
 async fn main() {
+    // Single-producer (one), multi-consumer (multiple) channel that retains one, last value
+    // One producer can send to multiple consumers, concurrent data distribution
+    let (tx, mut rx) = watch::channel(false);
+
+    // Spawn a new async task that watches for file changes
+    // Transmitter is passed into the file watching function
+    tokio::spawn(watch_for_file_changes(tx));
+
+    // Loop holds until the value of the channel is changed
+    loop {
+        // Receiver awaits for a change notification
+        let _ = rx.changed().await;
+
+        // This executes once we get a notification on the channel
+        let Ok(file_data) = read_file("file.txt").await else {
+            println!("Could not read the file");
+            return;
+        };
+
+        // Print new file value
+        println!("File changed, new content: {:?}", file_data);
+    }
+
     // Tracing allows us to record structured events with additional information.
     // "Spans" are the building blocks of tracing that have start and end times, other
     // relevant metadata, may be entered and exited by the flow of execution and may exist
