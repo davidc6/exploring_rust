@@ -1,4 +1,4 @@
-/// &[u8], &mut [u8] - pointer to a portion of an array or vector (has pointer and length).
+/// &[u8], &mut [u8] - reference to a portion of an array or vector (contains pointer and length).
 use std::collections::HashMap;
 
 fn count_vowels<'a>(some_collection: &'a [&str]) -> HashMap<&'a str, u8> {

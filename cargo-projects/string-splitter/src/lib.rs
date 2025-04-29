@@ -23,8 +23,6 @@ impl<'a> Iterator for StringSplitter<'a> {
             if index + 1 == self.leftover.len() {
                 let word = &self.leftover[..index + 1];
                 self.leftover = &self.leftover[..0];
-                println!("AHA {word}");
-                println!("WORDO {:?}", self.leftover);
                 return Some(word);
             }
 

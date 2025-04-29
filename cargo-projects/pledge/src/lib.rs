@@ -217,14 +217,22 @@ pub struct PageAllocator<const N: usize = 3> {
 
 unsafe impl<const N: usize> Sync for PageAllocator<N> {}
 
+#[derive(Debug)]
 struct Region {
-    blocks: LinkedList<Chunk>,
+    chunks: LinkedList<Chunk>,
     length: usize,
+}
+
+impl Region {
+    unsafe fn first_chunk(&self) -> NonNull<LinkedListNode<Chunk>> {
+        println!("CHUNKS {:?}", self);
+        self.chunks.head.unwrap()
+    }
 }
 
 pub struct InnerAlloc {
     free_space: FreeList,
-    region: Region,
+    regions: LinkedList<Region>,
 }
 
 impl InnerAlloc {
@@ -262,17 +270,56 @@ impl InnerAlloc {
                 ))
                 .cast();
 
-                // Add to the list of free space chunks
-                let node = self.free_space.append(
-                    Chunk {
-                        size: page_size,
-                        is_free: true,
+                let region = self.regions.append(
+                    Region {
+                        chunks: LinkedList::new(),
+                        length: page_size,
                     },
                     page_size,
                     addr,
                 );
 
-                node.unwrap()
+                let chunk = region.unwrap().as_mut().data.chunks.append(
+                    Chunk {
+                        size: region.unwrap().as_ref().size,
+                        is_free: true,
+                    },
+                    region.unwrap().as_ref().size,
+                    addr,
+                );
+
+                println!("DODO {:?}", chunk.unwrap().as_ref().data);
+                println!(
+                    "DODO {:?}",
+                    region.unwrap().as_ref().data.first_chunk().as_ref().data
+                );
+
+                // Add to the list of free space chunks
+                self.free_space.append(
+                    Chunk {
+                        size: region.unwrap().as_ref().size,
+                        is_free: true,
+                    },
+                    region.unwrap().as_ref().size,
+                    addr,
+                );
+
+                // self.free_space.append(data, size, addr)
+
+                // let a = &region.unwrap().as_ref();
+
+                // println!("ERRRRRRO {:?}", a.data);
+                // println!("ERRRRRRO {:?}", chunk.as_ref().unwrap().as_ref().data);A
+
+                println!("ERRRROR {:?}", region.unwrap().as_ref());
+
+                // self.regions.
+
+                // chunk.unwrap()
+                region.unwrap().as_ref().data.first_chunk()
+
+                // chunk.unwrap()
+                // node.unwrap(
             }
         };
 
@@ -339,10 +386,7 @@ impl PageAllocator {
         PageAllocator {
             allocator: Mutex::new(InnerAlloc {
                 free_space: FreeList::new(),
-                region: Region {
-                    blocks: LinkedList::new(),
-                    length: 0,
-                },
+                regions: LinkedList::new(),
             }),
         }
     }

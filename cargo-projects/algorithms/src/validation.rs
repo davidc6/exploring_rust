@@ -1,8 +1,12 @@
-use std::ops::{Deref, Index, IndexMut};
+use std::{
+    collections::{hash_map::Iter, HashMap},
+    ops::{Deref, Index, IndexMut},
+};
 
 #[derive(Clone)]
 struct TicketStore {
     tickets: Vec<Ticket>,
+    tickets_map: HashMap<TicketId, Ticket>,
     ticket_counter: u32,
 }
 
@@ -12,7 +16,7 @@ struct DraftTicket {
     pub description: String,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 struct TicketId(u32);
 
 #[derive(PartialEq, Clone, Debug)]
@@ -104,6 +108,7 @@ impl TicketStore {
         Self {
             tickets: vec![],
             ticket_counter: 0,
+            tickets_map: HashMap::new(),
         }
     }
 
@@ -115,6 +120,10 @@ impl TicketStore {
         t.id = TicketId(c);
 
         self.tickets.push(t.clone());
+
+        // Add to map
+        self.tickets_map.insert(t.id, t.clone());
+
         TicketId(c)
     }
 
@@ -127,6 +136,10 @@ impl TicketStore {
         t.id = TicketId(self.ticket_counter);
 
         self.tickets.push(t.clone());
+
+        // add to map
+        self.tickets_map.insert(t.id, t);
+
         TicketId(self.ticket_counter)
     }
 
@@ -134,8 +147,23 @@ impl TicketStore {
         self.tickets.iter()
     }
 
+    pub fn iter_map(&self) -> Vec<String> {
+        self.tickets_map
+            .iter()
+            .map(|(key, value)| format!("Key is: {:?} and value is {:?}", key, value))
+            .collect()
+    }
+
     pub fn get(&self, id: TicketId) -> Option<&Ticket> {
         self.tickets.iter().find(|ticket| ticket.id == id)
+    }
+
+    pub fn get_map(&self, id: TicketId) -> Option<&Ticket> {
+        self.tickets_map.get(&id)
+    }
+
+    pub fn get_map_mut(&mut self, id: TicketId) -> Option<&mut Ticket> {
+        self.tickets_map.get_mut(&id)
     }
 
     /// Get all tickets that have Todo status from the available tickets

@@ -18,6 +18,9 @@ use tracing_subscriber::{layer::SubscriberExt, EnvFilter};
 mod file_changes_api;
 use file_changes_api::{read_file, watch_for_file_changes};
 
+mod async_tasks;
+use async_tasks::async_sleep;
+
 #[derive(Error, Debug)]
 pub enum ApiError {
     #[error("Request failed: {0}")]
@@ -106,6 +109,10 @@ async fn list_books() -> Response {
 
 #[tokio::main]
 async fn main() {
+    // ===============================
+    // File Watcher
+    // ===============================
+    //
     // Single-producer (one), multi-consumer (multiple) channel that retains one, last value
     // One producer can send to multiple consumers, concurrent data distribution
     let (tx, mut rx) = watch::channel(false);

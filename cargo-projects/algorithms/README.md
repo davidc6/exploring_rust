@@ -101,6 +101,10 @@ Ownership - each value has an owner
 Borrowing - 
 Lifetimes - 
 
+## Todos
+
+- [] LRUCache to use Arc<Mutex<_>> or Arc<RwLock<_>> instead
+
 ## General resources
 
 - [Rust debugger setup](https://gist.github.com/xanathar/c7c83e6d53b72dd4464f695607012629)
