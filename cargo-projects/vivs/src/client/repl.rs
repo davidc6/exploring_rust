@@ -204,17 +204,8 @@ async fn main() -> GenericResult<()> {
         return set_up_cluster(cli_args).await;
     }
 
-    let node_port = if let Some(node_port) = cli_args.port {
-        node_port
-    } else {
-        9000
-    };
-
-    let node_host = if let Some(node_host) = cli_args.host {
-        node_host
-    } else {
-        "127.0.0.1".to_owned()
-    };
+    let node_port = cli_args.port.unwrap_or(9000);
+    let node_host = cli_args.host.unwrap_or("127.0.0.1".to_owned());
 
     let mut address = format!("{node_host}:{node_port}");
     let stream = TcpStream::connect(address.clone()).await?;
@@ -245,12 +236,14 @@ async fn main() -> GenericResult<()> {
                 let address = parser.next_as_str().unwrap().unwrap();
 
                 other_addr = address.clone();
+
                 // TODO - hard-coded
                 let command = format!(
                     "asking get {:?} {}",
                     initial_command.get(1),
                     address.clone()
                 );
+
                 let command_as_string = DataChunk::from_string(&command);
                 let mut command_as_bytes = Cursor::new(command_as_string.as_bytes());
                 let command_as_data_chunk = DataChunk::read_chunk(&mut command_as_bytes).unwrap();
