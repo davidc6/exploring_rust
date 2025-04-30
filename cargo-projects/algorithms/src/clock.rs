@@ -153,6 +153,11 @@ mod clock_tests {
     use super::*;
 
     #[test]
+    fn hello_hi_yeah() {
+        assert_eq!(Clock::new(100, 1000).to_string(), "20:40");
+    }
+
+    #[test]
 
     fn on_the_hour() {
         assert_eq!(Clock::new(8, 0).to_string(), "08:00");
