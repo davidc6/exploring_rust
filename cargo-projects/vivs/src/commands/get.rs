@@ -1,4 +1,4 @@
-use super::ask::AskCommand;
+use super::ask::check_ask;
 use super::CommonCommand;
 use crate::parser::Parser;
 use crate::{Connection, DataStore, GenericResult, ARGS_NUM};
@@ -12,8 +12,6 @@ pub const GET_CMD: &str = "get";
 pub struct Get {
     pub key: Option<String>,
 }
-
-impl AskCommand for Get {}
 
 impl CommonCommand for Get {
     fn parse(mut data: Parser) -> Self {
@@ -40,7 +38,9 @@ impl CommonCommand for Get {
             )
         );
 
-        if let Some(redirect_addr) = self.check_ask(self.key.as_ref().unwrap(), conn).await {
+        // Before responding, Vivs needs to check whether the node that the client is connected to contains
+        // needed data or it needs to redirect to a different node.
+        if let Some(redirect_addr) = check_ask(self.key.as_ref().unwrap(), conn).await {
             conn.write_error(format!("ASK {} {}", redirect_addr.0, redirect_addr.1).as_bytes())
                 .await?;
             return Ok(());
