@@ -8,6 +8,7 @@ use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 use vivs::commands::ask::ASK_CMD;
+use vivs::commands::asking::Asking;
 use vivs::commands::get::GET_CMD;
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
@@ -212,13 +213,17 @@ async fn main() -> GenericResult<()> {
     let mut connection = Connection::new(stream);
     let mut other_addr = "".to_string();
 
+    // A command that needs to be processed
     let mut command_to_process: Option<Cursor<&[u8]>> = None;
-    let mut initial_command = vec![];
+    // This is in case we need to store the initial/previous command
+    // in situations like GET -> ASK
+    let mut initial_command: Vec<String> = vec![];
 
     loop {
-        // Peek at a string
+        // Peek at the command to see if there's anything to process
         if let Some(ref mut cursor) = command_to_process {
             let command_as_data_chunk = DataChunk::read_chunk(cursor).unwrap();
+            // This parser contains the command itself i.e. GET A or ASK <slot> <address>
             let mut parser = Parser::new(command_as_data_chunk)?;
 
             // The response from the server is Null (TODO: update implementation)
@@ -230,22 +235,28 @@ async fn main() -> GenericResult<()> {
                 continue;
             };
 
+            // ASK command needs to be treated differently,
+            // when a client receives ASK command it needs to send
+            // ASKING to interact with a node that has the data
             if command.to_lowercase() == ASK_CMD.to_lowercase() {
-                let _ = parser.next(); // cmd
-                let slot = parser.next_as_str().unwrap().unwrap(); // slot
-                let address = parser.next_as_str().unwrap().unwrap();
+                let _ = parser.next_as_str().unwrap().unwrap(); // current command i.e. ASK
+                let slot = parser.next_as_str().unwrap().unwrap(); // a slot where the value is stored at
+                let address = parser.next_as_str().unwrap().unwrap(); // new address to query for the value
 
                 other_addr = address.clone();
 
-                // TODO - hard-coded
-                let command = format!(
-                    "asking get {:?} {}",
-                    initial_command.get(1),
-                    address.clone()
-                );
+                // ASKING GET <key> <address>
+                let command = Asking::new(
+                    initial_command.first().cloned().unwrap(),
+                    initial_command.get(1).unwrap().to_owned(),
+                    // slot,
+                    address.clone(),
+                )
+                .get()
+                .unwrap();
 
-                let command_as_string = DataChunk::from_string(&command);
-                let mut command_as_bytes = Cursor::new(command_as_string.as_bytes());
+                let command_parsed = DataChunk::from_string(&command);
+                let mut command_as_bytes = Cursor::new(command_parsed.as_bytes());
                 let command_as_data_chunk = DataChunk::read_chunk(&mut command_as_bytes).unwrap();
                 let mut command_as_data_chunk = Parser::new(command_as_data_chunk)?;
 
@@ -260,7 +271,6 @@ async fn main() -> GenericResult<()> {
 
             if command.to_lowercase() == GET_CMD.to_lowercase() {
                 address = other_addr.clone();
-
                 let stream = TcpStream::connect(address.clone()).await?;
                 connection = Connection::new(stream);
 
