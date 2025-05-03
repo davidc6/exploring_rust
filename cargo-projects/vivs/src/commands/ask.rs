@@ -10,6 +10,8 @@ pub struct AskResponse {
     pub ip: String,
 }
 
+/// Checks whether data is on the node that the client is connected to or
+/// is on a different node that the system needs to provide "coordinates" for.
 pub async fn check_ask(key: &str, conn: &mut Connection) -> Option<AskResponse> {
     // check if config exists, we'll most likely need to store it in memory to avoid constant IO (?)
     let own_addr = conn.own_addr().unwrap().to_string();
@@ -49,6 +51,11 @@ pub async fn check_ask(key: &str, conn: &mut Connection) -> Option<AskResponse> 
     None
 }
 
+/// ASK command indicates that the key is temporarily being handled by a different node.
+/// Only the next query will be send to the specified node.
+///
+/// This command is different to the MOVED command which indicates that the hash slot is
+/// permanently served by a different node. Next queries will be ran against the specified node.
 #[derive(Debug, Default)]
 pub struct Ask {}
 
