@@ -245,15 +245,17 @@ async fn main() -> GenericResult<()> {
 
                 other_addr = address.clone();
 
-                // ASKING GET <key> <address>
-                let command = Asking::new(
-                    initial_command.first().cloned().unwrap(),
-                    initial_command.get(1).unwrap().to_owned(),
-                    // slot,
-                    address.clone(),
-                )
-                .get()
-                .unwrap();
+                // ASKING GET <key> <address> - should be set to the target node instead
+                let command_to_forward = initial_command.first().cloned().unwrap();
+                // This is tied to GET command
+                let key_to_forward = initial_command.get(1).unwrap().to_owned();
+                // Ideally, we shouldn't need command + value, it should be one
+                let command = Asking::default()
+                    .command(command_to_forward)
+                    .key(key_to_forward)
+                    .address(address.clone())
+                    .build()
+                    .format();
 
                 let command_parsed = DataChunk::from_string(&command);
                 let mut command_as_bytes = Cursor::new(command_parsed.as_bytes());
