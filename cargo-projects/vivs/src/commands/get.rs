@@ -41,8 +41,12 @@ impl CommonCommand for Get {
         // Before responding, Vivs needs to check whether the node that the client is connected to contains
         // needed data or it needs to redirect to a different node.
         if let Some(redirect_addr) = check_ask(self.key.as_ref().unwrap(), conn).await {
-            conn.write_error(format!("ASK {} {}", redirect_addr.0, redirect_addr.1).as_bytes())
-                .await?;
+            // ASK is returned as a simple error with the redirect address
+            // TODO - ASK module needs to be constructed in the ASK module
+            conn.write_error(
+                format!("ASK {} {}", redirect_addr.key_hash, redirect_addr.ip).as_bytes(),
+            )
+            .await?;
             return Ok(());
         }
 
