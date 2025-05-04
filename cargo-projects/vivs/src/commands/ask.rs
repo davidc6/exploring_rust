@@ -36,6 +36,7 @@ pub async fn check_ask(key: &str, conn: &mut Connection) -> Option<AskResponse> 
 
     // Iterate over all current node configs in the cluster
     for (ip, config) in nodes {
+        // I.e. range of cells / location in a single node
         let cell_range = config.position.0..config.position.1;
 
         let is_in_range = cell_range.contains(&key_hash.into());
@@ -56,6 +57,8 @@ pub async fn check_ask(key: &str, conn: &mut Connection) -> Option<AskResponse> 
 ///
 /// This command is different to the MOVED command which indicates that the hash slot is
 /// permanently served by a different node. Next queries will be ran against the specified node.
+///
+/// For example, -ASK 7162 127.0.0.1:9001 (-<error> <hash_slot> <ip:port>)
 #[derive(Debug, Default)]
 pub struct Ask {}
 

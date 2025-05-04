@@ -5,7 +5,7 @@ use self::set::SET_CMD;
 use self::ttl::TTL_CMD;
 use crate::data_chunk::DataChunkError;
 use crate::parser::Parser;
-use crate::{Connection, DataStore, GenericResult, FALSE_CMD, NO_CMD};
+use crate::{Connection, DataStore, GenericResult};
 use ask::{Ask, ASK_CMD};
 use asking::{Asking, ASKING_CMD};
 use core::str;
@@ -22,6 +22,17 @@ pub mod get;
 pub mod ping;
 pub mod set;
 pub mod ttl;
+
+pub const FALSE_CMD: &str = "FALSECMD";
+
+pub const NO_CMD_ERR: &str = "No command supplied\r\n";
+pub const NO_CMD: &str = "NOCMD";
+
+pub const INCORRECT_ARGS_ERR: &str = "Incorrect number of arguments\r\n";
+pub const ARGS_NUM: &str = "ARGSNUM";
+
+pub const VALUE_NOT_INT_ERR: &str = "Value is not an integer\r\n";
+pub const NON_INT: &str = "NONINT";
 
 #[derive(Debug)]
 pub enum Command {
@@ -117,7 +128,6 @@ impl Command {
                 Ok(())
             }
             Command::Unknown(command) => {
-                println!("COMMAND {:?}", command);
                 let error_msg = format!("Unknown command {:?}", command);
                 conn.write_error_with_msg(FALSE_CMD.as_bytes(), error_msg.as_bytes())
                     .await?;

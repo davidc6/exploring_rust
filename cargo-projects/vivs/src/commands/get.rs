@@ -1,8 +1,9 @@
 use super::ask::check_ask;
 use super::CommonCommand;
+use crate::cluster::CLUSTER_ASK_ERR;
+use crate::commands::ARGS_NUM;
 use crate::parser::Parser;
-use crate::{Connection, DataStore, GenericResult, ARGS_NUM};
-use core::str;
+use crate::{Connection, DataStore, GenericResult};
 use log::info;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -44,7 +45,11 @@ impl CommonCommand for Get {
             // ASK is returned as a simple error with the redirect address
             // TODO - ASK module needs to be constructed in the ASK module
             conn.write_error(
-                format!("ASK {} {}", redirect_addr.key_hash, redirect_addr.ip).as_bytes(),
+                format!(
+                    "{CLUSTER_ASK_ERR} {} {}",
+                    redirect_addr.key_hash, redirect_addr.ip
+                )
+                .as_bytes(),
             )
             .await?;
             return Ok(());

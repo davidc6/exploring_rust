@@ -74,15 +74,15 @@ impl Parser {
                 Some(std::str::from_utf8(value.chunk()).unwrap().to_owned())
             }
             Some(DataChunk::SimpleError(value)) => {
-                let a = value.first();
-                let a = a.unwrap();
+                let val = value.first().unwrap();
 
-                let r = match a {
-                    DataChunk::Bulk(val) => val,
+                let bytes = match val {
+                    DataChunk::Bulk(bulk_val) => bulk_val,
+                    // TODO
                     _ => "hi".as_bytes(),
                 };
 
-                Some(std::str::from_utf8(r).unwrap().to_owned())
+                Some(std::str::from_utf8(bytes).unwrap().to_owned())
             }
             _ => None,
         }
@@ -102,10 +102,9 @@ impl Parser {
 
     pub fn push_up(mut self, bytes: Bytes) -> Self {
         let mut data_chunks_collection: Vec<DataChunk> = self.segments.collect();
-        let mut a = vec![DataChunk::Bulk(bytes)];
-        a.append(&mut data_chunks_collection);
-        // let a = [data_chunks_collection, [b"GET"]].concat();
-        self.segments = a.into_iter().peekable();
+        let mut data_chunks_vec = vec![DataChunk::Bulk(bytes)];
+        data_chunks_vec.append(&mut data_chunks_collection);
+        self.segments = data_chunks_vec.into_iter().peekable();
         self
     }
 
@@ -126,26 +125,6 @@ impl Parser {
         data_chunks_collection.push(DataChunk::Bulk(bytes));
         self.segments = data_chunks_collection.into_iter().peekable();
         self
-    }
-
-    pub fn to_string(mut self) {
-        // let v = vec![];
-        // let l = self.segments.len();
-
-        // for (position, data_chunk) in self.segments.enumerate() {
-        //     // length
-        //     if position == 0 {
-        //         let a = format!("*{}", l);
-        //     }
-
-        //     // command
-        //     if position == 1 {
-        //         let l1 = data_chunk;
-        //         let a = format!("${}\r\n{}", data_chunk);
-        //     }
-        // }
-
-        // "".to_owned()
     }
 }
 

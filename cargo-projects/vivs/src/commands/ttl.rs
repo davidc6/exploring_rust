@@ -1,7 +1,8 @@
 use super::CommonCommand;
+use crate::commands::ARGS_NUM;
 use crate::parser::Parser;
 use crate::utils::u64_as_bytes;
-use crate::{Connection, DataStore, GenericResult, ARGS_NUM};
+use crate::{Connection, DataStore, GenericResult};
 use log::info;
 use std::time::{Duration, SystemTime};
 

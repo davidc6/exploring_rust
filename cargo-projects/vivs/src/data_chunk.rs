@@ -25,18 +25,6 @@ impl fmt::Display for DataChunkError {
     }
 }
 
-// impl fmt::Display for DataChunk {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         match self {
-//             DataChunk::Bulk(val) => {
-//                 let a = std::str::from_utf8(val)?;
-//                 Ok(a.to_owned())
-//             }
-//             _ => "hello".to_owned(),
-//         }
-//     }
-// }
-
 // Implement Error trait for our custom error type
 impl std::error::Error for DataChunkError {}
 
@@ -344,7 +332,6 @@ impl DataChunk {
                 }
             }
             Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
-            // Some(DataChunk::SimpleError(data_bytes)) => Ok(Bytes::from("OHO")),
             Some(DataChunk::Integer(val)) => {
                 // convert Bytes to bytes array
                 // then determine endianness to create u64 integer value from the bytes array
@@ -370,7 +357,8 @@ impl DataChunk {
     pub fn as_string(data_chunk: DataChunk) -> GenericResult<String> {
         match data_chunk {
             DataChunk::Bulk(val) => Ok(std::str::from_utf8(&val[..])?.to_owned()),
-            _ => Ok("Hi".to_owned()),
+            // TODO
+            _ => Ok("".to_owned()),
         }
     }
 }

@@ -178,8 +178,6 @@ impl Connection {
                     } else {
                         str.len()
                     };
-                    // let bulk_str_len = u8::try_from(bulk_str_len).unwrap();
-                    // let u8_bytes = &u8_as_bytes(bulk_str_len);
 
                     // TODO: do we need to convert to string and bytes here?
                     // What we need is the integer representation

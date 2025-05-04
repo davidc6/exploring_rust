@@ -1,5 +1,7 @@
 use super::CommonCommand;
-use crate::{parser::Parser, utils::u64_as_bytes, Connection, DataStore, GenericResult, ARGS_NUM};
+use crate::{
+    commands::ARGS_NUM, parser::Parser, utils::u64_as_bytes, Connection, DataStore, GenericResult,
+};
 use log::info;
 
 pub const DELETE_CMD: &str = "delete";
