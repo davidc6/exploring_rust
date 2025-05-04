@@ -82,13 +82,11 @@ impl Asking {
         let cmd = self.command.to_uppercase();
         let cmd_len = cmd.len();
 
-        // 2 is hard-coded here
+        // TODO - this is still hard-coded and needs to be aware of other command
         let cmd = format!(
             "*2\r\n${cmd_len}\r\n{cmd}\r\n${length_of_address}\r\n{}\r\n",
             self.key
         );
-
-        println!("COMMAND {:?}", cmd);
 
         let _ = conn.write_complete_frame(&cmd).await;
 
