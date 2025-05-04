@@ -42,7 +42,6 @@ pub struct LRUCache<T> {
     head: RefCell<Option<usize>>,
     tail: RefCell<Option<usize>>,
     capacity: usize,
-    // cache: RefCell<Vec<Option<Node<T>>>>,
     cache: Vec<Rc<RefCell<Option<Node<T>>>>>,
     map: HashMap<T, usize>,
 }
