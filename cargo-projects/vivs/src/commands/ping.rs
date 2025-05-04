@@ -33,7 +33,7 @@ impl Ping {
                     message
                 )
             );
-            conn.write_chunk(super::DataType::SimpleString, Some(message.as_bytes()))
+            conn.write_chunk(super::DataType::SimpleString, message.as_bytes())
                 .await?;
         } else {
             info!(
@@ -41,7 +41,7 @@ impl Ping {
                 conn.connected_peer_addr(),
                 PING_CMD.to_uppercase()
             );
-            conn.write_chunk(super::DataType::SimpleString, Some(b"PONG"))
+            conn.write_chunk(super::DataType::SimpleString, b"PONG")
                 .await?;
         }
         Ok(())

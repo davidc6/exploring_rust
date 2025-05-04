@@ -2,7 +2,7 @@ use atoi::atoi;
 use bytes::{Buf, Bytes};
 use std::{fmt, io::Cursor, num::TryFromIntError, str::Utf8Error};
 
-use crate::{commands::ping::PONG, parser::Parser};
+use crate::{commands::ping::PONG, parser::Parser, GenericResult};
 
 #[derive(Debug, PartialEq)]
 pub enum DataChunkError {
@@ -90,12 +90,14 @@ fn line<'a>(cursored_buffer: &'a mut Cursor<&[u8]>) -> Result<&'a [u8], DataChun
 
 #[derive(Debug, Default, PartialEq)]
 pub enum DataChunk {
+    /// Commands as arrays
     Array(Vec<DataChunk>),
+    /// Single string
     Bulk(Bytes),
     #[default]
     Null,
     Integer(Bytes),
-    SimpleError(Bytes),
+    SimpleError(Vec<DataChunk>),
 }
 
 impl DataChunk {
@@ -238,10 +240,34 @@ impl DataChunk {
     fn parse_simple_errors(
         cursored_buffer: &mut Cursor<&[u8]>,
     ) -> Result<DataChunk, DataChunkError> {
-        let err = line(cursored_buffer);
-        let copied_err = Bytes::copy_from_slice(err.unwrap_or_default());
+        // e.g. ['ASK', '1234', '127.0.0.1']
+        let mut data_chunks = vec![];
+        let mut pos_start = 0_usize;
+        let mut pos_end = 0_usize;
 
-        Ok(DataChunk::SimpleError(copied_err))
+        for (index, char) in cursored_buffer.get_ref().iter().enumerate() {
+            if char == &b'-' {
+                pos_start += 1;
+                pos_end += 1;
+                continue;
+            }
+
+            if char == &b' ' {
+                data_chunks.push(DataChunk::Bulk(Bytes::copy_from_slice(
+                    &cursored_buffer.get_ref()[pos_start..pos_end],
+                )));
+                pos_start = index + 1;
+                pos_end = pos_start;
+                continue;
+            }
+            pos_end += 1;
+        }
+
+        data_chunks.push(DataChunk::Bulk(Bytes::copy_from_slice(
+            &cursored_buffer.get_ref()[pos_start..pos_end - 2],
+        )));
+
+        Ok(DataChunk::SimpleError(data_chunks))
     }
 
     /// Parses the data type (first byte sign like +, :, $ etc)
@@ -306,7 +332,6 @@ impl DataChunk {
                 }
             }
             Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
-            Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
             Some(DataChunk::Integer(val)) => {
                 // convert Bytes to bytes array
                 // then determine endianness to create u64 integer value from the bytes array
@@ -326,6 +351,14 @@ impl DataChunk {
             }
             None => Ok(Bytes::from("Unknown")),
             _ => Ok(Bytes::from("(nil)")), // catch all case
+        }
+    }
+
+    pub fn as_string(data_chunk: DataChunk) -> GenericResult<String> {
+        match data_chunk {
+            DataChunk::Bulk(val) => Ok(std::str::from_utf8(&val[..])?.to_owned()),
+            // TODO
+            _ => Ok("".to_owned()),
         }
     }
 }

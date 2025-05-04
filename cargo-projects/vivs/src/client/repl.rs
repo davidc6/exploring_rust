@@ -1,65 +1,23 @@
-use bytes::Bytes;
 use clap::{Args, Parser as ClapParser, Subcommand};
 use env_logger::Env;
 use log::info;
-use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::env::current_dir;
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, stdout, Cursor, Write};
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, net::TcpStream};
+use vivs::commands::ask::ASK_CMD;
+use vivs::commands::asking::Asking;
+use vivs::commands::get::GET_CMD;
 use vivs::commands::ping::PONG;
 use vivs::parser::Parser;
+use vivs::ClusterConfig;
 use vivs::{data_chunk::DataChunk, Connection, GenericResult};
 
 pub async fn write_complete_frame(stream: &mut TcpStream, data: &str) -> std::io::Result<()> {
     stream.write_all(data.as_bytes()).await?;
     stream.flush().await
-}
-
-pub async fn read_chunk_frame(data_chunk: &mut Parser) -> GenericResult<Bytes> {
-    match data_chunk.next() {
-        Some(DataChunk::Bulk(data_bytes)) => {
-            // This is a hack in order to write consistently formatted values to stdout.
-            // Since val without quotes can also be written back to stdout without quotes
-            // it is not desirable and therefore we want to add extra quotes to the output value.
-            // We need to think about allocations here as it will affect performance in the long run.
-            // 34 is "
-            if data_bytes.first() != Some(&34) && data_bytes != *PONG {
-                let quotes_bytes = Bytes::from("\"");
-                let concat_bytes = [quotes_bytes.clone(), data_bytes, quotes_bytes].concat();
-                Ok(Bytes::from(concat_bytes))
-            } else {
-                Ok(data_bytes)
-            }
-        }
-        Some(DataChunk::Null) => Ok(Bytes::from("(nil)")),
-        Some(DataChunk::SimpleError(data_bytes)) => Ok(data_bytes),
-        Some(DataChunk::Integer(val)) => {
-            // convert Bytes to bytes array
-            // then determine endianness to create u64 integer value from the bytes array
-            // and return integer as string
-            let bytes_slice = val.slice(0..8);
-
-            // converts the slice to an array of u8 elements (since u64 is 8 bytes)
-            let arr_u8: Result<[u8; 8], _> = bytes_slice[0..8].try_into();
-            let Ok(arr_u8) = arr_u8 else {
-                return Ok(Bytes::from("(nil)"));
-            };
-
-            let integer_as_string = if cfg!(target_endian = "big") {
-                u64::from_be_bytes(arr_u8)
-            } else {
-                u64::from_le_bytes(arr_u8)
-            }
-            .to_string();
-
-            Ok(Bytes::from(format!("(integer) {}", integer_as_string)))
-        }
-        None => Ok(Bytes::from("Unknown")),
-        _ => Ok(Bytes::from("(nil)")), // catch all case
-    }
 }
 
 #[derive(Args, Debug, Clone)]
@@ -101,23 +59,23 @@ async fn rand_number_as_string() -> GenericResult<String> {
         .join(""))
 }
 
-#[derive(Serialize, Clone, Debug)]
-struct Config {
-    id: String,
-    ip: String,
-    is_self: bool,
-}
-
 async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
     info!("Enabling cluster mode");
 
     let mut active_instances = HashSet::new();
-    let mut instances: HashMap<String, Config> = HashMap::new();
+    let mut instances: HashMap<String, ClusterConfig> = HashMap::new();
     let mut current_config = HashMap::new();
 
     // Create cluster command
     if let Some(Commands::Create { ip_addresses }) = cli_args.command {
         let total_ips = ip_addresses.len();
+
+        // There are 16384 cells
+        const CELLS_TOTAL: usize = 16384;
+        let slice = CELLS_TOTAL / total_ips;
+
+        let mut start = 0;
+        let mut end = slice - 1;
 
         // To enable us to access ips by index later
         for i in 0..total_ips {
@@ -177,10 +135,11 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
 
                     let node_id = rand_number_as_string().await?;
 
-                    let mut config = Config {
+                    let mut config = ClusterConfig {
                         id: node_id.clone(),
                         ip: ip_address.clone(),
                         is_self: false,
+                        position: (start, end),
                     };
                     if i == cur {
                         config.is_self = true;
@@ -189,6 +148,14 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
 
                     instances.insert(ip_address.clone(), config.clone());
                     current_config.insert(ip_address.clone(), config);
+                }
+
+                start += slice + 1;
+
+                if slice * 2 > CELLS_TOTAL - 1 {
+                    end = CELLS_TOTAL - 1;
+                } else {
+                    end += slice * 2;
                 }
             }
 
@@ -213,6 +180,20 @@ async fn set_up_cluster(cli_args: Cli) -> GenericResult<()> {
     Ok(())
 }
 
+async fn parse_stream(connection: &mut Connection) -> GenericResult<Parser> {
+    let mut buffer = connection.process_stream().await?;
+    let data_chunk = DataChunk::read_chunk(&mut buffer)?;
+    let parser = Parser::new(data_chunk)?;
+    Ok(parser)
+}
+
+fn write_to_stdout(bytes: &[u8]) -> GenericResult<()> {
+    stdout().write_all(bytes)?;
+    stdout().write_all(b"\r\n")?;
+    stdout().flush()?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> GenericResult<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -224,50 +205,116 @@ async fn main() -> GenericResult<()> {
         return set_up_cluster(cli_args).await;
     }
 
-    let node_port = if let Some(node_port) = cli_args.port {
-        node_port
-    } else {
-        9000
-    };
+    let node_port = cli_args.port.unwrap_or(9000);
+    let node_host = cli_args.host.unwrap_or("127.0.0.1".to_owned());
 
-    let node_host = if let Some(node_host) = cli_args.host {
-        node_host
-    } else {
-        "127.0.0.1".to_owned()
-    };
-
-    let address = format!("{node_host}:{node_port}");
+    let mut address = format!("{node_host}:{node_port}");
     let stream = TcpStream::connect(address.clone()).await?;
     let mut connection = Connection::new(stream);
+    let mut other_addr = "".to_string();
+
+    // A command that needs to be processed
+    let mut command_to_process: Option<Cursor<&[u8]>> = None;
+    // This is in case we need to store the initial/previous command
+    // in situations like GET -> ASK
+    let mut initial_command: Vec<String> = vec![];
 
     loop {
-        // write to stdout
-        write!(stdout(), "{address}> ")?;
-        // flush everything, ensuring all content reach destination (stdout)
-        stdout().flush()?;
+        // Peek at the command to see if there's anything to process
+        if let Some(ref mut cursor) = command_to_process {
+            let command_as_data_chunk = DataChunk::read_chunk(cursor).unwrap();
+            // This parser contains the command itself i.e. GET A or ASK <slot> <address>
+            let mut parser = Parser::new(command_as_data_chunk)?;
 
-        // buffer for stdin's line of input
-        let mut buffer = String::new();
-        // Read a line of input and append to the buffer.
-        // stdin() is a handle in this case to the standard input of the current process
-        // which gets "locked" and waits for newline or the "Enter" key (or 0xA byte) to be pressed.
-        stdin().read_line(&mut buffer)?;
+            // The response from the server is Null (TODO: update implementation)
+            let Some(command) = parser.peek_as_str() else {
+                let bytes_read: bytes::Bytes = DataChunk::read_chunk_frame(&mut parser).await?;
+                command_to_process = None;
 
-        let data_chunk_frame_as_str = DataChunk::from_string(&buffer);
+                write_to_stdout(&bytes_read)?;
+                continue;
+            };
 
-        // writes bytes to server socket
-        // e.g. *0\r\n$4\r\nPING\r\n$4\r\nMary\r\n
-        connection
-            .write_complete_frame(&data_chunk_frame_as_str)
-            .await?;
+            // ASK command needs to be treated differently,
+            // when a client receives ASK command it needs to send
+            // ASKING to interact with a node that has the data
+            if command.to_lowercase() == ASK_CMD.to_lowercase() {
+                let _ = parser.next_as_str().unwrap().unwrap(); // current command i.e. ASK
+                let slot = parser.next_as_str().unwrap().unwrap(); // a slot where the value is stored at
+                let address = parser.next_as_str().unwrap().unwrap(); // new address to query for the value
 
-        let mut buffer = connection.process_stream().await?;
-        let data_chunk = DataChunk::read_chunk(&mut buffer)?;
-        let mut parser = Parser::new(data_chunk)?;
-        let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+                other_addr = address.clone();
 
-        stdout().write_all(&bytes_read)?;
-        stdout().write_all(b"\r\n")?;
-        stdout().flush()?;
+                // ASKING GET <key> <address> - should be set to the target node instead
+                let command_to_forward = initial_command.first().cloned().unwrap();
+                // This is tied to GET command
+                let key_to_forward = initial_command.get(1).unwrap().to_owned();
+                // Ideally, we shouldn't need command + value, it should be one
+                let command = Asking::default()
+                    .command(command_to_forward)
+                    .key(key_to_forward)
+                    .address(address.clone())
+                    .build()
+                    .format();
+
+                let command_parsed = DataChunk::from_string(&command);
+                let mut command_as_bytes = Cursor::new(command_parsed.as_bytes());
+                let command_as_data_chunk = DataChunk::read_chunk(&mut command_as_bytes).unwrap();
+                let mut command_as_data_chunk = Parser::new(command_as_data_chunk)?;
+
+                connection
+                    .write_chunk_frame(&mut command_as_data_chunk)
+                    .await?;
+
+                let buffer = connection.process_stream().await?;
+                command_to_process = Some(buffer);
+                continue;
+            }
+
+            if command.to_lowercase() == GET_CMD.to_lowercase() {
+                address = other_addr.clone();
+                let stream = TcpStream::connect(address.clone()).await?;
+                connection = Connection::new(stream);
+
+                connection.write_chunk_frame(&mut parser).await?;
+
+                let buffer = connection.process_stream().await?;
+                command_to_process = Some(buffer);
+                continue;
+            }
+
+            let bytes_read = DataChunk::read_chunk_frame(&mut parser).await?;
+            command_to_process = None;
+
+            write_to_stdout(&bytes_read)?;
+        } else {
+            // write to stdout
+            write!(stdout(), "{address}> ")?;
+
+            // flush everything, ensuring all content reach destination (stdout)
+            stdout().flush()?;
+
+            let mut buffer = String::new();
+            // Read a line of input and append to the buffer.
+            // stdin() is a handle in this case to the standard input of the current process
+            // which gets "locked" and waits for newline or the "Enter" key (or 0xA byte) to be pressed.
+            stdin().read_line(&mut buffer)?;
+
+            initial_command = buffer
+                .split_whitespace()
+                .map(|val| val.to_string())
+                .collect();
+
+            let data_chunk_frame_as_str = DataChunk::from_string(&buffer);
+
+            // write bytes to server socket
+            // e.g. *0\r\n$4\r\nPING\r\n$4\r\nMary\r\n
+            connection
+                .write_complete_frame(&data_chunk_frame_as_str)
+                .await?;
+
+            let buffer = connection.process_stream().await?;
+            command_to_process = Some(buffer);
+        }
     }
 }

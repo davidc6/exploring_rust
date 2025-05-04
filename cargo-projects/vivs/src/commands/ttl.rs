@@ -1,12 +1,14 @@
 use super::CommonCommand;
+use crate::commands::ARGS_NUM;
 use crate::parser::Parser;
-use crate::utils::{u64_as_bytes, INCORRECT_ARGS_ERR};
+use crate::utils::u64_as_bytes;
 use crate::{Connection, DataStore, GenericResult};
 use log::info;
 use std::time::{Duration, SystemTime};
 
 pub const TTL_CMD: &str = "ttl";
 
+#[derive(Debug)]
 pub struct Ttl {
     key: Option<String>,
 }
@@ -22,7 +24,7 @@ impl CommonCommand for Ttl {
 
     async fn respond(&self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
-            conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
+            conn.write_error(ARGS_NUM.as_bytes()).await?;
             return Ok(());
         };
 
@@ -62,12 +64,11 @@ impl CommonCommand for Ttl {
             // treat it as an integer
             let ttl_byte_arr = u64_as_bytes(ttl);
 
-            conn.write_chunk(super::DataType::Integer, Some(&ttl_byte_arr))
+            conn.write_chunk(super::DataType::Integer, &ttl_byte_arr)
                 .await?
         } else {
             let no_ttl = u64_as_bytes(0);
-            conn.write_chunk(super::DataType::Integer, Some(&no_ttl))
-                .await?
+            conn.write_chunk(super::DataType::Integer, &no_ttl).await?
         }
 
         Ok(())

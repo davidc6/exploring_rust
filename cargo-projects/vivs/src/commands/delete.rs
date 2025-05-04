@@ -1,8 +1,6 @@
 use super::CommonCommand;
 use crate::{
-    parser::Parser,
-    utils::{u64_as_bytes, INCORRECT_ARGS_ERR},
-    Connection, DataStore, GenericResult,
+    commands::ARGS_NUM, parser::Parser, utils::u64_as_bytes, Connection, DataStore, GenericResult,
 };
 use log::info;
 
@@ -24,7 +22,7 @@ impl CommonCommand for Delete {
 
     async fn respond(&self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         let Some(key) = self.key.as_ref() else {
-            conn.write_error(INCORRECT_ARGS_ERR.as_bytes()).await?;
+            conn.write_error(ARGS_NUM.as_bytes()).await?;
             return Ok(());
         };
 
@@ -34,12 +32,12 @@ impl CommonCommand for Delete {
             let mut expiries_guard = db.expirations.write().await;
             expiries_guard.remove(key);
 
-            let val = u64_as_bytes(1);
-            conn.write_chunk(super::DataType::Integer, Some(&val))
+            let total_entries_deleted = u64_as_bytes(1);
+            conn.write_chunk(super::DataType::Integer, &total_entries_deleted)
                 .await?
         } else {
-            let val = u64_as_bytes(0);
-            conn.write_chunk(super::DataType::Integer, Some(&val))
+            let total_entries_deleted = u64_as_bytes(0);
+            conn.write_chunk(super::DataType::Integer, &total_entries_deleted)
                 .await?
         }
 

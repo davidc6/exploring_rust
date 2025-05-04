@@ -3,43 +3,47 @@ use self::get::GET_CMD;
 use self::ping::PING_CMD;
 use self::set::SET_CMD;
 use self::ttl::TTL_CMD;
-use crate::data_chunk::{DataChunk, DataChunkError};
+use crate::data_chunk::DataChunkError;
 use crate::parser::Parser;
-use crate::utils::{unknown_cmd_err, NO_CMD_ERR};
 use crate::{Connection, DataStore, GenericResult};
-use bytes::Bytes;
+use ask::{Ask, ASK_CMD};
+use asking::{Asking, ASKING_CMD};
+use core::str;
 use delete::Delete;
 use get::Get;
 use ping::Ping;
 use set::Set;
 use ttl::Ttl;
 
+pub mod ask;
+pub mod asking;
 pub mod delete;
 pub mod get;
 pub mod ping;
 pub mod set;
 pub mod ttl;
 
-struct AskingCommand {
-    slot: u16,
-    command: Box<Command>,
-}
+pub const FALSE_CMD: &str = "FALSECMD";
 
-impl AskingCommand {
-    pub async fn respond(&self) -> GenericResult<()> {
-        Ok(())
-    }
-}
+pub const NO_CMD_ERR: &str = "No command supplied\r\n";
+pub const NO_CMD: &str = "NOCMD";
 
+pub const INCORRECT_ARGS_ERR: &str = "Incorrect number of arguments\r\n";
+pub const ARGS_NUM: &str = "ARGSNUM";
+
+pub const VALUE_NOT_INT_ERR: &str = "Value is not an integer\r\n";
+pub const NON_INT: &str = "NONINT";
+
+#[derive(Debug)]
 pub enum Command {
     Ping(Ping),
     Get(Get),
     Set(Set),
     Delete(Delete),
     Ttl(Ttl),
-    // Moved,
-    Asking(AskingCommand),
+    Ask(Ask),
     Unknown(String),
+    Asking(Asking),
     None,
 }
 
@@ -48,6 +52,8 @@ pub enum DataType {
     Null,
     SimpleError,
     Integer,
+    BulkString,
+    Array,
 }
 
 #[derive(Debug)]
@@ -84,23 +90,6 @@ pub trait CommonCommand {
 }
 
 impl Command {
-    fn process_location(a: Command) -> Command {
-        if false {
-            // Redirect to a valid node here
-            // If the node has the slot for this value the proceed to fetching it
-            // else redirect to other node by using ASK command
-
-            // slot and original command
-            // e.g. 5445, Command
-            Command::Asking(AskingCommand {
-                slot: 123,
-                command: Box::new(a),
-            })
-        } else {
-            a
-        }
-    }
-
     pub fn parse_cmd(mut data_chunk: Parser) -> Result<Command, ParseCommandErr> {
         // The iterator should contain all the necessary commands and values e.g. [SET, key, value]
         // The first value is the command itself
@@ -112,10 +101,12 @@ impl Command {
         // we have to convert byte slice to a string slice that needs to be a valid UTF-8
         let command = match &command[..] {
             PING_CMD => Command::Ping(Ping::parse(data_chunk)),
-            GET_CMD => Self::process_location(Command::Get(Get::parse(data_chunk))),
+            GET_CMD => Command::Get(Get::parse(data_chunk)),
             SET_CMD => Command::Set(Set::parse(data_chunk)),
             DELETE_CMD => Command::Delete(Delete::parse(data_chunk)),
             TTL_CMD => Command::Ttl(Ttl::parse(data_chunk)),
+            ASK_CMD => Command::Ask(Ask::parse()),
+            ASKING_CMD => Command::Asking(Asking::parse(data_chunk)),
             "" => Command::None,
             val => Command::Unknown(val.to_owned()),
         };
@@ -125,19 +116,20 @@ impl Command {
 
     pub async fn run(self, conn: &mut Connection, db: &DataStore) -> GenericResult<()> {
         match self {
-            // Command
             Command::Ping(command) => command.respond(conn).await,
             Command::Get(command) => command.respond(conn, db).await,
             Command::Set(command) => command.respond(conn, db).await,
             Command::Delete(command) => command.respond(conn, db).await,
             Command::Ttl(command) => command.respond(conn, db).await,
-            Command::Asking(command) => command.respond().await,
+            Command::Ask(command) => command.respond(conn).await,
+            Command::Asking(command) => command.respond(conn).await,
             Command::None => {
-                conn.write_error(NO_CMD_ERR.as_bytes()).await?;
+                conn.write_error(NO_CMD.as_bytes()).await?;
                 Ok(())
             }
             Command::Unknown(command) => {
-                conn.write_error(unknown_cmd_err(command).as_bytes())
+                let error_msg = format!("Unknown command {:?}", command);
+                conn.write_error_with_msg(FALSE_CMD.as_bytes(), error_msg.as_bytes())
                     .await?;
                 Ok(())
             }
