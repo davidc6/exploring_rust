@@ -153,7 +153,7 @@ mod clock_tests {
     use super::*;
 
     #[test]
-    fn hello_hi_yeah() {
+    fn clock_works_as_expected() {
         assert_eq!(Clock::new(100, 1000).to_string(), "20:40");
     }
 
