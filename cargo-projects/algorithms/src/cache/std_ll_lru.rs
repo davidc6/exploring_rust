@@ -498,7 +498,7 @@ mod std_ll_lru_tests {
             cache.put(val);
         }
 
-        println!("HEAD {:?} TAIL {:?}", cache.head, cache.tail);
+        // println!("HEAD {:?} TAIL {:?}", cache.head, cache.tail);
         println!("OLD MAP {:?}", cache.cache);
 
         for val in v.iter() {
@@ -518,7 +518,7 @@ mod std_ll_lru_tests {
 
         println!("=========================================================================");
 
-        println!("HEAD {:?} TAIL {:?}", cache.head, cache.tail);
+        // println!("HEAD {:?} TAIL {:?}", cache.head, cache.tail);
         println!("NEW MAP {:?}", cache.cache);
 
         // println!("MAP {:?}", cache.cache);
@@ -572,7 +572,22 @@ mod std_ll_lru_tests {
         // println!("CACHE DS {:?}", cache);
 
         for val in &mut cache {
-            println!("Node {:?}", val);
+            let v = val.borrow();
+            let b = v.as_deref();
+
+            println!("Node Value: {:?}", b.unwrap());
+        }
+
+        println!("===============================================");
+
+        // Should move the value up to the head of the list
+        cache.get(&3);
+
+        for val in &mut cache {
+            let v = val.borrow();
+            let b = v.as_deref();
+
+            println!("Node Value: {:?}", b.unwrap());
         }
 
         // for value in cache.cache.into_inner() {}
