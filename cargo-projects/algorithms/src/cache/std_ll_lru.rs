@@ -193,7 +193,7 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
     {
         let index = self.map.get(value)?;
 
-        // Get current element's previous and next node indices
+        // Get current/found element's previous and next node indices
         let (previous_index, next_index) = {
             let cache = self.cache.clone();
 
@@ -212,16 +212,17 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
             }
         };
 
-        // Update previous element's next index (to contain current element's next element index)
+        // Update previous element's next index (to point to current element's next element index)
         if let Some(ref prev_index) = previous_index {
             let mut cache = self.cache.clone();
-            let w = prev_index.clone();
-            let i = *w.as_ref().borrow();
+            let prev_index_ref = prev_index.clone();
+            let prev_index = *prev_index_ref.as_ref().borrow();
             // let i = *i.borrow_mut();
-            if let Some(elem) = cache.get_mut(i) {
+            if let Some(elem) = cache.get_mut(prev_index) {
                 let elem = elem.clone();
-                let mut elem_ref = elem.borrow_mut();
-                let elem = elem_ref.as_mut().unwrap();
+
+                let mut elem_ref_mut = elem.borrow_mut();
+                let elem = elem_ref_mut.as_mut().unwrap();
 
                 elem.prev = Some(Rc::new(RefCell::new(*index)));
                 elem.next = None;
@@ -242,18 +243,17 @@ impl<T: Clone + Debug + Eq + Hash + PartialEq> LRUCache<T> {
         }
 
         // HEAD - Set current element to become head
-        {
-            let mut cache = self.cache.clone();
-            if let Some(elem) = cache.get_mut(*index) {
-                let h = self.head.borrow().unwrap();
-                let elem = elem.clone();
-                let mut elem = elem.borrow_mut();
-                let elem = elem.as_mut().unwrap();
 
-                elem.prev = None;
-                elem.next = Some(Rc::new(RefCell::new(h)));
-                // value_to_return = Some(elem.value.clone());
-            }
+        let mut cache = self.cache.clone();
+        if let Some(elem) = cache.get_mut(*index) {
+            let h = self.head.borrow().unwrap();
+            let elem = elem.clone();
+            let mut elem = elem.borrow_mut();
+            let elem = elem.as_mut().unwrap();
+
+            elem.prev = None;
+            elem.next = Some(Rc::new(RefCell::new(h)));
+            // value_to_return = Some(elem.value.clone());
         }
 
         // Update head
@@ -582,6 +582,8 @@ mod std_ll_lru_tests {
 
         // Should move the value up to the head of the list
         cache.get(&3);
+
+        println!("{:?}", cache);
 
         for val in &mut cache {
             let v = val.borrow();
