@@ -27,7 +27,7 @@ This example will error since v is moved once and cannot be moved again.
 
 There are reserved lifetime names such as `'static`. This lifetime means that data pointed to my the reference lives for the lifetime of the program.
 
-## Example 1
+## Example 1 - String slicer
 
 ```rs
 // This function takes in a string slice that is valid for some lifetime 'a as well as start and end indices of type usize.
@@ -37,8 +37,46 @@ fn str_slice_slicer<'a>(value: &'a str, start: usize, end: usize) -> &'a str {
 }
 ```
 
-## Example 2
+## Example 2 - Longest word in a sentence
 
 ```rs
-// TODO
+struct TextAnalyser<'a> {
+    text: &'a str
+}
+
+impl<'a> TextAnalyser<'a> {
+    fn word_count(&self) -> usize {
+        // Count spaces
+        self.text.split(' ').fold(0, |acc, _| acc + 1)
+    }
+    
+    fn longest_word(&self) -> &str {
+        let mut longest = "";
+        
+        for word in self.text.split(' ') {
+            let mut word_len = word.len();
+
+                for char in word.chars() {
+                    if !char.is_alphanumeric() {
+                        word_len -= 1;
+                    }
+                }
+                
+                if word[0..word_len].len() > longest.len() {
+                    longest = &word[0..word_len];
+                }
+        }
+        
+        return longest;
+    }
+}
+
+fn main() {
+    let s = TextAnalyser {
+        text: "Hello, this a very long string. Hi, my name is John."
+    };
+
+    let longest = s.longest_word();
+    println!("Longest word {longest}");
+}
 ```
