@@ -1,5 +1,22 @@
 # Concurrency
 
+## Send and Sync
+
+A type is `Send` if it can be sent (i.e. its' ownership can be transferred) to another thread.
+
+A type is `Sync` if it can be shared with another thread. The type is `Sync` if and only if it's a shared reference is `Send`. 
+
+Raw pointers are not Sync or Send since the compiler does not know much about these. A way to implement these for the type:
+
+```rs
+struct SomeStruct {
+    p: *mut i32
+}
+
+unsafe impl Send for X {}
+unsafe impl Sync for X {}
+```
+
 ## Primitives
 
 - Atomics
@@ -37,6 +54,14 @@ There are several ways to use concurrency. For example:
     - These are deterministic and can't deadlock
 - Channels (thread-safe one-way communication, one thread receiving the other sending)
 - Shared mutable state (when using shared memory with synchronisation primitives)
+
+## Fork-join parallelism
+
+Diving the task into smaller tasks so that these can be executed in parallel, and joined afterwards.
+
+## Channels
+
+Rust's channel are multi producer, single consumer (mpsc). This is a message passing communication pattern (CSP - communicating sequential processes).  
 
 ## Shared mutable state
 
@@ -102,8 +127,42 @@ let guard = self.waiting_lock.lock().unwrap()
 
 If a thread panics with holding a Mutex, it's marked as poisoned. If programming with invariants then the concern is that it's possible that the invariants are broken. Perhaps some data was updated but not the other and the program paniced and bailed out of the critical section without completing what it was doing. Rust poisons the Mutex to prevent other threads from operating on a potentially broken data. Poisoned mutex still can be locked and inner data viewed if necessary.
 
-### 
+### Read/Write Locks (RwLock<T>)
 
+If most the operations that threads do are read-heavy. Mutex can be used but there is not need for threads for wait just to execute a read operation. This is a good use-case for RwLock. Essentially it's a multi-threaded version of RefCell but it does not panic on conflicting borrows.
+
+RwLock has two locking methods (read and write). `read` provides exclusive mutable access to the data, `read` on the other hand non-mutable.
+
+#### Challenges with RwLock
+
+It can lead to writer starvation if too many readers/reads. However, the implementation is dependent on the system and most will prevent new reads if a writer is waiting.
+
+#### Summary
+
+Both Mutex<T> and RwLock<T> require `T` to be `Send` since they can send `T` to another thread. `RwLock<T>` also needs to be Sync since multiple threads can holds a shared reference to `T`. 
+
+### Condvar (Condition Variables)
+
+
+## Resources
+
+- TODO
+
+## AI-generated
+
+### A list of common concurrency models
+
+| Model                 | Key Idea                       | Shared Memory? | Examples                   |
+| --------------------- | ------------------------------ | -------------- | -------------------------- |
+| Thread-based          | OS threads, shared state       | Y              | Rust threads, Java threads |
+| Actor                 | Message passing between actors | N              | Erlang, Actix              |
+| Async/Await (Futures) | Non-blocking tasks             | N / Optional   | Rust async, JS, Python     |
+| Shared Memory + Locks | Explicit synchronization       | Y              | Mutex, RwLock, Atomics     |
+| CSP (Channels)        | Message passing via channels   | N              | Go, Rust channels          |
+| STM                   | Memory transactions            | Y              | Haskell STM, Clojure refs  |
+| Fork/Join             | Parallel tasks                 | Maybe          | Rayon, Java ForkJoin       |
+| Green Threads         | User-space threads             | Depends        | Go, Tokio                  |
+| Dataflow/Reactive     | Triggered by data change       | N              | RxJava, Streams            |
 
 ## TODO
 
