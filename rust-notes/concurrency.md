@@ -143,6 +143,11 @@ Both Mutex<T> and RwLock<T> require `T` to be `Send` since they can send `T` to 
 
 ### Condvar (Condition Variables)
 
+These are often used for waiting for something to happen to data that is protected by a mutex. There are two operations that condvars support `wait` and `notify`. Threads can wait for a condition variable and they can be woken up when another thread notifies the same condvar. Multiple threads can wait for a condvar and either one or all can be notified. 
+
+Conditional variable can be created for a specific events or conditions. For example, wait until the queue is empty and when it does become empty (say a thread emptied a queue) then notifies the conditional variable which in turn notifies all the threads that are waiting on it. 
+
+Condvars provide a mechanism to atomically unlock the mutex and start waiting so there's no way to miss the notification. Condvar only works with a Mutex. 
 
 ## Resources
 
