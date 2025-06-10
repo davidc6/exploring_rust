@@ -31,7 +31,17 @@ impl Log for S3Logger {
 }
 
 struct FileLogger {
-    name: String
+    name: String,
+    location: String
+}
+
+impl FileLogger {
+    fn new(location: &str) -> Self {
+        FileLogger {
+            name: "file".to_string(),
+            location: location.to_string()
+        }
+    }
 }
 
 impl Log for FileLogger {
@@ -57,9 +67,7 @@ fn main() {
     };
     let _ = log_timestamp(&mut logger);
 
-    let mut file_logger = FileLogger {
-        name: "file".to_string()
-    };
+    let mut file_logger = FileLogger::new("/file/lives/here");
     let _ = log_timestamp(&mut file_logger);
 }
 ```
