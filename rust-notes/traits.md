@@ -1,5 +1,7 @@
 # Traits
 
+A trait is some kind of a feature that any given type might (or might not support). Traits are similar to interfaces in the other languages. Trait methods are similar to virtual methods in languages like C++ or C#. 
+
 ## Polymorphic code
 
 ```rs
@@ -17,11 +19,24 @@ trait Log {
     fn send(&mut self, timestamp: u64) -> Result<(), Box<dyn Error>>;
 }
 
-struct Logger {}
+struct S3Logger {
+    name: String
+}
 
-impl Log for Logger {
+impl Log for S3Logger {
     fn send(&mut self, timestamp: u64) -> Result<(), Box<dyn Error>> {
-        println!("Logging {timestamp}");
+        println!("Logging to S3: {timestamp}");
+        Ok(())
+    }
+}
+
+struct FileLogger {
+    name: String
+}
+
+impl Log for FileLogger {
+    fn send(&mut self, timestamp: u64) -> Result<(), Box<dyn Error>> {
+        println!("Logging to file: {timestamp}");
         Ok(())
     }
 }
@@ -37,18 +52,21 @@ fn log_timestamp(log: &mut dyn Log) -> Result<(), Box<dyn Error>> {
 }
 
 fn main() {
-    let mut logger = Logger {};
-    log_timestamp(&mut logger);
-}
+    let mut logger = S3Logger {
+        name: "S3".to_string()
+    };
+    let _ = log_timestamp(&mut logger);
 
-trait Log {
-    fn send(&mut self, timestamp: u64) -> Result<(), Box<dyn Error>>;
+    let mut file_logger = FileLogger {
+        name: "file".to_string()
+    };
+    let _ = log_timestamp(&mut file_logger);
 }
 ```
 
 Calls through `&mut dyn Log` incur the overhead of a dynamic dispatch (aha virtual method call). `dyn Log` is a trait object in the example above. However, we cannot just write `dyn Log` since the compiler needs to know the size at compile time and types that implement `Log` can be of any size. References in Rust are explicit ( `&mut dyn Log`). A reference to a trait type is called *trait object*. A trait object points to some value, has a lifetime and can be either shared or mut. 
 
-A trait object includes extra information (metadata) about the referent type. This is used by Rust behind the scenes to dynamically call the right method depending on the type. Rust does not support downcasting from &mut dyn to the actual type.
+A trait object includes extra information (metadata) about the referent type. This is used by Rust behind the scenes to dynamically call the right method depending on the type. Rust does not support downcasting from `&mut dyn` to the actual type.
 
 ## Marker traits
 
