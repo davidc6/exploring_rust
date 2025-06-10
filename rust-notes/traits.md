@@ -25,7 +25,7 @@ struct S3Logger {
 
 impl Log for S3Logger {
     fn send(&mut self, timestamp: u64) -> Result<(), Box<dyn Error>> {
-        println!("Logging to S3: {timestamp}");
+        println!("Logging to {}: {timestamp}", self.name);
         Ok(())
     }
 }
@@ -36,7 +36,7 @@ struct FileLogger {
 
 impl Log for FileLogger {
     fn send(&mut self, timestamp: u64) -> Result<(), Box<dyn Error>> {
-        println!("Logging to file: {timestamp}");
+        println!("Logging to {}: {timestamp}", self.name);
         Ok(())
     }
 }
