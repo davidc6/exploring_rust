@@ -73,7 +73,7 @@ impl<'a> TextAnalyser<'a> {
 
 fn main() {
     let s = TextAnalyser {
-        text: "Hello, this a very long string. Hi, my name is John."
+        text: "Hello, this a very long string. Hi, my name is Ferris."
     };
 
     let longest = s.longest_word();
