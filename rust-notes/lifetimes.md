@@ -1,5 +1,12 @@
 # Lifetimes
 
+- A lifetime is a form of generic (generic parameter)
+- A lifetime tracks *time* and not *type*
+- A lifetime generic is not the same as type generic
+- Represents a scope of validity for a reference
+- You can think of them as "regions of memory during which references are valid"
+- Used by the compiler to verify borrowing rules
+- Used by the compiler to ensure that references do not outlive the data they point to
 - The main idea is to prevent dangling references
 - Lifetime annotation does not change how long the reference lives, it just describes the relationship of the lifetimes to each other
 - Ensure that references are valid as long as they are needed to be
