@@ -27,3 +27,18 @@ This example will error since v is moved once and cannot be moved again.
 
 There are reserved lifetime names such as `'static`. This lifetime means that data pointed to my the reference lives for the lifetime of the program.
 
+## Example 1
+
+```rs
+// This function takes in a string slice that is valid for some lifetime 'a as well as start and end indices of type usize.
+// The function then returns another string slice that is guaranteed to be valid fot the same lifetime 'a.
+fn str_slice_slicer<'a>(value: &'a str, start: usize, end: usize) -> &'a str {
+    &value[start..end]
+}
+```
+
+## Example 2
+
+```rs
+// TODO
+```
