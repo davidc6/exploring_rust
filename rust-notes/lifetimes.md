@@ -29,6 +29,8 @@ There are reserved lifetime names such as `'static`. This lifetime means that da
 
 ## Example 1 - String slicer
 
+Str slicer takes in a string slice and returns a slice from start to end value.
+
 ```rs
 // This function takes in a string slice that is valid for some lifetime 'a as well as start and end indices of type usize.
 // The function then returns another string slice that is guaranteed to be valid fot the same lifetime 'a.
@@ -38,6 +40,8 @@ fn str_slice_slicer<'a>(value: &'a str, start: usize, end: usize) -> &'a str {
 ```
 
 ## Example 2 - Longest word in a sentence
+
+The idea is for the TextAnalyser struct to hold a reference to a string and for the methods on the struct to operate on it.
 
 ```rs
 struct TextAnalyser<'a> {
