@@ -201,6 +201,65 @@ A `Weak<T>` is also called a weak pointer (which we touched on earlier), does no
 
 In structures when Arc's is used extensively, Weak can be used for example to break structures in a child-parent relationship where child uses weak for their parent node and dropping parent is not prevented that way. 
 
+#### Demo Implementation
+
+##### Basic Reference Counting
+
+```rs
+use std::sync::atomic::AtomicUsize;
+use std::ptr::NonNull;
+use std::ops::Deref;
+
+// Data stored in Arc
+struct Data<T> {
+    /// Reference count
+    ref_count: AtomicUsize,
+    /// The data
+    data: T,
+}
+
+// Actual interface
+pub struct Arc<T> {
+    /// The pointer has to be guaranteed not to be null
+    ptr: NonNull<Data<T>>
+}
+
+impl<T> Arc<T> {
+    /// Box::new - creates new allocation on the heap.
+    /// 
+    /// Box::leak - used here to get access to the value on the heap 
+    /// and return a mut reference to it &'static mut, giving up
+    /// exclusive ownership of this allocation.
+    ///
+    /// This way we are preventing deallocation by Box.
+    /// This is similar to leaking memory in other languages
+    /// but we are doing it on purpose here.
+    ///
+    /// NonNull turns it into a pointer
+    fn new(data: T) -> Arc<T> {
+        Arc {
+            ptr: NonNull::from(Box::leak(Box::new(Data {
+                ref_count: AtomicUsize::new(1),
+                data
+            })))
+        }
+    }
+   
+    /// Wrapper since we need unsafe code to access the raw pointer.
+    fn data(&self) -> &Data<T> {
+        unsafe { self.ptr.as_ref() }
+    }
+}
+
+// No DerefMut implementation since no mutable ownership is allowed.
+impl<T> Deref for Arc<T> {
+    type Target = T;
+    
+    fn deref(&self) -> &T {
+        &self.data().data
+    }
+}
+```
 
 ## Resources
 
