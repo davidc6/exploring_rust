@@ -1,5 +1,9 @@
 # Concurrency
 
+- [Primitives](#primitives)
+- [Memory Ordering](#memory-ordering)
+- [Thread-local Storage](#thread-local-storage-tls)
+
 ## Send and Sync
 
 A type is `Send` if it can be sent (i.e. its' ownership can be transferred) to another thread.
@@ -148,6 +152,49 @@ These are often used for waiting for something to happen to data that is protect
 Conditional variable can be created for a specific events or conditions. For example, wait until the queue is empty and when it does become empty (say a thread emptied a queue) then notifies the conditional variable which in turn notifies all the threads that are waiting on it. 
 
 Condvars provide a mechanism to atomically unlock the mutex and start waiting so there's no way to miss the notification. Condvar only works with a Mutex. 
+
+### Arc
+
+Arc (stands for "Atomically Reference Counted") - allows shared ownership through reference counting. 
+
+```rs
+// Creates a new allocation.
+let arc = Arc::new();
+
+// Produces a new Arc instance that points to the same allocation on the heap (as the source).
+let arc_two = arc.clone();
+```
+
+Shared references disallow mutation by default. In order to mutate:
+
+1. Interior mutability using Mutex, RwLock or one of the Atomics (
+2. COW (copy-on-write) semantics `Arc::make_mut` which clones the data only when needed (if there references to it) without using interior mutability.
+3. `Arc::get_mut` when the reference count is 1 for the direct mutable access.
+
+```rs
+use std::sync::Arc;
+
+fn main() {
+    let mut data = Arc::new(vec![1, 2, 3]);
+    // Cloning Arc increments reference count.
+    let mut data_two = data.clone();
+    // Makes a copy of the "data" since there is a reference to it.
+    Arc::make_mut(&mut data).push(4);
+   
+    // Prints: [1, 2, 3, 4]
+    println!("{:?}", *data);
+    // Prints: [1, 2, 3]
+    println!("{:?}", *data_two);
+}
+```
+
+#### Memory layout
+
+`Arc<T>` where `T` is the value allocated on the heap. `Arc` need to think about synchronisation since the reference count is shared mutable state. Since using something like `Mutex` is an overkill, atomics can be used instead. Since there's a pointer to the T's allocation, extra metadata (in this case reference count) can live there too. 
+
+- If `T` is sized then on the stack there is a single (thin) pointer pointing to the heap allocation of T as well as weak and strong ref counts.
+- If `T` is not sized then there is an extra bit of information required to be stored on the stack about dynamically sized T. This can be length of the slice or vtable pointer.
+
 
 ## Resources
 
