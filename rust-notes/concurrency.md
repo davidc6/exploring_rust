@@ -195,6 +195,12 @@ fn main() {
 - If `T` is sized then on the stack there is a single (thin) pointer pointing to the heap allocation of T as well as weak and strong ref counts.
 - If `T` is not sized then there is an extra bit of information required to be stored on the stack about dynamically sized T. This can be length of the slice or vtable pointer.
 
+#### Weak<T>
+
+A `Weak<T>` is also called a weak pointer (which we touched on earlier), does not prevent an object from getting dropped, meaning that when all Arc<T>'s are dropped, T is dropped too regardless of the existence of any `Weak<T>`s. T can be shared between Arc and Weak. 
+
+In structures when Arc's is used extensively, Weak can be used for example to break structures in a child-parent relationship where child uses weak for their parent node and dropping parent is not prevented that way. 
+
 
 ## Resources
 
