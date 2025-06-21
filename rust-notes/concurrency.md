@@ -3,6 +3,8 @@
 - [Primitives](#primitives)
 - [Memory Ordering](#memory-ordering)
 - [Thread-local Storage](#thread-local-storage-tls)
+- [Shared mutable state](#shared-mutable-state)
+    - [Arc](#arc)
 
 ## Send and Sync
 
@@ -261,9 +263,11 @@ impl<T> Deref for Arc<T> {
 }
 ```
 
-## Resources
+#### Resources
 
-- TODO
+- [Leaking memory on purpose in Rust](https://softwaremill.com/leaking-memory-on-purpose-in-rust/)
+- [Layout](https://softwaremill.com/leaking-memory-on-purpose-in-rust/)
+- [Chapter 6. Building Our Own "Arc"](https://marabos.nl/atomics/building-arc.html)
 
 ## AI-generated
 
