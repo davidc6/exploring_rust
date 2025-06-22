@@ -272,7 +272,11 @@ impl<T> Deref for Arc<T> {
 // Relaxed ordering is used here since no memory other than the one being operated on is touched.
 impl<T> Clone for Arc<T> {
     fn clone(&self) -> Self {
-        self.data().ref_count.fetch_add(1, Relaxed);
+        // To reduce the possibility of other threads calling Arc::clone while the process is being aborted,
+        // we set the limit to half of usize MAX.
+        if self.data().ref_count.fetch_add(1, Relaxed) > usize::MAX / 2 {
+            std::process::abort();
+        }
         Arc {
             ptr: self.ptr
         }
