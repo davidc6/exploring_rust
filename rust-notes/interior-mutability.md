@@ -1,5 +1,9 @@
 # Interior Mutability
 
+- [Cell](#cell)
+- [RefCell](#refcell)
+- [UnsafeCell](#unsafecell)
+
 Some types provide a way to mutate the value through a shared reference. Rust
 usually checks references at compile time but here the checks are carried out at
 run-time. If the references rules are broken then you'll get a panic. There type
@@ -66,7 +70,7 @@ There are thread-safe flavours such as Mutex, Atomics and Global Variables.
 
 ## UnsafeCell
 
-`UnsafeCell<T>` is the primitive building block for interior mutability.
+`UnsafeCell<T>` is the core primitive building block for interior mutability in Rust.
 
 All types that provide interior mutability are built on top of `UnsafeCell`.
 
