@@ -133,6 +133,11 @@ let guard = self.waiting_lock.lock().unwrap()
 
 If a thread panics with holding a Mutex, it's marked as poisoned. If programming with invariants then the concern is that it's possible that the invariants are broken. Perhaps some data was updated but not the other and the program paniced and bailed out of the critical section without completing what it was doing. Rust poisons the Mutex to prevent other threads from operating on a potentially broken data. Poisoned mutex still can be locked and inner data viewed if necessary.
 
+#### Resources
+
+- [Fair Mutex in parking lot](https://docs.rs/parking_lot/latest/parking_lot/type.Mutex.html)
+- [Mutex Flavors](https://www.intel.com/content/www/us/en/docs/onetbb/developer-guide-api-reference/2021-6/mutex-flavors.html)
+
 ### Read/Write Locks (RwLock<T>)
 
 If most the operations that threads do are read-heavy. Mutex can be used but there is not need for threads for wait just to execute a read operation. This is a good use-case for RwLock. Essentially it's a multi-threaded version of RefCell but it does not panic on conflicting borrows.
@@ -157,7 +162,7 @@ Condvars provide a mechanism to atomically unlock the mutex and start waiting so
 
 ### Arc
 
-Arc (stands for "Atomically Reference Counted") - allows shared ownership through reference counting. 
+Arc (stands for "Atomically Reference Counted") - allows shared ownership through reference counting. It is a smart pointer.
 
 ```rs
 // Creates a new allocation.
@@ -222,7 +227,7 @@ struct Data<T> {
 
 // Actual interface
 pub struct Arc<T> {
-    /// The pointer has to be guaranteed not to be null
+    /// The pointer has to be guaranteed not to be null.
     ptr: NonNull<Data<T>>
 }
 
@@ -253,12 +258,24 @@ impl<T> Arc<T> {
     }
 }
 
+// Deref is used here for immutable dereferencing (i.e. *value).
 // No DerefMut implementation since no mutable ownership is allowed.
 impl<T> Deref for Arc<T> {
     type Target = T;
     
     fn deref(&self) -> &T {
         &self.data().data
+    }
+}
+
+// Clone implementation increments ref counter and returns the same pointer.
+// Relaxed ordering is used here since no memory other than the one being operated on is touched.
+impl<T> Clone for Arc<T> {
+    fn clone(&self) -> Self {
+        self.data().ref_count.fetch_add(1, Relaxed);
+        Arc {
+            ptr: self.ptr
+        }
     }
 }
 ```
