@@ -213,7 +213,8 @@ In structures when Arc's is used extensively, Weak can be used for example to br
 ##### Basic Reference Counting
 
 ```rs
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicUsize, fence};
+use std::sync::atomic::Ordering::{Relaxed, Acquire, Release};
 use std::ptr::NonNull;
 use std::ops::Deref;
 
@@ -279,6 +280,27 @@ impl<T> Clone for Arc<T> {
         }
         Arc {
             ptr: self.ptr
+        }
+    }
+}
+
+/// Using "Release" memory ordering here since it's relevant for write/store operations.
+/// To make sure that nothing is still accessing the data after final drop.
+///
+/// The last/final fetch_sub establishes a happens-before relationship with all previous 
+/// operations. We can do this using release/acquire ordering. 
+impl<T> Drop for Arc<T> {
+    fn drop(&mut self) {
+        if self.data().ref_count.fetch_sub(1, Release) == 1 {
+            // If last, acquire data ownership.
+            // 
+            // Make previous non-Acquire atomic loads into Acquire
+            // if they have a matching Release atomic store.
+            fence(Acquire);
+
+            unsafe {
+                drop(Box::from_raw(self.ptr.as_ptr()));
+            }
         }
     }
 }
