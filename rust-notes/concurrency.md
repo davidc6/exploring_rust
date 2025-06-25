@@ -43,9 +43,9 @@ provide atomic types up to a pointer size (size depends on system architecture).
 
 Modifications to Atomics are possible through a shared reference.
 
-## Memory ordering
+#### Memory ordering
 
-There are many techniques and optimisations that processors and compilers perform to make the code run faster. This is to say that if a compiler sees that some code reorganisation will make the code run faster, it will do so. If a CPU finds a way to execute instructions in a more optimal way, it will execute them accordingly.
+There are many techniques and optimisations that processors and compilers perform to make the code run faster. This is to say that if a compiler sees that some code reorganisation will make the code run faster, it will do so. If a CPU finds a way to execute instructions in a more optimal way without changing the way the program works, it will execute them accordingly.
 
 Memory order is the order in which CPU accesses computer memory. There are two ways this can be done:
 
@@ -54,7 +54,16 @@ Memory order is the order in which CPU accesses computer memory. There are two w
 
 Atomic operations take `Ordering` as an argument which determines the guarantees about the relative order of operations. 
 
-`Relaxed` is the simplest and weakest variant of memory ordering with fewest guarantees. It only guarantees that the access is atomic. Relaxed ordering gives no guarantees about the relative ordering of memory access across different threads. For example, two threads might see operations on different variables happen in a different order (say one thread write to variable a then b but another thread sees in in reverse order).
+- `Relaxed` is the simplest and weakest variant of memory ordering with fewest guarantees. It only guarantees that the access is atomic. Relaxed ordering gives no guarantees about the relative ordering of memory access across different threads. For example, two threads might see operations on different variables happen in a different order (say one thread write to variable a then b but another thread sees in in reverse order).
+- Release and acquire ordering `Release`, `Acquire` and `AcqRel`.
+    - Release and Acquire are used in a pair to form a happens-before relationship between threads
+    - Release happens to store operations
+    - Acquire happens to load operations
+- Sequentially consistent ordering `SeqCst`.
+
+The memory model defines the order in which operations happens in the happens-before relationships. The abstract model is a way to decouple from processor architectures. Only situations where something is guaranteed to happen before something else. The rule is that everything that happens within the same thread happens in order.
+
+Mutexes and Semaphores are designed to care of memory reordering problems.
 
 At the CPU level, memory instructions come in two main shapes: loads and stores. A load pulls bytes from a memory location into a CPU register. A store, stores bytes from a CPU register into a location in memory. These instructions usually operate on 8 bytes (chunks of memory) or less on modern CPUs. 
 
