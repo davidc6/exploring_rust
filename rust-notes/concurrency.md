@@ -43,9 +43,16 @@ provide atomic types up to a pointer size (size depends on system architecture).
 
 Modifications to Atomics are possible through a shared reference.
 
-#### Memory ordering
+#### Memory ordering (Memory consistency)
+
+A computer memory model is how a computer architecture determines what memory guarantees it will provide to an application. There are two memory categories:
+
+1. Strongly ordered. Memory modifications on one processor is visible to all other processors.
+2. Weak ordered. Memory modifications on one processor maybe not be visible to other processors.
 
 There are many techniques and optimisations that processors and compilers perform to make the code run faster. This is to say that if a compiler sees that some code reorganisation will make the code run faster, it will do so. If a CPU finds a way to execute instructions in a more optimal way without changing the way the program works, it will execute them accordingly.
+
+Consistency models define correct shared memory behaviour in terms of loads and stores (that is memory reads and writes). In order for developers to know what memory behaviour to expect, shared memory correctness must be defined by the implementors. 
 
 Memory order is the order in which CPU accesses computer memory. There are two ways this can be done:
 
@@ -98,7 +105,7 @@ Rust's channel are multi producer, single consumer (mpsc). This is a message pas
 
 ## Shared mutable state
 
-When access is needed by many threads to a single (sharable) location. It should mutable an accessible by all threads.
+When access is needed by many threads to a single (sharable) location. It should mutable an accessible by all threads. Below, we discuss critical section which is a segment of code that accesses a shared resource. This code must be executed only by one thread or process at a time. Implementing a critical section in a concurrent program, can prevent corruption, race conditions and deadlock.
 
 ### Mutex
 
