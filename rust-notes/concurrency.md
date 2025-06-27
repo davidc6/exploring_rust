@@ -45,7 +45,7 @@ Modifications to Atomics are possible through a shared reference.
 
 #### Memory ordering (Memory consistency)
 
-A computer memory model is how a computer architecture determines what memory guarantees it will provide to an application. There are two memory categories:
+A computer memory model is how a computer architecture determines what memory guarantees it will provide to an application. Memory models vary by processor type. There are instructions that computer architectures provide instructions that can force any changes in memory to be propagate to other processors. This will ensure that memory modifications are visible to threads running on other processors. There are two memory categories:
 
 1. Strongly ordered. Memory modifications on one processor is visible to all other processors.
 2. Weak ordered. Memory modifications on one processor maybe not be visible to other processors.
