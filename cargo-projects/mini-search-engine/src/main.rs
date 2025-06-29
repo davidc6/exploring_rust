@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::{read_dir, read_to_string};
 use std::io;
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver};
 use std::thread::{self, JoinHandle};
@@ -26,7 +27,7 @@ impl InvertedIndex {
     fn from_value(id: Filename, value: Content) -> Self {
         let mut index = InvertedIndex::default();
 
-        let lines = value.0.lines();
+        let lines = value.lines();
         let mut count = 0;
 
         for line in lines {
@@ -40,7 +41,7 @@ impl InvertedIndex {
                     .and_modify(|v| v.get_mut(&id).unwrap().push(count))
                     .or_insert_with(|| {
                         let mut hm = HashMap::new();
-                        hm.insert(Filename(id.0.clone()), vec![count]);
+                        hm.insert(Filename(id.to_string()), vec![count]);
                         hm
                     });
             }
@@ -54,11 +55,32 @@ impl InvertedIndex {
             self.index.entry(key).or_insert_with(|| vals);
         }
     }
+
+    fn is_empty(&self) -> bool {
+        self.index.len() == 0
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct Filename(String);
+
+impl Deref for Filename {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 struct Content(String);
+
+impl Deref for Content {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 /// Attempts to read all the files in a given directory and
 /// send the content of each file on the channel.
@@ -125,20 +147,39 @@ fn merge_indices(indices: Receiver<InvertedIndex>) -> (Receiver<InvertedIndex>, 
             indices_merged.merge(index);
         }
 
-        println!("INDEX {:?}", indices_merged);
+        if !indices_merged.is_empty() {
+            let Ok(_) = tx.send(indices_merged) else {
+                panic!("Could not send indices");
+            };
+        }
     });
 
     (rx, handle)
+}
+
+fn write_indices(indices: Receiver<InvertedIndex>) -> (Receiver<InvertedIndex>, JoinHandle<()>) {
+    let (tx, rx) = channel();
+
+    let handler = thread::spawn(|| {
+        for index in indices.into_iter() {
+            // TODO
+            println!("{:?}", index);
+        }
+    });
+
+    (rx, handler)
 }
 
 fn execute(files: Vec<PathBuf>) -> io::Result<()> {
     let (reader, reader_join) = file_reader(files);
     let (indexer, indexer_join) = file_indexing(reader);
     let (merger, merger_join) = merge_indices(indexer);
+    let (writer, writer_join) = write_indices(merger);
 
     let reader_1 = reader_join.join().unwrap();
     indexer_join.join().unwrap();
     merger_join.join().unwrap();
+    writer_join.join().unwrap();
 
     reader_1?;
 
@@ -152,5 +193,5 @@ fn main() {
         .map(|entry| entry.path())
         .collect();
 
-    let a = execute(files_in_dir);
+    let _ = execute(files_in_dir);
 }
