@@ -1,25 +1,21 @@
+use crate::{content::Content, filename::Filename};
 use std::{
     collections::HashMap,
     sync::mpsc::{channel, Receiver},
     thread::{self, JoinHandle},
 };
 
-use crate::{content::Content, filename::Filename};
-
-/// ID: { word_1: 1, word_2: 4, word_3: 2 }
+/// InvertedIndex is a data structure that stores words
+/// and their positions in text. Additionally, word count
+/// is recorded too.
 ///
-/// [word_1]: { id_1: [1, 2], id_2: [4. 5] }
-/// [word_2]: { id_1: [2, 3, 7], id_3: [6, 9] }
+/// This structure is:
 ///
-/// 1: { a: 1, b: 2, c: 4 }
-/// 2: { c: 1, b: 3, f: 1 }
-///
-/// merged
-///
-/// An id is a unique identifier for each document in the corpus
+/// { index: { "some_word": { "file_one.txt": [1, 3, 5] } } }
 #[derive(Default, Debug)]
 pub struct InvertedIndex {
     index: HashMap<String, HashMap<Filename, Vec<usize>>>,
+    word_count: usize,
 }
 
 impl InvertedIndex {
@@ -27,20 +23,25 @@ impl InvertedIndex {
         let mut index = InvertedIndex::default();
 
         let lines = value.lines();
-        let mut count = 0;
+        let special_chars = ['.', ',', '!', '?', '"', '\''];
 
         for line in lines {
             let split = line.split(' ');
 
             for word in split {
-                count += 1;
+                index.word_count += 1;
+
+                let word = word
+                    .replace(|c: char| special_chars.contains(&c), "")
+                    .to_ascii_lowercase();
+
                 index
                     .index
                     .entry(word.to_owned())
-                    .and_modify(|v| v.get_mut(&id).unwrap().push(count))
+                    .and_modify(|v| v.get_mut(&id).unwrap().push(index.word_count))
                     .or_insert_with(|| {
                         let mut hm = HashMap::new();
-                        hm.insert(Filename(id.to_string()), vec![count]);
+                        hm.insert(Filename(id.to_string()), vec![index.word_count]);
                         hm
                     });
             }
@@ -53,6 +54,7 @@ impl InvertedIndex {
         for (key, vals) in index.index {
             self.index.entry(key).or_insert_with(|| vals);
         }
+        self.word_count += index.word_count;
     }
 
     pub fn is_empty(&self) -> bool {
