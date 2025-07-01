@@ -244,11 +244,54 @@ fn sum_of_three_integers(nums: Vec<u32>, num: u32) -> bool {
     }
 }
 
+fn removing_item(arr: &mut [usize], position: usize) {
+    if arr.len() == 1 {
+        return;
+    }
+
+    if position == arr.len() - 1 {
+        arr[position] = arr[position - 1];
+        return;
+    }
+
+    for x in 0..arr.len() {
+        if x == position {
+            let mut end = arr.len() - 1;
+            let mut start = end - 1;
+            let mut prev = None;
+
+            loop {
+                if end == position {
+                    break;
+                }
+
+                if let Some(p) = prev {
+                    let t = arr[start];
+                    arr[start] = p;
+                    prev = Some(t);
+                } else {
+                    prev = Some(arr[start]);
+                    arr[start] = arr[end]
+                }
+
+                if start == 0 {
+                    break;
+                }
+
+                start -= 1;
+                end -= 1;
+                continue;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod arrays_tests {
-    use crate::arrays::{intersection, permutations, product_except_self_2, product_except_self_3};
-
     use super::{product_except_self, sum_of_three_integers};
+    use crate::arrays::{
+        intersection, permutations, product_except_self_2, product_except_self_3, removing_item,
+    };
 
     #[test]
     fn product_except_self_works() {
@@ -374,5 +417,38 @@ mod arrays_tests {
 
         let actual = sum_of_three_integers(nums, number);
         assert!(actual);
+    }
+
+    #[test]
+    fn removing_item_at_position_2_from_array() {
+        let mut arr = [1, 2, 3, 4, 5];
+        let position = 2;
+
+        let expected = [1, 2, 4, 5, 5];
+        removing_item(&mut arr, position);
+
+        assert_eq!(arr, expected);
+    }
+
+    #[test]
+    fn removing_item_at_position_start_from_array() {
+        let mut arr = [1, 2, 3, 4, 5];
+        let position = 0;
+
+        let expected = [2, 3, 4, 5, 5];
+        removing_item(&mut arr, position);
+
+        assert_eq!(arr, expected);
+    }
+
+    #[test]
+    fn removing_item_at_the_end_from_array() {
+        let mut arr = [1, 2, 3, 4, 5];
+        let position = 4;
+
+        let expected = [1, 2, 3, 4, 4];
+        removing_item(&mut arr, position);
+
+        assert_eq!(arr, expected);
     }
 }
