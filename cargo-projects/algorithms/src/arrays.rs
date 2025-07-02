@@ -286,6 +286,10 @@ fn removing_item(arr: &mut [usize], position: usize) {
     }
 }
 
+fn own_array<const N: usize>(arr: [i32; N]) -> i32 {
+    arr.iter().sum()
+}
+
 #[cfg(test)]
 mod arrays_tests {
     use super::{product_except_self, sum_of_three_integers};
