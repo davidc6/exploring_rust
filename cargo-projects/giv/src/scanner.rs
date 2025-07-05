@@ -1,10 +1,11 @@
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum TokenType {
     Equal,
     Semi,
+    Let,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 struct Token {
     token_type: TokenType,
     lexeme: String,
@@ -14,13 +15,34 @@ impl Scanner {
     fn push_token(&mut self, token_type: TokenType) {}
 
     fn scan(&mut self) {
+        let mut current_start = None;
+
         for (pos, char) in self.source_code.chars().enumerate() {
             match char {
                 '=' => self.tokens.push(Token {
                     token_type: TokenType::Equal,
                     lexeme: self.source_code[pos..pos + 1].to_owned(),
                 }),
-                _ => (),
+                ';' => self.tokens.push(Token {
+                    token_type: TokenType::Semi,
+                    lexeme: self.source_code[pos..pos + 1].to_owned(),
+                }),
+                ' ' => {
+                    let current = &self.source_code[current_start.unwrap()..pos];
+
+                    if current == "let" {
+                        self.tokens.push(Token {
+                            token_type: TokenType::Let,
+                            lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
+                        });
+                        current_start = None;
+                    }
+                }
+                _ => {
+                    if current_start.is_none() {
+                        current_start = Some(pos);
+                    }
+                }
             }
         }
     }
@@ -55,12 +77,23 @@ mod scanner_tests {
     fn push_works() {
         let mut scanner = Scanner::from("let x = \"a\";");
         scanner.scan();
+
         assert!(
             scanner.tokens
-                == vec![Token {
-                    token_type: TokenType::Equal,
-                    lexeme: "=".to_owned()
-                }]
+                == vec![
+                    Token {
+                        token_type: TokenType::Let,
+                        lexeme: "let".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Equal,
+                        lexeme: "=".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Semi,
+                        lexeme: ";".to_owned()
+                    },
+                ]
         );
     }
 }
