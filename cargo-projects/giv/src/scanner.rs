@@ -5,6 +5,7 @@ enum TokenType {
     Let,
     Identifier,
     String,
+    Eof,
 }
 
 #[derive(Debug, PartialEq)]
@@ -31,6 +32,7 @@ impl Scanner {
                         token_type: TokenType::Semi,
                         lexeme: self.source_code[pos..pos + 1].to_owned(),
                     });
+                    current_start = Some(pos + 1);
                 }
                 ' ' => {
                     let current = &self.source_code[current_start.unwrap()..pos];
@@ -66,6 +68,11 @@ impl Scanner {
                 }
             }
         }
+
+        self.tokens.push(Token {
+            token_type: TokenType::Eof,
+            lexeme: "".to_owned(),
+        });
     }
 }
 
@@ -96,7 +103,7 @@ mod scanner_tests {
 
     #[test]
     fn push_works() {
-        let mut scanner = Scanner::from("let x = \"hey\";");
+        let mut scanner = Scanner::from("let x = \"hey\";let y = \"hello\";");
         scanner.scan();
 
         assert!(
@@ -121,6 +128,30 @@ mod scanner_tests {
                     Token {
                         token_type: TokenType::Semi,
                         lexeme: ";".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Let,
+                        lexeme: "let".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Identifier,
+                        lexeme: "y".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Equal,
+                        lexeme: "=".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::String,
+                        lexeme: "hello".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Semi,
+                        lexeme: ";".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Eof,
+                        lexeme: "".to_owned()
                     },
                 ]
         );
