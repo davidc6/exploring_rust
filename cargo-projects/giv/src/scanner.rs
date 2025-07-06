@@ -3,6 +3,7 @@ enum TokenType {
     Equal,
     Semi,
     Let,
+    Identifier,
 }
 
 #[derive(Debug, PartialEq)]
@@ -30,12 +31,23 @@ impl Scanner {
                 ' ' => {
                     let current = &self.source_code[current_start.unwrap()..pos];
 
+                    // TODO
+                    if current == "=" {
+                        continue;
+                    }
+
                     if current == "let" {
                         self.tokens.push(Token {
                             token_type: TokenType::Let,
                             lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
                         });
                         current_start = None;
+                    } else {
+                        self.tokens.push(Token {
+                            token_type: TokenType::Identifier,
+                            lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
+                        });
+                        current_start = Some(pos + 1);
                     }
                 }
                 _ => {
@@ -84,6 +96,10 @@ mod scanner_tests {
                     Token {
                         token_type: TokenType::Let,
                         lexeme: "let".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Identifier,
+                        lexeme: "x".to_owned()
                     },
                     Token {
                         token_type: TokenType::Equal,
