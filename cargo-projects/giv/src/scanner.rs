@@ -4,6 +4,7 @@ enum TokenType {
     Semi,
     Let,
     Identifier,
+    String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -20,34 +21,42 @@ impl Scanner {
 
         for (pos, char) in self.source_code.chars().enumerate() {
             match char {
-                '=' => self.tokens.push(Token {
-                    token_type: TokenType::Equal,
-                    lexeme: self.source_code[pos..pos + 1].to_owned(),
-                }),
-                ';' => self.tokens.push(Token {
-                    token_type: TokenType::Semi,
-                    lexeme: self.source_code[pos..pos + 1].to_owned(),
-                }),
+                ';' => {
+                    self.tokens.push(Token {
+                        token_type: TokenType::String,
+                        lexeme: self.source_code[current_start.unwrap() + 2..pos - 1].to_owned(),
+                    });
+
+                    self.tokens.push(Token {
+                        token_type: TokenType::Semi,
+                        lexeme: self.source_code[pos..pos + 1].to_owned(),
+                    });
+                }
                 ' ' => {
                     let current = &self.source_code[current_start.unwrap()..pos];
 
-                    // TODO
-                    if current == "=" {
-                        continue;
-                    }
-
-                    if current == "let" {
-                        self.tokens.push(Token {
-                            token_type: TokenType::Let,
-                            lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
-                        });
-                        current_start = None;
-                    } else {
-                        self.tokens.push(Token {
-                            token_type: TokenType::Identifier,
-                            lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
-                        });
-                        current_start = Some(pos + 1);
+                    match current {
+                        "let" => {
+                            self.tokens.push(Token {
+                                token_type: TokenType::Let,
+                                lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
+                            });
+                            current_start = None;
+                        }
+                        "=" => {
+                            self.tokens.push(Token {
+                                token_type: TokenType::Equal,
+                                lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
+                            });
+                            current_start = Some(pos);
+                        }
+                        _ => {
+                            self.tokens.push(Token {
+                                token_type: TokenType::Identifier,
+                                lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
+                            });
+                            current_start = None;
+                        }
                     }
                 }
                 _ => {
@@ -80,14 +89,14 @@ mod scanner_tests {
 
     #[test]
     fn from_works() {
-        let scanner = Scanner::from("let x = \"a\";");
+        let scanner = Scanner::from("let x = \"hey\";");
         assert!(scanner.tokens == vec![]);
-        assert!(scanner.source_code == *"let x = \"a\";");
+        assert!(scanner.source_code == *"let x = \"hey\";");
     }
 
     #[test]
     fn push_works() {
-        let mut scanner = Scanner::from("let x = \"a\";");
+        let mut scanner = Scanner::from("let x = \"hey\";");
         scanner.scan();
 
         assert!(
@@ -104,6 +113,10 @@ mod scanner_tests {
                     Token {
                         token_type: TokenType::Equal,
                         lexeme: "=".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::String,
+                        lexeme: "hey".to_owned()
                     },
                     Token {
                         token_type: TokenType::Semi,
