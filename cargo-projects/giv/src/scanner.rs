@@ -23,11 +23,16 @@ impl Scanner {
         for (pos, char) in self.source_code.chars().enumerate() {
             match char {
                 ';' => {
+                    // There's most likely a value before the semicolon,
+                    // so push the value into the tokens vector.
+                    // current_start + 2 and pos - 1 is to ignore the quotes
+                    // that surround the value.
                     self.tokens.push(Token {
                         token_type: TokenType::String,
                         lexeme: self.source_code[current_start.unwrap() + 2..pos - 1].to_owned(),
                     });
 
+                    // Push semicolon into the tokens vector.
                     self.tokens.push(Token {
                         token_type: TokenType::Semi,
                         lexeme: self.source_code[pos..pos + 1].to_owned(),
@@ -155,5 +160,11 @@ mod scanner_tests {
                     },
                 ]
         );
+    }
+
+    #[test]
+    fn incorrect_grammar() {
+        let mut scanner = Scanner::from("let = \"hi\";");
+        // TODO
     }
 }
