@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 trait Visitor {
     type Value;
 
@@ -32,31 +30,36 @@ impl Visitor for Parser {
     }
 }
 
-// impl Visitor for Device {
-//     type Value = Device;
+enum Node {
+    Router(Vec<Node>),
+    Switch(Vec<Node>),
+    Firewall,
+    PC,
+    Server,
+}
 
-//     fn visit(&self, v: Vec<i32>) -> Self::Value {
-//         Device {
-//             id: v[0].to_string(),
-//         }
-//     }
-// }
-
-// impl Visitor for Ip {
-//     type Value = Ip;
-
-//     fn visit(&self, v: Vec<i32>) -> Self::Value {
-//         Ip::V4
-//     }
-// }
+fn count_endpoints(node: &Node) -> usize {
+    match node {
+        Node::PC | Node::Server => 1,
+        Node::Router(children) | Node::Switch(children) => {
+            children.iter().map(count_endpoints).sum()
+        }
+        Node::Firewall => 0,
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        // let result = add(2, 2);
-        // assert_eq!(result, 4);
+    fn network_walk_works() {
+        let topology = Node::Router(vec![
+            Node::Switch(vec![Node::PC, Node::Server]),
+            Node::Firewall,
+        ]);
+
+        let total_endpoints = count_endpoints(&topology);
+        assert!(total_endpoints == 2);
     }
 }
