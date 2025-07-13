@@ -1,10 +1,17 @@
 #[derive(Debug, PartialEq)]
 enum TokenType {
+    // Operators
     Equal,
     Semi,
-    Let,
+
+    // Literals
     Identifier,
     String,
+
+    // Keywords
+    Let,
+
+    // End Of File
     Eof,
 }
 
@@ -14,8 +21,23 @@ struct Token {
     lexeme: String,
 }
 
+struct Position(usize, usize);
+
 impl Scanner {
-    fn push_token(&mut self, token_type: TokenType) {}
+    fn is_end(&self, current: usize) -> bool {
+        current == self.source_code.len()
+    }
+
+    fn push_token(&mut self, token_type: TokenType, pos: Position) {
+        self.tokens.push(Token {
+            token_type,
+            lexeme: self.source_code[pos.0..pos.1].to_owned(),
+        });
+    }
+
+    fn peek(&self, current: usize) -> Option<char> {
+        self.source_code.chars().nth(current + 1)
+    }
 
     fn scan(&mut self) {
         let mut current_start = None;
@@ -57,6 +79,13 @@ impl Scanner {
                             });
                             current_start = Some(pos);
                         }
+                        "print" => {
+                            // peek - is the next ( or something else
+                            // if (
+                            //   then start reading inside then ()
+                            //     )
+                            if self.peek(pos) == Some('(') {}
+                        }
                         _ => {
                             self.tokens.push(Token {
                                 token_type: TokenType::Identifier,
@@ -97,7 +126,7 @@ impl From<&str> for Scanner {
 
 #[cfg(test)]
 mod scanner_tests {
-    use crate::scanner::{Scanner, Token, TokenType};
+    use crate::scanner::{self, Scanner, Token, TokenType};
 
     #[test]
     fn from_works() {
@@ -163,8 +192,15 @@ mod scanner_tests {
     }
 
     #[test]
+    fn peek_works() {
+        let scanner = Scanner::from("let x = \"hi\";");
+        let actual = scanner.peek(1);
+        assert_eq!(actual, Some('t'));
+    }
+
+    #[test]
     fn incorrect_grammar() {
         let mut scanner = Scanner::from("let = \"hi\";");
-        // TODO
+        todo!()
     }
 }
