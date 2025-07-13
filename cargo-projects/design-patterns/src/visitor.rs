@@ -30,6 +30,14 @@ impl Visitor for Parser {
     }
 }
 
+/// Router - enables communication between multiple networks by forwarding data packets.
+/// It examines incoming packets and determines destination and using routing table,
+/// determines destinations.
+///
+/// Switch - connects multiple devices within a network, allowing them to communicate. These
+/// are mostly used in LANs.
+///
+///
 enum Node {
     Router(Vec<Node>),
     Switch(Vec<Node>),
