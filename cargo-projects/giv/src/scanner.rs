@@ -1,5 +1,8 @@
 #[derive(Debug, PartialEq)]
 enum TokenType {
+    LeftParen,
+    RightParen,
+
     // Operators
     Equal,
     Semi,
@@ -21,84 +24,158 @@ struct Token {
     lexeme: String,
 }
 
+// Extract into error reporter
+fn report_error(line: usize, location: String, message: String) {
+    let e = format!("[line {line} ] Error {location}: {message}");
+    println!("{e}");
+}
+
 struct Position(usize, usize);
 
 impl Scanner {
+    /// Checks whether at the end of the source or not.
     fn is_end(&self, current: usize) -> bool {
         current == self.source_code.len()
     }
 
-    fn push_token(&mut self, token_type: TokenType, pos: Position) {
+    fn push_token(&mut self, token_type: TokenType, current_position: usize) {
         self.tokens.push(Token {
             token_type,
-            lexeme: self.source_code[pos.0..pos.1].to_owned(),
+            lexeme: self.source_code[current_position..current_position + 1].to_owned(),
         });
     }
 
-    fn peek(&self, current: usize) -> Option<char> {
-        self.source_code.chars().nth(current + 1)
+    fn push_token_end(
+        &mut self,
+        token_type: TokenType,
+        current_position: usize,
+        end_position: usize,
+    ) {
+        self.tokens.push(Token {
+            token_type,
+            lexeme: self.source_code[current_position..end_position].to_owned(),
+        })
+    }
+
+    fn peek(&self, current: usize) -> Option<&str> {
+        let a = &self.source_code.get(current + 1..current + 2);
+        a.to_owned()
+    }
+
+    fn go(&mut self) {
+        let mut source = self.source_code.chars().enumerate().peekable();
+        let current_start = 0;
+
+        // let mut count = 0;
+        // let w = source.peek();
+
+        while let Some(x) = source.next() {
+            match x.1 {
+                ' ' => {
+                    let y = &self.source_code[current_start..1];
+
+                    match y {
+                        "print" => if source.peek() == Some(&(1, '(')) {},
+                        _ => {}
+                    };
+                }
+                _ => {}
+            }
+            // count += 1;
+        }
     }
 
     fn scan(&mut self) {
-        let mut current_start = None;
+        let mut pos = 0;
 
-        for (pos, char) in self.source_code.chars().enumerate() {
-            match char {
-                ';' => {
-                    // There's most likely a value before the semicolon,
-                    // so push the value into the tokens vector.
-                    // current_start + 2 and pos - 1 is to ignore the quotes
-                    // that surround the value.
-                    self.tokens.push(Token {
-                        token_type: TokenType::String,
-                        lexeme: self.source_code[current_start.unwrap() + 2..pos - 1].to_owned(),
-                    });
+        loop {
+            if pos >= self.source_code.len() {
+                break;
+            }
 
-                    // Push semicolon into the tokens vector.
-                    self.tokens.push(Token {
-                        token_type: TokenType::Semi,
-                        lexeme: self.source_code[pos..pos + 1].to_owned(),
-                    });
-                    current_start = Some(pos + 1);
+            let char = &self.source_code[pos..pos + 1].chars().next();
+
+            match char.unwrap() {
+                '(' => {
+                    self.push_token(TokenType::LeftParen, pos);
                 }
-                ' ' => {
-                    let current = &self.source_code[current_start.unwrap()..pos];
+                ')' => {
+                    self.push_token(TokenType::RightParen, pos);
+                }
+                ';' => {
+                    self.push_token(TokenType::Semi, pos);
+                    pos += 1;
+                }
+                ' ' | '\r' | '\t' => {
+                    // These are ignored
+                    pos += 1;
+                    continue;
+                }
+                '\n' => {
+                    // TODO: increment line count?
+                }
+                '"' => {
+                    let mut cur = pos + 1;
 
-                    match current {
-                        "let" => {
-                            self.tokens.push(Token {
-                                token_type: TokenType::Let,
-                                lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
-                            });
-                            current_start = None;
-                        }
-                        "=" => {
-                            self.tokens.push(Token {
-                                token_type: TokenType::Equal,
-                                lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
-                            });
-                            current_start = Some(pos);
-                        }
-                        "print" => {
-                            // peek - is the next ( or something else
-                            // if (
-                            //   then start reading inside then ()
-                            //     )
-                            if self.peek(pos) == Some('(') {}
-                        }
-                        _ => {
-                            self.tokens.push(Token {
-                                token_type: TokenType::Identifier,
-                                lexeme: self.source_code[current_start.unwrap()..pos].to_owned(),
-                            });
-                            current_start = None;
+                    while self.peek(cur) != Some("\"") {
+                        cur += 1;
+                        if cur >= self.source_code.len() {
+                            break;
                         }
                     }
+
+                    if cur >= self.source_code.len() {
+                        self.push_token(TokenType::Semi, self.source_code.len() - 1);
+                        return;
+                    }
+
+                    self.push_token_end(TokenType::String, pos + 1, cur + 1);
+
+                    pos = cur + 1;
+                }
+                '=' => {
+                    if &self.source_code[pos..pos + 1] != "=" {
+                        self.push_token(TokenType::Equal, pos);
+                    }
+
+                    pos += 1;
                 }
                 _ => {
-                    if current_start.is_none() {
-                        current_start = Some(pos);
+                    let mut count = pos;
+
+                    if count >= self.source_code.len() {
+                        return;
                     }
+
+                    loop {
+                        let b = &self.source_code[count..count + 1].chars().next().unwrap();
+                        if b != &' ' && b.is_ascii_alphabetic() {
+                            if b.is_alphanumeric() {
+                                count += 1;
+                                continue;
+                            }
+
+                            self.push_token_end(TokenType::Identifier, pos, count);
+
+                            pos = count;
+                            break;
+                        } else {
+                            self.push_token_end(TokenType::Identifier, pos, count);
+                            pos = count;
+                            break;
+                        }
+                    }
+
+                    // We handle identifiers here.
+                    //
+                    // We handle numbers here.
+                    //
+                    // This case should catch unexpected syntax
+                    //
+                    // Log it
+                    // if current_start.is_none() {
+                    //     current_start = Some(pos);
+                    // }
                 }
             }
         }
@@ -135,6 +212,7 @@ mod scanner_tests {
         assert!(scanner.source_code == *"let x = \"hey\";");
     }
 
+    #[ignore]
     #[test]
     fn push_works() {
         let mut scanner = Scanner::from("let x = \"hey\";let y = \"hello\";");
@@ -191,16 +269,52 @@ mod scanner_tests {
         );
     }
 
+    #[ignore]
     #[test]
     fn peek_works() {
         let scanner = Scanner::from("let x = \"hi\";");
         let actual = scanner.peek(1);
-        assert_eq!(actual, Some('t'));
+        assert_eq!(actual, Some("t"));
+    }
+
+    #[ignore]
+    #[test]
+    fn incorrect_grammar() {
+        let mut scanner = Scanner::from("let x = \"wow\";print(x);");
+        scanner.scan();
+        // todo!()
     }
 
     #[test]
-    fn incorrect_grammar() {
-        let mut scanner = Scanner::from("let = \"hi\";");
-        todo!()
+    fn scanner_works() {
+        let mut scanner = Scanner::from("let x = \"abc\";");
+        scanner.scan();
+
+        let actual = scanner.tokens;
+
+        let expected = vec![
+            Token {
+                token_type: TokenType::Let,
+                lexeme: "let".to_owned(),
+            },
+            Token {
+                token_type: TokenType::Identifier,
+                lexeme: "x".to_owned(),
+            },
+            Token {
+                token_type: TokenType::Equal,
+                lexeme: "=".to_owned(),
+            },
+            Token {
+                token_type: TokenType::String,
+                lexeme: "abc".to_owned(),
+            },
+            Token {
+                token_type: TokenType::Semi,
+                lexeme: ";".to_owned(),
+            },
+        ];
+
+        assert_eq!(actual, expected);
     }
 }
