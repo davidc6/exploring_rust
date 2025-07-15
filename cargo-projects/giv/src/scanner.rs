@@ -51,10 +51,16 @@ impl Scanner {
         current_position: usize,
         end_position: usize,
     ) {
-        self.tokens.push(Token {
-            token_type,
-            lexeme: self.source_code[current_position..end_position].to_owned(),
-        })
+        let lexeme = self.source_code[current_position..end_position].to_owned();
+
+        if lexeme == "let".to_owned() {
+            self.tokens.push(Token {
+                token_type: TokenType::Let,
+                lexeme,
+            });
+        } else {
+            self.tokens.push(Token { token_type, lexeme });
+        }
     }
 
     fn peek(&self, current: usize) -> Option<&str> {
@@ -114,6 +120,10 @@ impl Scanner {
                 '\n' => {
                     // TODO: increment line count?
                 }
+                '=' => {
+                    self.push_token(TokenType::Equal, pos);
+                    pos += 1;
+                }
                 '"' => {
                     let mut cur = pos + 1;
 
@@ -129,6 +139,7 @@ impl Scanner {
                         return;
                     }
 
+                    // TODO check if keyword
                     self.push_token_end(TokenType::String, pos + 1, cur + 1);
 
                     pos = cur + 1;
