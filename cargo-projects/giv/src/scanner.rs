@@ -129,6 +129,7 @@ impl Scanner {
 
                     while self.peek(cur) != Some("\"") {
                         cur += 1;
+
                         if cur >= self.source_code.len() {
                             break;
                         }
@@ -140,27 +141,23 @@ impl Scanner {
                     }
 
                     // TODO check if keyword
+
                     self.push_token_end(TokenType::String, pos + 1, cur + 1);
 
-                    pos = cur + 1;
-                }
-                '=' => {
-                    if &self.source_code[pos..pos + 1] != "=" {
-                        self.push_token(TokenType::Equal, pos);
-                    }
-
-                    pos += 1;
+                    pos = cur + 2;
                 }
                 _ => {
                     let mut count = pos;
 
                     if count >= self.source_code.len() {
+                        self.push_token(TokenType::Semi, self.source_code.len() - 1);
                         return;
                     }
 
                     loop {
                         let b = &self.source_code[count..count + 1].chars().next().unwrap();
-                        if b != &' ' && b.is_ascii_alphabetic() {
+
+                        if (b != &' ' || b != &';') && b.is_ascii_alphabetic() {
                             if b.is_alphanumeric() {
                                 count += 1;
                                 continue;
@@ -214,7 +211,7 @@ impl From<&str> for Scanner {
 
 #[cfg(test)]
 mod scanner_tests {
-    use crate::scanner::{self, Scanner, Token, TokenType};
+    use crate::scanner::{Scanner, Token, TokenType};
 
     #[test]
     fn from_works() {
@@ -223,7 +220,6 @@ mod scanner_tests {
         assert!(scanner.source_code == *"let x = \"hey\";");
     }
 
-    #[ignore]
     #[test]
     fn push_works() {
         let mut scanner = Scanner::from("let x = \"hey\";let y = \"hello\";");
@@ -280,7 +276,6 @@ mod scanner_tests {
         );
     }
 
-    #[ignore]
     #[test]
     fn peek_works() {
         let scanner = Scanner::from("let x = \"hi\";");
@@ -323,6 +318,10 @@ mod scanner_tests {
             Token {
                 token_type: TokenType::Semi,
                 lexeme: ";".to_owned(),
+            },
+            Token {
+                token_type: TokenType::Eof,
+                lexeme: "".to_owned(),
             },
         ];
 
