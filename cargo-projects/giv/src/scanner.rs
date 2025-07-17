@@ -68,29 +68,6 @@ impl Scanner {
         a.to_owned()
     }
 
-    fn go(&mut self) {
-        let mut source = self.source_code.chars().enumerate().peekable();
-        let current_start = 0;
-
-        // let mut count = 0;
-        // let w = source.peek();
-
-        while let Some(x) = source.next() {
-            match x.1 {
-                ' ' => {
-                    let y = &self.source_code[current_start..1];
-
-                    match y {
-                        "print" => if source.peek() == Some(&(1, '(')) {},
-                        _ => {}
-                    };
-                }
-                _ => {}
-            }
-            // count += 1;
-        }
-    }
-
     fn scan(&mut self) {
         let mut pos = 0;
 
@@ -139,8 +116,6 @@ impl Scanner {
                         self.push_token(TokenType::Semi, self.source_code.len() - 1);
                         return;
                     }
-
-                    // TODO check if keyword
 
                     self.push_token_end(TokenType::String, pos + 1, cur + 1);
 
