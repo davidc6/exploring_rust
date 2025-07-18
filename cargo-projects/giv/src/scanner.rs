@@ -81,9 +81,11 @@ impl Scanner {
             match char.unwrap() {
                 '(' => {
                     self.push_token(TokenType::LeftParen, pos);
+                    pos += 1;
                 }
                 ')' => {
                     self.push_token(TokenType::RightParen, pos);
+                    pos += 1;
                 }
                 ';' => {
                     self.push_token(TokenType::Semi, pos);
@@ -92,10 +94,9 @@ impl Scanner {
                 ' ' | '\r' | '\t' => {
                     // These are ignored
                     pos += 1;
-                    continue;
                 }
                 '\n' => {
-                    // TODO: increment line count?
+                    pos += 1;
                 }
                 '=' => {
                     self.push_token(TokenType::Equal, pos);
@@ -198,6 +199,62 @@ mod scanner_tests {
     #[test]
     fn push_works() {
         let mut scanner = Scanner::from("let x = \"hey\";let y = \"hello\";");
+        scanner.scan();
+
+        assert!(
+            scanner.tokens
+                == vec![
+                    Token {
+                        token_type: TokenType::Let,
+                        lexeme: "let".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Identifier,
+                        lexeme: "x".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Equal,
+                        lexeme: "=".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::String,
+                        lexeme: "hey".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Semi,
+                        lexeme: ";".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Let,
+                        lexeme: "let".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Identifier,
+                        lexeme: "y".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Equal,
+                        lexeme: "=".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::String,
+                        lexeme: "hello".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Semi,
+                        lexeme: ";".to_owned()
+                    },
+                    Token {
+                        token_type: TokenType::Eof,
+                        lexeme: "".to_owned()
+                    },
+                ]
+        );
+    }
+
+    #[test]
+    fn push_works_newline() {
+        let mut scanner = Scanner::from("let x = \"hey\";\nlet y = \"hello\";");
         scanner.scan();
 
         assert!(
