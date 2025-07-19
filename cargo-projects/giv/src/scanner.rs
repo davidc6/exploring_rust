@@ -30,12 +30,10 @@ fn report_error(line: usize, location: String, message: String) {
     println!("{e}");
 }
 
-struct current_positionition(usize, usize);
-
 impl Scanner {
     /// Checks whether at the end of the source or not.
     fn is_end(&self, current: usize) -> bool {
-        current == self.source_code.len()
+        current >= self.source_code.len()
     }
 
     fn push_token(&mut self, token_type: TokenType, current_current_positionition: usize) {
@@ -47,16 +45,10 @@ impl Scanner {
         });
     }
 
-    fn push_token_end(
-        &mut self,
-        token_type: TokenType,
-        current_current_positionition: usize,
-        end_current_positionition: usize,
-    ) {
-        let lexeme =
-            self.source_code[current_current_positionition..end_current_positionition].to_owned();
+    fn push_token_end(&mut self, token_type: TokenType, start: usize, end: usize) {
+        let lexeme = self.source_code[start..end].to_owned();
 
-        if lexeme == "let".to_owned() {
+        if lexeme == "let" {
             self.tokens.push(Token {
                 token_type: TokenType::Let,
                 lexeme,
@@ -75,15 +67,22 @@ impl Scanner {
         let mut current_position = 0;
 
         loop {
-            if current_position >= self.source_code.len() {
+            if self.is_end(current_position) {
                 break;
             }
 
-            let char = &self.source_code[current_position..current_position + 1]
+            let char = &self
+                .source_code
+                .get(current_position..current_position + 1)
+                .unwrap_or("")
                 .chars()
                 .next();
 
-            match char.unwrap() {
+            let Some(char) = char else {
+                return;
+            };
+
+            match char {
                 '(' => {
                     self.push_token(TokenType::LeftParen, current_position);
                     current_position += 1;
@@ -108,49 +107,55 @@ impl Scanner {
                     current_position += 1;
                 }
                 '"' => {
-                    let mut cur = current_position + 1;
+                    let mut current_end = current_position + 1;
 
-                    while self.peek(cur) != Some("\"") {
-                        cur += 1;
+                    while self.peek(current_end) != Some("\"") {
+                        current_end += 1;
 
-                        if cur >= self.source_code.len() {
+                        if self.is_end(current_end) {
                             break;
                         }
                     }
 
-                    if cur >= self.source_code.len() {
-                        self.push_token(TokenType::Semi, self.source_code.len() - 1);
-                        return;
-                    }
+                    self.push_token_end(TokenType::String, current_position + 1, current_end + 1);
 
-                    self.push_token_end(TokenType::String, current_position + 1, cur + 1);
-
-                    current_position = cur + 2;
+                    current_position = current_end + 2;
                 }
                 _ => {
-                    let mut count = current_position;
+                    let mut current_end = current_position;
 
-                    if count >= self.source_code.len() {
+                    if self.is_end(current_end) {
                         self.push_token(TokenType::Semi, self.source_code.len() - 1);
                         return;
                     }
 
                     loop {
-                        let b = &self.source_code[count..count + 1].chars().next().unwrap();
+                        let b = &self.source_code[current_end..current_end + 1]
+                            .chars()
+                            .next()
+                            .unwrap();
 
                         if (b != &' ' || b != &';') && b.is_ascii_alphabetic() {
                             if b.is_alphanumeric() {
-                                count += 1;
+                                current_end += 1;
                                 continue;
                             }
 
-                            self.push_token_end(TokenType::Identifier, current_position, count);
+                            self.push_token_end(
+                                TokenType::Identifier,
+                                current_position,
+                                current_end,
+                            );
 
-                            current_position = count;
+                            current_position = current_end;
                             break;
                         } else {
-                            self.push_token_end(TokenType::Identifier, current_position, count);
-                            current_position = count;
+                            self.push_token_end(
+                                TokenType::Identifier,
+                                current_position,
+                                current_end,
+                            );
+                            current_position = current_end;
                             break;
                         }
                     }
