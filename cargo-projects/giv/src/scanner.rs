@@ -30,6 +30,7 @@ enum TokenType {
 struct Token {
     token_type: TokenType,
     lexeme: String,
+    line_number: usize,
 }
 
 // Extract into error reporter
@@ -41,6 +42,7 @@ fn report_error(line: usize, location: String, message: String) {
 struct Scanner {
     source_code: String,
     tokens: Vec<Token>,
+    current_line_number: usize,
 }
 
 impl From<&str> for Scanner {
@@ -48,6 +50,7 @@ impl From<&str> for Scanner {
         Scanner {
             source_code: value.to_owned(),
             tokens: vec![],
+            current_line_number: 1,
         }
     }
 }
@@ -64,6 +67,7 @@ impl Scanner {
             lexeme: self.source_code
                 [current_current_positionition..current_current_positionition + 1]
                 .to_owned(),
+            line_number: self.current_line_number,
         });
     }
 
@@ -74,12 +78,14 @@ impl Scanner {
             return self.tokens.push(Token {
                 token_type,
                 lexeme: lexeme.to_owned(),
+                line_number: self.current_line_number,
             });
         };
 
         self.tokens.push(Token {
             token_type,
             lexeme: lexeme.to_owned(),
+            line_number: self.current_line_number,
         });
     }
 
@@ -120,7 +126,9 @@ impl Scanner {
                 ' ' | '\r' | '\t' => {
                     // These are ignored
                 }
-                '\n' => {}
+                '\n' => {
+                    self.current_line_number += 1;
+                }
                 '=' => {
                     self.push_token(TokenType::Equal, current_position);
                 }
@@ -198,6 +206,7 @@ impl Scanner {
         self.tokens.push(Token {
             token_type: TokenType::Eof,
             lexeme: "".to_owned(),
+            line_number: self.current_line_number,
         });
     }
 }
@@ -205,6 +214,71 @@ impl Scanner {
 #[cfg(test)]
 mod scanner_tests {
     use crate::scanner::{Scanner, Token, TokenType};
+
+    fn expected_part_1() -> Vec<Token> {
+        vec![
+            Token {
+                token_type: TokenType::Let,
+                lexeme: "let".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::Identifier,
+                lexeme: "x".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::Equal,
+                lexeme: "=".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::String,
+                lexeme: "hey".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::Semi,
+                lexeme: ";".to_owned(),
+                line_number: 1,
+            },
+        ]
+    }
+
+    fn expected_part_2() -> Vec<Token> {
+        vec![
+            Token {
+                token_type: TokenType::Let,
+                lexeme: "let".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::Identifier,
+                lexeme: "y".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::Equal,
+                lexeme: "=".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::String,
+                lexeme: "hello".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::Semi,
+                lexeme: ";".to_owned(),
+                line_number: 1,
+            },
+            Token {
+                token_type: TokenType::Eof,
+                lexeme: "".to_owned(),
+                line_number: 1,
+            },
+        ]
+    }
 
     #[test]
     fn from_works() {
@@ -218,111 +292,28 @@ mod scanner_tests {
         let mut scanner = Scanner::from("let x = \"hey\";let y = \"hello\";");
         scanner.scan();
 
-        assert!(
-            scanner.tokens
-                == vec![
-                    Token {
-                        token_type: TokenType::Let,
-                        lexeme: "let".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Identifier,
-                        lexeme: "x".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Equal,
-                        lexeme: "=".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::String,
-                        lexeme: "hey".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Semi,
-                        lexeme: ";".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Let,
-                        lexeme: "let".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Identifier,
-                        lexeme: "y".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Equal,
-                        lexeme: "=".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::String,
-                        lexeme: "hello".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Semi,
-                        lexeme: ";".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Eof,
-                        lexeme: "".to_owned()
-                    },
-                ]
-        );
+        let mut expected = expected_part_1();
+        expected.extend(expected_part_2());
+
+        assert_eq!(scanner.tokens, expected);
     }
 
     #[test]
-    fn push_works_newline() {
+    fn push_works_newline_and_line_count() {
         let mut scanner = Scanner::from("let x = \"hey\";\nlet y = \"hello\";");
         scanner.scan();
 
-        assert!(
-            scanner.tokens
-                == vec![
-                    Token {
-                        token_type: TokenType::Let,
-                        lexeme: "let".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Identifier,
-                        lexeme: "x".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Equal,
-                        lexeme: "=".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::String,
-                        lexeme: "hey".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Semi,
-                        lexeme: ";".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Let,
-                        lexeme: "let".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Identifier,
-                        lexeme: "y".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Equal,
-                        lexeme: "=".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::String,
-                        lexeme: "hello".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Semi,
-                        lexeme: ";".to_owned()
-                    },
-                    Token {
-                        token_type: TokenType::Eof,
-                        lexeme: "".to_owned()
-                    },
-                ]
-        );
+        let mut expected = expected_part_1();
+        let to_modify = expected_part_2()
+            .into_iter()
+            .map(|mut val| {
+                val.line_number = 2;
+                val
+            })
+            .collect::<Vec<Token>>();
+        expected.extend(to_modify);
+
+        assert_eq!(scanner.tokens, expected);
     }
 
     #[test]
@@ -342,11 +333,13 @@ mod scanner_tests {
             vec![
                 Token {
                     token_type: TokenType::Let,
-                    lexeme: "let".to_owned()
+                    lexeme: "let".to_owned(),
+                    line_number: 1
                 },
                 Token {
                     token_type: TokenType::Eof,
-                    lexeme: "".to_owned()
+                    lexeme: "".to_owned(),
+                    line_number: 1
                 }
             ]
         );
@@ -362,11 +355,13 @@ mod scanner_tests {
             vec![
                 Token {
                     token_type: TokenType::Identifier,
-                    lexeme: "var".to_owned()
+                    lexeme: "var".to_owned(),
+                    line_number: 1
                 },
                 Token {
                     token_type: TokenType::Eof,
-                    lexeme: "".to_owned()
+                    lexeme: "".to_owned(),
+                    line_number: 1
                 }
             ]
         );
@@ -383,26 +378,32 @@ mod scanner_tests {
             Token {
                 token_type: TokenType::Let,
                 lexeme: "let".to_owned(),
+                line_number: 1,
             },
             Token {
                 token_type: TokenType::Identifier,
                 lexeme: "x".to_owned(),
+                line_number: 1,
             },
             Token {
                 token_type: TokenType::Equal,
                 lexeme: "=".to_owned(),
+                line_number: 1,
             },
             Token {
                 token_type: TokenType::String,
                 lexeme: "abc".to_owned(),
+                line_number: 1,
             },
             Token {
                 token_type: TokenType::Semi,
                 lexeme: ";".to_owned(),
+                line_number: 1,
             },
             Token {
                 token_type: TokenType::Eof,
                 lexeme: "".to_owned(),
+                line_number: 1,
             },
         ];
 
