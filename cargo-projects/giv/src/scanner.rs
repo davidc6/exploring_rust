@@ -74,24 +74,34 @@ impl Scanner {
     fn push_token_end(&mut self, token_type: TokenType, start: usize, end: usize) {
         let lexeme = &self.source_code[start..end];
 
-        let Some(token_type) = keywords().get(&lexeme).copied() else {
-            return self.tokens.push(Token {
-                token_type,
-                lexeme: lexeme.to_owned(),
-                line_number: self.current_line_number,
-            });
+        let Some(keyword) = keywords().get(&lexeme).copied() else {
+            // Lexeme is not a keyword
+            return match token_type {
+                // start + 1 to skip the opening quote.
+                // end + 1 for range operator to not include it.
+                TokenType::String => self.tokens.push(Token {
+                    token_type,
+                    lexeme: self.source_code.get(start + 1..end + 1).unwrap().to_owned(),
+                    line_number: self.current_line_number,
+                }),
+                _ => self.tokens.push(Token {
+                    token_type,
+                    lexeme: lexeme.to_owned(),
+                    line_number: self.current_line_number,
+                }),
+            };
         };
 
+        // Lexeme is a keyword
         self.tokens.push(Token {
-            token_type,
+            token_type: keyword,
             lexeme: lexeme.to_owned(),
             line_number: self.current_line_number,
         });
     }
 
     fn peek(&self, current: usize) -> Option<&str> {
-        let a = &self.source_code.get(current + 1..current + 2);
-        a.to_owned()
+        self.source_code.get(current + 1..current + 2).to_owned()
     }
 
     fn scan(&mut self) {
@@ -143,8 +153,20 @@ impl Scanner {
                         }
                     }
 
-                    self.push_token_end(TokenType::String, current_position + 1, current_end + 1);
+                    self.push_token_end(TokenType::String, current_position, current_end);
 
+                    // current_position will be the opening quote (").
+                    // Why +2 here? We want to move from last char and closing quote (") to the next char:
+                    //
+                    // "hello";
+                    //      ^
+                    //      |
+                    //      current_end is here
+                    //
+                    // "hello";
+                    //        ^
+                    //        |
+                    //        current_position is now here (current_end + 2)
                     current_position = current_end + 2;
                     continue;
                 }
