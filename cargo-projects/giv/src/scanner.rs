@@ -85,26 +85,19 @@ impl Scanner {
             match char {
                 '(' => {
                     self.push_token(TokenType::LeftParen, current_position);
-                    current_position += 1;
                 }
                 ')' => {
                     self.push_token(TokenType::RightParen, current_position);
-                    current_position += 1;
                 }
                 ';' => {
                     self.push_token(TokenType::Semi, current_position);
-                    current_position += 1;
                 }
                 ' ' | '\r' | '\t' => {
                     // These are ignored
-                    current_position += 1;
                 }
-                '\n' => {
-                    current_position += 1;
-                }
+                '\n' => {}
                 '=' => {
                     self.push_token(TokenType::Equal, current_position);
-                    current_position += 1;
                 }
                 '"' => {
                     let mut current_end = current_position + 1;
@@ -120,6 +113,7 @@ impl Scanner {
                     self.push_token_end(TokenType::String, current_position + 1, current_end + 1);
 
                     current_position = current_end + 2;
+                    continue;
                 }
                 _ => {
                     let mut current_end = current_position;
@@ -172,6 +166,8 @@ impl Scanner {
                     // }
                 }
             }
+
+            current_position += 1;
         }
 
         self.tokens.push(Token {
