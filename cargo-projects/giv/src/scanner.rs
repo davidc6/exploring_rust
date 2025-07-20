@@ -1,4 +1,12 @@
-#[derive(Debug, PartialEq)]
+use std::{collections::HashMap, sync::OnceLock};
+
+static KEYWORDS: OnceLock<HashMap<&'static str, TokenType>> = OnceLock::new();
+
+fn keywords() -> &'static HashMap<&'static str, TokenType> {
+    KEYWORDS.get_or_init(|| HashMap::from([("let", TokenType::Let)]))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum TokenType {
     LeftParen,
     RightParen,
@@ -30,6 +38,20 @@ fn report_error(line: usize, location: String, message: String) {
     println!("{e}");
 }
 
+struct Scanner {
+    source_code: String,
+    tokens: Vec<Token>,
+}
+
+impl From<&str> for Scanner {
+    fn from(value: &str) -> Self {
+        Scanner {
+            source_code: value.to_owned(),
+            tokens: vec![],
+        }
+    }
+}
+
 impl Scanner {
     /// Checks whether at the end of the source or not.
     fn is_end(&self, current: usize) -> bool {
@@ -46,16 +68,19 @@ impl Scanner {
     }
 
     fn push_token_end(&mut self, token_type: TokenType, start: usize, end: usize) {
-        let lexeme = self.source_code[start..end].to_owned();
+        let lexeme = &self.source_code[start..end];
 
-        if lexeme == "let" {
-            self.tokens.push(Token {
-                token_type: TokenType::Let,
-                lexeme,
+        let Some(token_type) = keywords().get(&lexeme).copied() else {
+            return self.tokens.push(Token {
+                token_type,
+                lexeme: lexeme.to_owned(),
             });
-        } else {
-            self.tokens.push(Token { token_type, lexeme });
-        }
+        };
+
+        self.tokens.push(Token {
+            token_type,
+            lexeme: lexeme.to_owned(),
+        });
     }
 
     fn peek(&self, current: usize) -> Option<&str> {
@@ -174,20 +199,6 @@ impl Scanner {
             token_type: TokenType::Eof,
             lexeme: "".to_owned(),
         });
-    }
-}
-
-struct Scanner {
-    source_code: String,
-    tokens: Vec<Token>,
-}
-
-impl From<&str> for Scanner {
-    fn from(value: &str) -> Self {
-        Scanner {
-            source_code: value.to_owned(),
-            tokens: vec![],
-        }
     }
 }
 
@@ -321,12 +332,44 @@ mod scanner_tests {
         assert_eq!(actual, Some("t"));
     }
 
-    #[ignore]
     #[test]
-    fn incorrect_grammar() {
-        let mut scanner = Scanner::from("let x = \"wow\";print(x);");
+    fn scanner_picks_keyword() {
+        let mut scanner = Scanner::from("let;");
         scanner.scan();
-        // todo!()
+
+        assert_eq!(
+            scanner.tokens,
+            vec![
+                Token {
+                    token_type: TokenType::Let,
+                    lexeme: "let".to_owned()
+                },
+                Token {
+                    token_type: TokenType::Eof,
+                    lexeme: "".to_owned()
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn scanner_picks_identifier() {
+        let mut scanner = Scanner::from("var;");
+        scanner.scan();
+
+        assert_eq!(
+            scanner.tokens,
+            vec![
+                Token {
+                    token_type: TokenType::Identifier,
+                    lexeme: "var".to_owned()
+                },
+                Token {
+                    token_type: TokenType::Eof,
+                    lexeme: "".to_owned()
+                }
+            ]
+        );
     }
 
     #[test]
