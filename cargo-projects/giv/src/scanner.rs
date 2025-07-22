@@ -7,7 +7,7 @@ fn keywords() -> &'static HashMap<&'static str, TokenType> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum TokenType {
+pub enum TokenType {
     LeftParen,
     RightParen,
 
@@ -26,7 +26,7 @@ enum TokenType {
     Eof,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 struct Token {
     token_type: TokenType,
     lexeme: String,
@@ -34,12 +34,12 @@ struct Token {
 }
 
 // Extract into error reporter
-fn report_error(line: usize, location: String, message: String) {
+fn log_error(line: usize, location: String, message: String) {
     let e = format!("[line {line} ] Error {location}: {message}");
     println!("{e}");
 }
 
-struct Scanner {
+pub struct Scanner {
     source_code: String,
     tokens: Vec<Token>,
     current_line_number: usize,
@@ -56,55 +56,56 @@ impl From<&str> for Scanner {
 }
 
 impl Scanner {
-    /// Checks whether at the end of the source or not.
+    /// Checks whether at the end of source code or not.
     fn is_end(&self, current: usize) -> bool {
         current >= self.source_code.len()
     }
 
-    fn push_token(&mut self, token_type: TokenType, current_current_positionition: usize) {
+    fn push_token(&mut self, token_type: TokenType, current_position: usize) {
         self.tokens.push(Token {
             token_type,
-            lexeme: self.source_code
-                [current_current_positionition..current_current_positionition + 1]
-                .to_owned(),
+            lexeme: self.source_code[current_position..current_position + 1].to_owned(),
             line_number: self.current_line_number,
         });
     }
 
     fn push_token_end(&mut self, token_type: TokenType, start: usize, end: usize) {
-        let lexeme = &self.source_code[start..end];
+        match self.source_code.get(start..end) {
+            Some(lexeme) => {
+                let Some(keyword) = keywords().get(&lexeme).copied() else {
+                    // Lexeme is not a keyword
+                    return match token_type {
+                        // start + 1 to skip the opening quote.
+                        // end + 1 for range operator to not include it.
+                        TokenType::String => self.tokens.push(Token {
+                            token_type,
+                            lexeme: self.source_code.get(start + 1..end + 1).unwrap().to_owned(),
+                            line_number: self.current_line_number,
+                        }),
+                        _ => self.tokens.push(Token {
+                            token_type,
+                            lexeme: lexeme.to_owned(),
+                            line_number: self.current_line_number,
+                        }),
+                    };
+                };
 
-        let Some(keyword) = keywords().get(&lexeme).copied() else {
-            // Lexeme is not a keyword
-            return match token_type {
-                // start + 1 to skip the opening quote.
-                // end + 1 for range operator to not include it.
-                TokenType::String => self.tokens.push(Token {
-                    token_type,
-                    lexeme: self.source_code.get(start + 1..end + 1).unwrap().to_owned(),
-                    line_number: self.current_line_number,
-                }),
-                _ => self.tokens.push(Token {
-                    token_type,
+                // Lexeme is a keyword
+                self.tokens.push(Token {
+                    token_type: keyword,
                     lexeme: lexeme.to_owned(),
                     line_number: self.current_line_number,
-                }),
-            };
-        };
-
-        // Lexeme is a keyword
-        self.tokens.push(Token {
-            token_type: keyword,
-            lexeme: lexeme.to_owned(),
-            line_number: self.current_line_number,
-        });
+                });
+            }
+            None => panic!("No lexeme found"),
+        }
     }
 
     fn peek(&self, current: usize) -> Option<&str> {
         self.source_code.get(current + 1..current + 2).to_owned()
     }
 
-    fn scan(&mut self) {
+    pub fn scan(&mut self) {
         let mut current_position = 0;
 
         loop {
@@ -303,14 +304,14 @@ mod scanner_tests {
     }
 
     #[test]
-    fn from_works() {
+    fn from_sets_up_source_code() {
         let scanner = Scanner::from("let x = \"hey\";");
         assert!(scanner.tokens == vec![]);
         assert!(scanner.source_code == *"let x = \"hey\";");
     }
 
     #[test]
-    fn push_works() {
+    fn scan_creates_tokens_from_source_code() {
         let mut scanner = Scanner::from("let x = \"hey\";let y = \"hello\";");
         scanner.scan();
 
@@ -321,7 +322,7 @@ mod scanner_tests {
     }
 
     #[test]
-    fn push_works_newline_and_line_count() {
+    fn line_count_works_with_newline() {
         let mut scanner = Scanner::from("let x = \"hey\";\nlet y = \"hello\";");
         scanner.scan();
 
@@ -339,14 +340,14 @@ mod scanner_tests {
     }
 
     #[test]
-    fn peek_works() {
+    fn peek_functionality_works() {
         let scanner = Scanner::from("let x = \"hi\";");
         let actual = scanner.peek(1);
         assert_eq!(actual, Some("t"));
     }
 
     #[test]
-    fn scanner_picks_keyword() {
+    fn scanner_keyword_parsing_works() {
         let mut scanner = Scanner::from("let;");
         scanner.scan();
 
@@ -368,7 +369,7 @@ mod scanner_tests {
     }
 
     #[test]
-    fn scanner_picks_identifier() {
+    fn scanner_identifier_parsing_works() {
         let mut scanner = Scanner::from("var;");
         scanner.scan();
 
@@ -390,7 +391,7 @@ mod scanner_tests {
     }
 
     #[test]
-    fn scanner_works() {
+    fn scanner_assign_string_to_variable_works() {
         let mut scanner = Scanner::from("let x = \"abc\";");
         scanner.scan();
 
