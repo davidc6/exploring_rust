@@ -34,7 +34,7 @@ struct Token {
 }
 
 // Extract into error reporter
-fn log_error(line: usize, location: String, message: String) {
+fn _log_error(line: usize, location: String, message: String) {
     let e = format!("[line {line} ] Error {location}: {message}");
     println!("{e}");
 }
@@ -56,11 +56,12 @@ impl From<&str> for Scanner {
 }
 
 impl Scanner {
-    /// Checks whether at the end of source code or not.
+    /// Checks whether the current (position) end of source code.
     fn is_end(&self, current: usize) -> bool {
         current >= self.source_code.len()
     }
 
+    /// Creates a new token and pushes it to tokens vector.
     fn push_token(&mut self, token_type: TokenType, current_position: usize) {
         self.tokens.push(Token {
             token_type,
@@ -69,14 +70,18 @@ impl Scanner {
         });
     }
 
+    /// Creates and pushes a token by looking at start and end positions in the source
+    /// code. This is particularly useful for data types such as strings where we can extract 
+    /// value out of the source code since we know the start and end positions.
     fn push_token_end(&mut self, token_type: TokenType, start: usize, end: usize) {
         match self.source_code.get(start..end) {
             Some(lexeme) => {
+                // If it's a keyword, we push it into the vector.
                 let Some(keyword) = keywords().get(&lexeme).copied() else {
                     // Lexeme is not a keyword
                     return match token_type {
-                        // start + 1 to skip the opening quote.
-                        // end + 1 for range operator to not include it.
+                        // start + 1 => to skip the opening quote.
+                        // end + 1   => for range operator to not include it.
                         TokenType::String => self.tokens.push(Token {
                             token_type,
                             lexeme: self.source_code.get(start + 1..end + 1).unwrap().to_owned(),
@@ -101,10 +106,12 @@ impl Scanner {
         }
     }
 
+    /// Peek at the next lexeme.
     fn peek(&self, current: usize) -> Option<&str> {
         self.source_code.get(current + 1..current + 2).to_owned()
     }
 
+    /// Scan the source and build a vector of tokens.
     pub fn scan(&mut self) {
         let mut current_position = 0;
 
@@ -156,7 +163,7 @@ impl Scanner {
 
                     self.push_token_end(TokenType::String, current_position, current_end);
 
-                    // current_position will be the opening quote (").
+                    // Current_position will be the opening quote (").
                     // Why +2 here? We want to move from last char and closing quote (") to the next char:
                     //
                     // "hello";
