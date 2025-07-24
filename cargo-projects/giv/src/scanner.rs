@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::OnceLock};
+use std::{collections::HashMap, fmt, sync::OnceLock};
 
 static KEYWORDS: OnceLock<HashMap<&'static str, TokenType>> = OnceLock::new();
 
@@ -24,6 +24,23 @@ pub enum TokenType {
 
     // End Of File
     Eof,
+}
+
+impl fmt::Display for TokenType  {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", 
+            match self {
+                TokenType::LeftParen => "L_PAREN",
+                TokenType::RightParen => "R_PAREN",
+                TokenType::Equal => "EQUAL",
+                TokenType::Semi => "SEMI",
+                TokenType::Identifier => "IDENTIFIER",
+                TokenType::String => "STRING",
+                TokenType::Let => "LET",
+                TokenType::Eof => "EOF"
+            }
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
