@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt, sync::OnceLock};
 
 static KEYWORDS: OnceLock<HashMap<&'static str, TokenType>> = OnceLock::new();
 
+/// A map of keywords, used when parsing the source code.
 fn keywords() -> &'static HashMap<&'static str, TokenType> {
     KEYWORDS.get_or_init(|| HashMap::from([("let", TokenType::Let)]))
 }
@@ -95,7 +96,7 @@ impl Scanner {
             Some(lexeme) => {
                 // If it's a keyword, we push it into the vector.
                 let Some(keyword) = keywords().get(&lexeme).copied() else {
-                    // Lexeme is not a keyword
+                    // If not a lexeme, check for type and process accordingly.
                     return match token_type {
                         // start + 1 => to skip the opening quote.
                         // end + 1   => for range operator to not include it.
@@ -112,7 +113,6 @@ impl Scanner {
                     };
                 };
 
-                // Lexeme is a keyword
                 self.tokens.push(Token {
                     token_type: keyword,
                     lexeme: lexeme.to_owned(),
