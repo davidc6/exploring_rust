@@ -1,6 +1,6 @@
 # Low Latency Rust Techniques
 
-Traditional synchronization mechanisms can introduce:
+Traditional synchronization mechanisms (mutex, condvar, etc.) can introduce:
 
 - Contention (in multi-threaded code, contention is when two or more threads are 
 attempting to access the same resource simultaneously)
@@ -9,7 +9,7 @@ for a resource that the other holds).
 - Priority inversion (when a high-priority thread is indefinitely superseded by 
 a lower-priority thread)
 
-All these things can lead to increased latency. Lock-free data structures can 
+These things can lead to increased latency. Lock-free data structures can 
 significantly reduce latency. If programming with multiple threads that access 
 shared memory and these thread cannot block each other then it's "lock-free 
 programming". Lock free programming essentially describes the fact that the
@@ -34,4 +34,9 @@ without it, however it's not very practical
 - Lock-free data structures design is more practical (such as Buffer, List, Queue, 
 Map etc)
 - Lock-free stack is an example
+
+## Crates
+
+- [crossbeam](https://github.com/crossbeam-rs/crossbeam) - a set of tools for 
+concurrent programming.
 
