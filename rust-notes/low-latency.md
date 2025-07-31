@@ -34,9 +34,13 @@ without it, however it's not very practical
 - Lock-free data structures design is more practical (such as Buffer, List, Queue, 
 Map etc)
 - Lock-free stack is an example
+- Epoch-Based Memory Reclamation (technique) is used to reclaim memory safely. 
+This technique is used in concurrent systems without locks. Timeline is divided
+into epochs and memory is only reclaimed once all threads have moved past the epoch.
 
 ## Crates
 
 - [crossbeam](https://github.com/crossbeam-rs/crossbeam) - a set of tools for 
 concurrent programming.
+
 
