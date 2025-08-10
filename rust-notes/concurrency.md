@@ -9,11 +9,13 @@
 
 ## Send and Sync
 
-A type is `Send` if it can be sent (i.e. its' ownership can be transferred) to another thread.
+- A type is `Send` if it can be sent (i.e. its' ownership can be transferred) to
+another thread.
+- A type is `Sync` if it can be shared with another thread. The type is `Sync` if 
+and only if it's a shared reference is `Send`. 
 
-A type is `Sync` if it can be shared with another thread. The type is `Sync` if and only if it's a shared reference is `Send`. 
-
-Raw pointers are not Sync or Send since the compiler does not know much about these. A way to implement these for the type:
+Raw pointers are not Sync or Send since the compiler does not know much about these. 
+A way to implement these for the type:
 
 ```rs
 struct SomeStruct {
@@ -23,6 +25,13 @@ struct SomeStruct {
 unsafe impl Send for X {}
 unsafe impl Sync for X {}
 ```
+
+Which types are not Send or Sync then?
+
+- Raw pointers - since these have no safety guards. Dereferencing pointers is 
+considered unsafe. 
+- `Rc` - reference (ref) count is shared and unsynchronised. 
+- `UnsafeCell` - `Cell` and `RefCell` are not Sync and Send either. 
 
 ## Primitives
 
