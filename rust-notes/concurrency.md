@@ -9,8 +9,8 @@
 
 ## Send and Sync
 
-- A type is `Send` if it can be sent (i.e. its' ownership can be transferred) to
-another thread.
+- A type is `Send` if it can be sent / moved (i.e. its' ownership can be transferred) 
+to another thread.
 - A type is `Sync` if it can be shared with another thread. The type is `Sync` if 
 and only if it's a shared reference is `Send`. 
 
@@ -26,12 +26,21 @@ unsafe impl Send for X {}
 unsafe impl Sync for X {}
 ```
 
-Which types are not Send or Sync then?
+Generally, all primitive types (i32, bool, str) are Send and Sync. These are auto 
+traits. Auto traits get implemented for a type if its' fields are Send and Sync. 
+If these traits are not needed, by implementing std::marker::PhantomData<T> marker 
+trait, one can opt out of either.
 
-- Raw pointers - since these have no safety guards. Dereferencing pointers is 
-considered unsafe. 
-- `Rc` - reference (ref) count is shared and unsynchronised. 
-- `UnsafeCell` - `Cell` and `RefCell` are not Sync and Send either. 
+### Which types are not Send and/or Sync then?
+
+- Raw pointers (no Sync and Send) - since these have no safety guards. Dereferencing 
+pointers is considered unsafe. 
+- `Rc` (no Sync and Send) - reference (ref) count is shared and unsynchronised. 
+If multiple threads held an Rc to the same allocation, there is a chance that 
+they might try to modify the reference counter concurrency which will give unexpected 
+results. (tip, Arc can come in handy in such cases). 
+- `UnsafeCell` - `Cell` and `RefCell` are not Sync and Send either. UnsafeCell, 
+on it's own, does not perform any synchronisation. 
 
 ## Primitives
 
