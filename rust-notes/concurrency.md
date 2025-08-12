@@ -40,7 +40,9 @@ If multiple threads held an Rc to the same allocation, there is a chance that
 they might try to modify the reference counter concurrency which will give unexpected 
 results. (tip, Arc can come in handy in such cases). 
 - `UnsafeCell` - `Cell` and `RefCell` are not Sync and Send either. UnsafeCell, 
-on it's own, does not perform any synchronisation. 
+on it's own, does not perform any synchronisation. UnsafeCell does not come with 
+any conditions to avoid undefined behaviour. Usually it is not used on it's own 
+but rather wrapped in any type that provides safety such as Cell or Mutex.
 
 ## Primitives
 
