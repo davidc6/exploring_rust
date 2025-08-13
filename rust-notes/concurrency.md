@@ -48,11 +48,43 @@ but rather wrapped in any type that provides safety such as Cell or Mutex.
 
 ### Atomics
 
-An atomic operation is an operation that cannot be cut into smaller pieces. This means that an operation is either fully completed or not (never happened). Multiple threads can atomically update a variable without causing undefined behaviour and so such operations are finished to completion before another thread attempts to carry out another operation on it.
+An atomic operation is an operation that cannot be cut into smaller pieces. This 
+means that an operation is either fully completed or not (never happened). Multiple 
+threads can atomically update a variable without causing undefined behaviour and 
+so such operations are finished to completion before another thread attempts to 
+carry out another operation on it.
 
-All concurrency primitives are built on top of atomic operations and these are the building blocks of multithreading.
+All concurrency primitives (e.g. Mutex, CondVar) are built on top of atomic operations. 
+Atomics are the building blocks of multithreading.
 
-Because of the interior mutability, atomic types allow mutability through a shared reference. 
+Rust has standard atomic types which have atomic methods. The availability of these 
+depends on the system hardware and architecture. These reside under *std::sync::atomic*.
+
+Modifications to atomics are possible due to interior mutability through a shared 
+reference.
+
+```rs
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+fn main() {
+    let value = AtomicUsize::new(1);
+    // Ordering is required to let the compiler now how to synchronise memory.
+    // SeqCst guarantees sequential consistency.
+    // prev_value will be set to the previous AtomicUsize value (i.e. 1)
+    let prev_value = value.fetch_add(1, Ordering::SeqCst);
+}
+```
+
+For example, **AtomicUsize** has methods such as **fetch_add()** which adds to the 
+current value returning the previous value. Each available atomic type has the 
+same API for storing and loading (fetch-and-modify) operations. 
+
+You'll notice in the example above that we are passing in *Ordering* as the second 
+argument o *fetch_add()* method. **Memory Ordering** is a concept that allows us to 
+define what guarantees we get about the relative order of operations. 
+
+For instance, if there are threads and the first one writes to variable A then to 
+variable B (in this particular order), thread 2 might see it in an opposite order. 
 
 - Mutex 
 - Condition variables
