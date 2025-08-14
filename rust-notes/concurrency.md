@@ -74,7 +74,6 @@ fn main() {
     let prev_value = value.fetch_add(1, Ordering::SeqCst);
 }
 ```
-
 For example, **AtomicUsize** has methods such as **fetch_add()** which adds to the 
 current value returning the previous value. Each available atomic type has the 
 same API for storing and loading (fetch-and-modify) operations. 
@@ -85,6 +84,15 @@ define what guarantees we get about the relative order of operations.
 
 For instance, if there are threads and the first one writes to variable A then to 
 variable B (in this particular order), thread 2 might see it in an opposite order. 
+
+#### Basic Atomic Operations
+
+```rs
+impl AtomicUsize {
+    pub fn load(&self, ordering: Ordering) -> usize;
+    pub fn store(&self, value: usize, ordering: Ordering);
+}
+```
 
 - Mutex 
 - Condition variables
@@ -98,7 +106,8 @@ Modifications to Atomics are possible through a shared reference.
 
 #### Memory ordering (Memory consistency)
 
-Atomic operations take `Ordering` as an argument which determines the guarantees about the relative order of operations. 
+Atomic operations take `Ordering` as an argument which determines the guarantees 
+about the relative order of operations. 
 
 - `Relaxed` is the simplest and weakest variant of memory ordering with fewest guarantees. It only guarantees that the access is atomic. Relaxed ordering gives no guarantees about the relative ordering of memory access across different threads. For example, two threads might see operations on different variables happen in a different order (say one thread write to variable a then b but another thread sees in in reverse order).
 - Release and acquire ordering `Release`, `Acquire` and `AcqRel`.
