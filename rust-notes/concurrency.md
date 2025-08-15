@@ -94,6 +94,42 @@ impl AtomicUsize {
 }
 ```
 
+- *load()* method loads the value stored in the atomic variable
+- *store()* method stores the value (atomically) in the atomic variable
+
+Here's an example to demonstrate simple load and store operations example.
+
+```rs
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::thread;
+
+fn main() {
+    static COUNTER: AtomicUsize  = AtomicUsize::new(0);
+    
+    // Spawned thread
+    let bg_thread = thread::spawn(|| {
+        // Check the current counter, break out of loop if the condition 
+        // is satisfied or continue the loop otherwise
+        loop {
+            let current = COUNTER.load(Ordering::Relaxed);
+            
+            if current == 1 {
+                break;
+            }
+
+            // do some work here
+        }
+    });
+   
+    // Main thread
+    COUNTER.store(1, Ordering::Relaxed);
+    
+    let _ = bg_thread.join();
+}
+```
+
+
+
 - Mutex 
 - Condition variables
 
