@@ -127,7 +127,48 @@ fn main() {
     let _ = bg_thread.join();
 }
 ```
+Another example where the value is being updated and read in real-time.
 
+```rs
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::thread;
+use std::time::Duration;
+
+fn some_task(_value: usize) {
+    thread::sleep(Duration::from_secs(1));
+}
+
+fn main() {
+    let counter = AtomicUsize::new(0);
+
+    let main_thread = thread::current();
+    
+    // Scoped threads here, enable auto join handling and local variable borrowing.
+    thread::scope(|s| {
+        s.spawn(|| {
+            for i in 0..100 {
+                some_task(i);
+                counter.store(i + 1, Ordering::Relaxed);
+                // This will wake up the main thread.
+                main_thread.unpark();
+            }
+        });
+        
+        loop {
+            let number_of_done_tasks = counter.load(Ordering::Relaxed);
+            println!("Tasks done: {number_of_done_tasks}");
+            if number_of_done_tasks == 100 {
+                break;
+            }
+            // Blocks until current thread's token is available or Duration limit
+            // is reached (3s in this case).
+            thread::park_timeout(Duration::from_secs(3));
+        }
+    });
+    
+    println!("Operation completed!");
+}
+```
 
 
 - Mutex 
