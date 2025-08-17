@@ -127,7 +127,9 @@ fn main() {
     let _ = bg_thread.join();
 }
 ```
+
 Another example where the value is being updated and read in real-time.
+
 
 ```rs
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -169,6 +171,59 @@ fn main() {
     println!("Operation completed!");
 }
 ```
+
+#### Fetch-and-Modify
+
+- *fetch_add(&self, value: usize, ordering: Ordering)* - addition operation, returns
+the old value and wraps around if a value is past the maximum representable value.
+This is quite different to the standard "+" and "-" operations or integers.
+
+We can redo our counter example using this method. Since the order in which the
+threads will increment the counter is not known, we can rely on the atomic operations 
+to be exactly sure that it will be a 100 in the end when all threads are done.
+
+```rs
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::thread;
+use std::time::Duration;
+
+fn some_task(_value: usize) {
+    thread::sleep(Duration::from_secs(1));
+}
+
+fn main() {
+    let counter = &AtomicUsize::new(0);
+    
+    // Scoped threads here, enable auto join handling and local variable borrowing.
+    // Counter is now a reference.
+    // Closures capture "t" since capturing by reference isn't allowed.
+    thread::scope(|s| {
+        for t in 0..4 {
+            s.spawn(move || {
+                for i in 0..25 {
+                    some_task(t * 25 + i);
+                    counter.fetch_add(1, Ordering::Relaxed);
+                }
+            });
+        }
+        
+        loop {
+            let number_of_done_tasks = counter.load(Ordering::Relaxed);
+            println!("Tasks done: {number_of_done_tasks}");
+            if number_of_done_tasks == 100 {
+                break;
+            }
+            // Blocks until current thread's token is available or Duration limit
+            // is reached (3s in this case).
+            thread::park_timeout(Duration::from_secs(3));
+        }
+    });
+    
+    println!("Operation completed!");
+}
+```
+
+
 
 
 - Mutex 
