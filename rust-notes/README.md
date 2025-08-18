@@ -2,7 +2,7 @@
 
 A collection of notes to help learn and practice Rust.
 
-- [Concurrency](./concurrency.md)
+- [Concurrency](./concurrency/concurrency.md)
 - [Copy / Clone](./copy_clone.md)
 - [Error Handling](./error-handling.md)
 - [Generics](./generics.md)
