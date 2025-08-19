@@ -182,7 +182,56 @@ fn main() {
 }
 ```
 
+An example of using several atomics.
 
+```rs
+use std::sync::atomic::{AtomicUsize, Ordering::{Relaxed}};
+use std::thread;
+use std::time::{Duration, Instant};
+
+fn do_some_work(i: usize) {
+   println!("Doing busy work...");
+}
+
+fn main() {
+    let counter = &AtomicUsize::new(0);
+    let time_taken = &AtomicUsize::new(0);
+    let time_max = &AtomicUsize::new(0);
+
+    thread::scope(|scope| {
+        for t in 0..4 {
+            scope.spawn(move || {
+                for i in 0..25 {
+                    let start = Instant::now();
+                    do_some_work(t * 25 + i);
+                    let elapsed = start.elapsed().as_micros() as usize;
+                    counter.fetch_add(1, Relaxed);
+                    time_taken.fetch_add(elapsed, Relaxed);
+                    time_max.fetch_max(elapsed, Relaxed);
+                }
+            });
+        }
+            
+        loop {
+            let tt = Duration::from_micros(time_taken.load(Relaxed) as u64);
+            let tm = Duration::from_micros(time_max.load(Relaxed) as u64);
+            let c = counter.load(Relaxed);
+
+            if c == 100 {
+                break;
+            }
+
+            if c == 0 {
+                println!("Have not started yet.");
+            } else {
+                println!("Tasks completed {c} out of 100, max {:?}, avg {:?}", tm, tt / c as u32);
+            }
+        }
+    });
+
+    println!("Operation completed");
+}
+```
 
 
 - Mutex 
