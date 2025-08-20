@@ -212,6 +212,14 @@ fn main() {
             });
         }
             
+        /*
+            It is possible that the main thread loads the counter after a thread 
+            incremeted it but before it updated the time_taken.
+            This will result in underestimated average.
+            
+            Ordering::Relaxed gives us no guarantees about the ordering of 
+            operations as seen by the other threads.
+        */
         loop {
             let tt = Duration::from_micros(time_taken.load(Relaxed) as u64);
             let tm = Duration::from_micros(time_max.load(Relaxed) as u64);
