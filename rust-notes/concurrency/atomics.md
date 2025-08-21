@@ -234,10 +234,39 @@ fn main() {
             } else {
                 println!("Tasks completed {c} out of 100, max {:?}, avg {:?}", tm, tt / c as u32);
             }
+
+            thread::sleep(Duration::from_secs(1));
         }
     });
 
     println!("Operation completed");
+}
+```
+
+## Compare-and-Exchange
+
+This is the most advanced, at the same time flexible, atomic operation. It does 
+what it says on the tin - compares provided value with the current value and if 
+it's equal then it replaces it with the new value in a single atomic operation.
+
+Quick example to demonstrate this. We get the current value, create a new one. Then 
+*compare_exchange()* compares current values and if the same does nothing else 
+returns the new value.
+
+```rs
+fn update_value(value: &AtomicUsize) {
+    let mut current_value = value.load(Relaxed);
+    
+    loop {
+        let updated_value = current_value + 1;
+        
+        match value.compare_exchange(current_value, updated_value, Relaxed, Relaxed) {
+            Ok(_) => return,
+            Err(v) => {
+                current_value = v;
+            }
+        }
+    }
 }
 ```
 
