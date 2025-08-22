@@ -270,6 +270,24 @@ fn update_value(value: &AtomicUsize) {
 }
 ```
 
+## Summary
+
+- Atomic types have atomic operations which are indivisible, they either fully complete
+or do not happen at all
+- The availability of atomic operations is system and architecture (hardware) dependent
+- When simple inter-thread communication is required such as flags or reporting,
+simple store and load operations are ideal for this
+- Ordering of atomic operations is tricky when multiple variants are involved
+- Atomics can be lazily loaded and a race can occur (multiple threads complete for 
+the one and only setting of initial value)
+- Subtraction and addition wraps around on overflow
+- When multiple threads are modifying the same atomic variable, `fetch-and-modify` is 
+very useful for that
+- Once can also compare current value and either proceed or error by using `compare-and-exchange` 
+operation which can be used as a building block for other atomic operations
+- On some platforms weak-compare-and-exchange can be more efficient
+
+
 
 - Mutex 
 - Condition variables
