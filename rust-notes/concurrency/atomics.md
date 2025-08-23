@@ -273,7 +273,13 @@ fn update_value(value: &AtomicUsize) {
 ## Summary
 
 - Atomic types have atomic operations which are indivisible, they either fully complete
-or do not happen at all
+or do not happen at all. Atomic operations run as a single unit (i.e. all or nothing). 
+- An operation that cannot be interrupted is an **atomic** operation. It cannot be 
+interrupted half-way through. We receive the guarantee from the hardware that when 
+an interrupt occurs, the operations either a) has not run at all yet or b) has to 
+run to completion.
+- A group of many actions bundled into a single atomic action is sometimes called 
+**transaction**. You might be familiar with it from the world of databases.
 - The availability of atomic operations is system and architecture (hardware) dependent
 - When simple inter-thread communication is required such as flags or reporting,
 simple store and load operations are ideal for this

@@ -7,6 +7,21 @@
     - [Mutex](#mutex)
     - [Arc](#arc)
 
+## Important Ideas
+
+- **Critical Section** - some code access a shared resource which can be a variable or 
+data structure.
+- **Race condition**, **data race** - this condition can occur if multiple threads 
+access the same critical section at the same time and try to update the resource 
+at the same time. This can lead to unexpected results.
+- **Indeterminate program** - when a program consists of one or more race conditions 
+and the output of the program varies depending on which thread runs when. Such a 
+program produces undeterministic results.
+- **Mutual exclusion** - threads use mutual exclusion primitives that guarantee 
+that only a single thread will ever enter the critical section of the program. 
+
+
+
 ## Send and Sync
 
 - A type is `Send` if it can be sent / moved (i.e. its' ownership can be transferred) 
