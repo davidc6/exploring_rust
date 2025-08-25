@@ -303,24 +303,7 @@ operation which can be used as a building block for other atomic operations
 Availability of Atomic types depends on hardware architecture and OS. Most OSes
 provide atomic types up to a pointer size (size depends on system architecture).
 
-#### Memory ordering (Memory consistency)
-
-Atomic operations take `Ordering` as an argument which determines the guarantees 
-about the relative order of operations. 
-
-- `Relaxed` is the simplest and weakest variant of memory ordering with fewest 
-guarantees. It only guarantees that the access is atomic. Relaxed ordering gives 
-no guarantees about the relative ordering of memory access across different threads. 
-For example, two threads might see operations on different variables happen in a 
-different order (say one thread write to variable a then b but another thread sees 
-in reverse order).
-
-- Release and acquire ordering `Release`, `Acquire` and `AcqRel`.
-    - Release and Acquire are used in a pair to form a happens-before relationship 
-    between threads
-    - Release happens to store operations
-    - Acquire happens to load operations
-- Sequentially consistent ordering `SeqCst`.
+### Memory Model
 
 The memory model defines the order in which operations happens in the happens-before 
 relationships. The abstract model is a way to decouple from processor architectures. 
