@@ -13,7 +13,13 @@ in which memory is accessed.
 
 ## Memory Consistency
 
+Memory consistency is about the order of operations, behaviour of reads and writes 
+to different locations (as observed by processors). It is about when writes to 
+some address propagate to other processors relative to reads and writes to other 
+addresses.
 
+It defines the allowed load and store behaviours to different addresses in a 
+parallel system.
 
 ## Memory Model
 
@@ -39,7 +45,8 @@ b) locking and unlocking a mutex
 c) working with non-relaxed atomic operations.
 
 *Relaxed* memory ordering is the most performant and basic one. It does not result 
-in any cross-thread happens-before relationships.
+in any cross-thread happens-before relationships. This memory model has been quite 
+popular in the recent years and allows for many compiler and CPU optimisations.
 
 #### Memory ordering (Memory consistency)
 
