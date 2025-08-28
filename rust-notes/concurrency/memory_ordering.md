@@ -98,4 +98,7 @@ in reverse order).
 
 ## Relaxed Ordering
 
-
+This type of ordering does not provide any happens-before relationship. Atomic 
+operations using relaxed memory ordering guarantees a total modification order 
+of each individual atomic variable. All modifications of the same atomic happen 
+in the order that is the same from the perspective of every single thread.
