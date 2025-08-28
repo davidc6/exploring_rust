@@ -1,5 +1,15 @@
 # Memory Ordering
 
+Memory ordering is sometimes also called memory consistency. Consistency is about 
+(global) ordering of all memory operations from different processors (threads, processors) 
+to different memory locations. It can be thought of as a contract between the 
+application programmer and the system. When a shared memory location is modified 
+by a processor, when does is it made visible to other processors that have it in their 
+private caches. What values can loads return based on memory ordering, fences and 
+other processes that take place during the execution on a program. 
+
+Defines the order of reads and writes to memory locations.
+
 Compilers can performs various optimisations to make programs run faster. 
 For instance, if consecutive instructions can be re-ordered and executed out of 
 order without affecting the outcome, then they will be re-ordered. As long as these 
@@ -11,8 +21,6 @@ multithreaded environments.
 Memory ordering is defined in terms of an abstract memory model. It is the order 
 in which memory is accessed. 
 
-## Memory Consistency
-
 Memory consistency is about the order of operations, behaviour of reads and writes 
 to different locations (as observed by processors). It is about when writes to 
 some address propagate to other processors relative to reads and writes to other 
@@ -21,7 +29,28 @@ addresses.
 It defines the allowed load and store behaviours to different addresses in a 
 parallel system.
 
+To put it simply if there are operations A, B, C and D, in what order should these 
+operations be executed at a hardware level? There should be a contract between 
+the programmer and micro architect (ISA specification). This helps with debugging,
+ease of state recovery and exception handling. 
+
+## Memory ordering in a Single Processor
+
+- von Neumann model / architecture (sequential execution)
+- Hardware executes the load and store operations in order specified
+
 ## Memory Model
+
+Why do we need a memory model?
+
+There needs to be a spec, a set of rules around what can be cannot be returned.
+
+There is a wide range of memory models. For example:
+
+1) Sequential (consistency) memory model is hard to implement for high performance.
+2) Total Store Ordering (TSO) - 
+3) RISC-V (RVWMO) - 
+3) IBM Power / Nvidia GPUs - 
 
 A programming language memory model is about how things are laid out in memory, 
 as well as concurrency aspects.
@@ -66,3 +95,7 @@ in reverse order).
     - Release happens to store operations
     - Acquire happens to load operations
 - Sequentially consistent ordering `SeqCst`.
+
+## Relaxed Ordering
+
+
