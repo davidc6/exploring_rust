@@ -33,8 +33,21 @@ If a data is missing in cache, then that core creates a read request for and pla
 it on the shared bus. All other cache on the same bus are able to read and understand 
 the request. If no caches is found then it will be provided by main memory.
 
+If there are too many processors trying to broadcast then a bottleneck might occur 
+when requesting data from the main memory.
+
 MESI (protocol) - Modified / Exclusive / Shared / Invalid
+
+This technique is effective because of the simplicity of implementation for smaller 
+multi-core systems.
 
 2) Directory-based
 
+Specifically designed for distributes systems. It provides a way for large number of 
+nodes to communicate with each other. In such system, nodes will have their own 
+processors, caches and memories. Individual directories will be associated with 
+each one of the nodes. These directories store information about data and nodes 
+where this data is stored. These nodes are connected using a scalable inter-connected 
+network which provides a point-to-point communication between every node. 
 
+This technique is effective in large-scale systems.
