@@ -95,8 +95,8 @@ impl<T> Mutex<T> {
 }
 
 fn main() {
-    let m = Mutex::new(0);
-    let guard = m.lock();
+    let mutex = Mutex::new(0);
+    let guard = mutex.lock();
     let value = *guard;
     println!("{value}");
 }
