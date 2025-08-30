@@ -16,6 +16,9 @@ static READY: AtomicBool = AtomicBool::new(false);
         - (on thread 2 slightly after the above operation) store "true" in Ready
     - load "true" from READY (Acquire)
     - load 123 from Data 
+
+    Having Relaxed memory ordering everywhere could cause a situation when
+    the main thread sees READY as true and still load 0 from DATA.
 */
 fn main() {
     // Spawn a new thread and send data to the main thread.
