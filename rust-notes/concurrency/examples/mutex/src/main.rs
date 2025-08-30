@@ -54,6 +54,28 @@ impl<T> Mutex<T> {
         }
     }
 
+    fn lock_check(state: &AtomicU32) {
+        let mut count = 0;
+        
+        // If locked (no other threads waiting) and spin lock is less than 100
+        while state.load(Relaxed) == 1 && count < 100 {
+            count += 1;
+            // Signal to the processor that it is running in a busy-wait spin-loop.
+            std::hint::spin_loop();
+        }
+        
+        // If same as before return
+        if state.compare_exchange(0, 1, Acquire, Relaxed).is_ok() {
+            return;
+        }
+        
+        // While lock make syscall
+        while state.swap(2, Acquire) != 0 {
+            // Atomically wait for the value of an atomic object to change.
+            wait(state, 2);
+        }
+    }
+
     pub fn lock(&self) -> MutexGuard<T> {
         // Acquire memory ordering makes the store part of the operation Relaxed.
         // swap(val, ordering) - returns previous value and sets new one.
@@ -61,8 +83,7 @@ impl<T> Mutex<T> {
         // Then while it's 1, waits atomically.
         if self.state.compare_exchange(0, 1, Acquire, Relaxed).is_err() {
             while self.state.swap(2, Acquire) != 0 {
-                // Atomically wait for the value of an atomic object to change.
-                wait(&self.state, 2);
+                Self::lock_check(&self.state);
             }
         }
 
