@@ -102,3 +102,18 @@ This type of ordering does not provide any happens-before relationship. Atomic
 operations using relaxed memory ordering guarantees a total modification order 
 of each individual atomic variable. All modifications of the same atomic happen 
 in the order that is the same from the perspective of every single thread.
+
+## Acquire and Release
+
+This memory ordering typically happens to forma a "happens before" relationship 
+between thread. Acquire applies to read/load and Release to write/store operations. 
+
+This memory ordering is used for locks (e.g. mutex) where one thread releasing an 
+atomic variable and another acquiring the same atomic variable acts as a synchronisation 
+point between the threads. This also guarantees that writes issued by the releasing 
+thread are visible to the acquiring one.
+
+The behaviour relies on this memory ordering for correctness and relaxed memory ordering 
+will not work here.
+
+
