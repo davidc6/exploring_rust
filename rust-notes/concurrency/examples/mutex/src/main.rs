@@ -30,6 +30,9 @@ impl<T> Deref for MutexGuard<'_, T> {
 
 impl<T> Drop for MutexGuard<'_, T> {
     fn drop(&mut self) {
+        // wake_one() will be skipped where necessary.
+        // swap() checks here for the previous value
+        // and if 2 wakes a thread.
         if self.mutex.state.swap(0, Release) == 2 {
             // Sets state to unlocked.
             // self.mutex.state.store(0, Release);
@@ -42,7 +45,6 @@ impl<T> Drop for MutexGuard<'_, T> {
         }
     }
 }
-
 
 impl<T> Mutex<T> {
     pub const fn new(val: T) -> Self {
