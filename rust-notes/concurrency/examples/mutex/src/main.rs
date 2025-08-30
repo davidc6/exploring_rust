@@ -1,8 +1,10 @@
-use std::{cell::UnsafeCell, ops::Deref, sync::atomic::AtomicU8};
+use std::{cell::UnsafeCell, ops::Deref, sync::atomic::AtomicU32};
+use std::sync::atomic::Ordering::{Acquire};
+use atomic_wait::{wait};
 
 struct Mutex<T> {
     /// Unlocked or locked, 0 or 1
-    state: AtomicU8,
+    state: AtomicU32,
     /// Value that we'd like to store.
     /// UnsafeCell used here for interior mutability (core primitive).
     val: UnsafeCell<T>
@@ -28,12 +30,16 @@ impl<T> Deref for MutexGuard<'_, T> {
 impl<T> Mutex<T> {
     pub const fn new(val: T) -> Self {
         Mutex {
-            state: AtomicU8::new(0),
+            state: AtomicU32::new(0),
             val: UnsafeCell::new(val)
         }
     }
 
     pub fn lock(&self) -> MutexGuard<T> {
+        while self.state.swap(1, Acquire) == 1 {
+            wait(&self.state, 1);
+        }
+
         MutexGuard {
             mutex: self
         }
@@ -43,6 +49,7 @@ impl<T> Mutex<T> {
 
 fn main() {
     let m = Mutex::new(0);
-    
     let _l = m.lock();
+    let d = *_l;
+    println!("{d}");
 }
