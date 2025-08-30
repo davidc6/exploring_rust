@@ -1,9 +1,10 @@
 use std::{cell::UnsafeCell, ops::Deref, sync::atomic::AtomicU32};
-use std::sync::atomic::Ordering::{Acquire, Release};
+use std::sync::atomic::Ordering::{Acquire, Release, Relaxed};
 use atomic_wait::{wait, wake_one};
 
 struct Mutex<T> {
     /// Unlocked or locked, 0 or 1
+    /// 2 is locked and more than one thread is waiting.
     state: AtomicU32,
     /// Value that we'd like to store.
     /// UnsafeCell used here for interior mutability (core primitive).
@@ -29,14 +30,16 @@ impl<T> Deref for MutexGuard<'_, T> {
 
 impl<T> Drop for MutexGuard<'_, T> {
     fn drop(&mut self) {
-        // Sets state to unlocked.
-        self.mutex.state.store(0, Release);
-        // Wakes up a single thread that is waiting.
-        // There could be multiple threads waiting but waking up
-        // one is enough. 
-        //
-        // Wake and Wait are optimisations to avoid busy looping.
-        wake_one(&self.mutex.state);
+        if self.mutex.state.swap(0, Release) == 2 {
+            // Sets state to unlocked.
+            // self.mutex.state.store(0, Release);
+            // Wakes up a single thread that is waiting.
+            // There could be multiple threads waiting but waking up
+            // one is enough. 
+            //
+            // Wake and Wait are optimisations to avoid busy looping.
+            wake_one(&self.mutex.state);
+        }
     }
 }
 
@@ -54,9 +57,11 @@ impl<T> Mutex<T> {
         // swap(val, ordering) - returns previous value and sets new one.
         // Initially self.state gets set to 1 if 0.
         // Then while it's 1, waits atomically.
-        while self.state.swap(1, Acquire) == 1 {
-            // Atomically wait for the value of an atomic object to change.
-            wait(&self.state, 1);
+        if self.state.compare_exchange(0, 1, Acquire, Relaxed).is_err() {
+            while self.state.swap(2, Acquire) != 0 {
+                // Atomically wait for the value of an atomic object to change.
+                wait(&self.state, 2);
+            }
         }
 
         MutexGuard {
@@ -68,7 +73,7 @@ impl<T> Mutex<T> {
 
 fn main() {
     let m = Mutex::new(0);
-    let _l = m.lock();
-    let d = *_l;
-    println!("{d}");
+    let guard = m.lock();
+    let value = *guard;
+    println!("{value}");
 }
