@@ -41,9 +41,8 @@ ease of state recovery and exception handling.
 
 ## Memory Model
 
-Why do we need a memory model?
-
-There needs to be a spec, a set of rules around what can be cannot be returned.
+Why do we need a memory model? There needs to be a spec, a set of rules around 
+what can be cannot be returned.
 
 There is a wide range of memory models. For example:
 
@@ -60,7 +59,7 @@ is guaranteed to observe writes to the same variable by the second thread. A mem
 model specifies the semantics under which this happens.
 
 Rust's memory model is an abstract model with a strict set of rules. It is a lot 
-like C++ memory model. 
+like C++ memory model. Actual Rust memory model is currently incomplete. 
 
 Memory models is also about specifying the mechanisms a programs can rely on to 
 share memory between threads. The memory model defines the order in which operations 
@@ -116,4 +115,14 @@ thread are visible to the acquiring one.
 The behaviour relies on this memory ordering for correctness and relaxed memory ordering 
 will not work here.
 
+## Sequential
+
+This is the strongest memory ordering variant. It guarantees a globally consistent 
+order of operations in addition to all of the guarantees of acquire (loads) and 
+release (stores). 
+
+Every single operation that is part of sequential ordering in a program is a single 
+order that the all threads agree on.
+
+Most of the times however Acquire and Release suffice.
 
