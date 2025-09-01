@@ -95,14 +95,14 @@ in reverse order).
     - Acquire happens to load operations
 - Sequentially consistent ordering `SeqCst`.
 
-## Relaxed Ordering
+### Relaxed Ordering
 
 This type of ordering does not provide any happens-before relationship. Atomic 
 operations using relaxed memory ordering guarantees a total modification order 
 of each individual atomic variable. All modifications of the same atomic happen 
 in the order that is the same from the perspective of every single thread.
 
-## Acquire and Release
+### Acquire and Release
 
 This memory ordering typically happens to forma a "happens before" relationship 
 between thread. Acquire applies to read/load and Release to write/store operations. 
@@ -115,7 +115,7 @@ thread are visible to the acquiring one.
 The behaviour relies on this memory ordering for correctness and relaxed memory ordering 
 will not work here.
 
-## Sequential
+### Sequential
 
 This is the strongest memory ordering variant. It guarantees a globally consistent 
 order of operations in addition to all of the guarantees of acquire (loads) and 
@@ -125,4 +125,72 @@ Every single operation that is part of sequential ordering in a program is a sin
 order that the all threads agree on.
 
 Most of the times however Acquire and Release suffice.
+
+## Fences
+
+It is an atomic operation that establishes a happens-before relationship between 
+two threads but without talking about a particular memory location.
+
+
+
+Memory ordering can be applied to fences.
+
+An atomic fences are used to separate the memory ordering from atomic operation and 
+can be used when applying memory ordering conditionally or applying memory ordering to 
+multiple operations.
+
+There are Release, Acquire, AcqRel (Acquire Release) and SeqCst fences. 
+
+```rs
+// This
+x.store(1, Release);
+
+// can become
+fence(Release);
+a.store(1, Relaxed);
+```
+
+Fences can result in extra processing instruction. A fence is not tied to any 
+single atomic variable, and therefore a single fence can be used for multiple 
+variables at once.
+
+```rs
+fence(Release);
+A.store(1, Relaxed);
+B.store(2, Relaxed);
+C.store(3, Relaxed);
+
+A.load(Relaxed);
+B.load(Relaxed);
+C.load(Relaxed);
+fence(Acquire);
+```
+
+Fences can be made conditional:
+
+```rs
+let ptr = PTR.load(Acquire);
+if ptr.is_null() {
+    println!("There is no data");
+} else {
+    println!("data = {}", unsafe { *ptr });
+}
+```
+
+Same as
+
+```rs
+let ptr = PTR.load(Relaxed);
+if ptr.is_nul() {
+    println!("There is no data");
+} else {
+    fence(Acquire);
+    println!("data = {}", unsafe { *p })
+}
+```
+### Compiler fence
+
+This is when a compiler is not allowed to move operations under or below the fence 
+within the threads execution. This is just meant for the compiler.
+
 
