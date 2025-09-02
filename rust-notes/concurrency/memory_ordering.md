@@ -131,7 +131,11 @@ Most of the times however Acquire and Release suffice.
 It is an atomic operation that establishes a happens-before relationship between 
 two threads but without talking about a particular memory location.
 
+A memory fence causes operations issued prior to the fence to perform before 
+operations issued after the fence.
 
+Most modern CPUs perform optimisations that can result in out-of-order execution. 
+This can become unpredictable in concurrent programs without special controls. 
 
 Memory ordering can be applied to fences.
 
@@ -188,9 +192,23 @@ if ptr.is_nul() {
     println!("data = {}", unsafe { *p })
 }
 ```
+
 ### Compiler fence
 
 This is when a compiler is not allowed to move operations under or below the fence 
 within the threads execution. This is just meant for the compiler.
 
+### Summary notes
 
+- Things can appear to happen in different order from different threads and hence 
+global consistent order is not always the case
+- Each atomic variable has its own modification order regardless of the ordering 
+that all threads agree on 
+- Order of operations is defined as happens-before relationship
+- Spawning a thread happens-before everything in a thread
+- Threads does everything and it happens-before the joining that thread
+- Unlocking a Mutex happens-before locking the mutex again
+- Acquire-loading a value from the release store is a happens-before relationship
+- Sequential consistency provides a globally consistent order of operations but 
+is almost never necessary, and makes code review difficult
+- Fences allow to combine memory ordering of multiple operations or apply it conditionally
