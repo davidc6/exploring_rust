@@ -323,3 +323,28 @@ different order.
 For instance, one thread writes to one the another variable, a different thread
 might see this operation order in reverse.
 
+## Summary
+
+### Load / Store
+
+- `fn load(&self, ordering: Ordering) -> i32`
+- `fn store(&self, value: i32, ordering: Ordering)`
+
+#### Fetch (and modify)
+
+Operations that fetch the current value and modify it returing the previous value.
+
+Fetch (and modify).
+
+- `fn fetch_add(&self, value: i23, ordering Ordering) -> i32` - fetch the value, 
+add to the new value, return old value.
+- `fn swap(&self, value: i32, ordering: Ordering) -> i32` - fetch the value, replace 
+with the new value, return the old value.
+- `fn compare_exchange(&self, expected: i32, new: i32, success_order: Ordering, failure_order: 
+Ordering) -> Result<i32, i32>` - check if the current value is the expected value and 
+replace it with the new value if that's the case using success Ordering. It will return 
+the previous value.
+- `fn compare_exchange_weak(&self, expected: i32, new: i32, success_order: Ordering, 
+failure_order: Ordering) -> i32` - can result in a failure (even when value are equal)
+and result in a more efficiet code on some platforms.
+
