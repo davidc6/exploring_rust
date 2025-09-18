@@ -133,7 +133,10 @@ impl Scanner {
         let mut current_position = 0;
 
         loop {
+
+
             if self.is_end(current_position) {
+                self.push_token(TokenType::Semi, self.source_code.len() - 1);
                 break;
             }
 
@@ -147,6 +150,9 @@ impl Scanner {
             let Some(char) = char else {
                 return;
             };
+
+            // We are just adding some lines to test
+
 
             match char {
                 '(' => {
@@ -168,17 +174,17 @@ impl Scanner {
                     self.push_token(TokenType::Equal, current_position);
                 }
                 '"' => {
-                    let mut current_end = current_position + 1;
+                    let mut end = current_position + 1;
 
-                    while self.peek(current_end) != Some("\"") {
-                        current_end += 1;
+                    while self.peek(end) != Some("\"") {
+                        end += 1;
 
-                        if self.is_end(current_end) {
+                        if self.is_end(end) {
                             break;
                         }
                     }
 
-                    self.push_token_end(TokenType::String, current_position, current_end);
+                    self.push_token_end(TokenType::String, current_position, end);
 
                     // Current_position will be the opening quote (").
                     // Why +2 here? We want to move from last char and closing quote (") to the next char:
@@ -186,50 +192,48 @@ impl Scanner {
                     // "hello";
                     //      ^
                     //      |
-                    //      current_end is here
+                    //      end is here
                     //
                     // "hello";
                     //        ^
                     //        |
-                    //        current_position is now here (current_end + 2)
-                    current_position = current_end + 2;
+                    //        current_position is now here (end + 2)
+                    current_position = end + 2;
                     continue;
                 }
                 _ => {
-                    let mut current_end = current_position;
+                    // TODO - we should be catching unexpected chars here
+                    println!("Do we ever get here");
 
-                    if self.is_end(current_end) {
-                        self.push_token(TokenType::Semi, self.source_code.len() - 1);
-                        return;
-                    }
+                    let mut end = current_position;
 
                     loop {
-                        let b = &self.source_code[current_end..current_end + 1]
+                        let b = &self.source_code[end..end + 1]
                             .chars()
                             .next()
                             .unwrap();
 
                         if (b != &' ' || b != &';') && b.is_ascii_alphabetic() {
                             if b.is_alphanumeric() {
-                                current_end += 1;
+                                end += 1;
                                 continue;
                             }
 
                             self.push_token_end(
                                 TokenType::Identifier,
                                 current_position,
-                                current_end,
+                                end,
                             );
 
-                            current_position = current_end;
+                            current_position = end;
                             break;
                         } else {
                             self.push_token_end(
                                 TokenType::Identifier,
                                 current_position,
-                                current_end,
+                                end,
                             );
-                            current_position = current_end;
+                            current_position = end;
                             break;
                         }
                     }
@@ -455,5 +459,10 @@ mod scanner_tests {
         ];
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn scanner_catches_errors() {
+
     }
 }
