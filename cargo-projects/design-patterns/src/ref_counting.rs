@@ -1,0 +1,54 @@
+use std::{ptr::NonNull, sync::atomic::AtomicUsize};
+
+/// Count the number of Arc objects that share an allocation.
+///
+/// The struct holds the counter and object of type T.
+///
+/// This is an internal implementation detail of Arc implementation.
+struct ArcData<T> {
+    ref_count: AtomicUsize,
+    data: T
+}
+
+/// Arc<T> is a pointer to a (shared) ArcData<T> object.
+/// Box represents 
+
+/// Instead of using a Box to handle allocations of ArcData<T>,
+/// we use a pointer. We handle allocations and ownership manually.
+/// NonNull represents a pointer that is never null. 
+///
+/// The compiler assumes that T is never Sync or Send unless 
+/// we tell it otherwise.
+pub struct Arc<T> {
+    ptr: NonNull<ArcData<T>>
+}
+
+/// If/when Arc<T> is sent across threads, T needs to be Sync. Since 
+/// a thread could drop T, it needs to be Send.
+///
+/// Arc<T> should be Send if and if T is Sync + Send. The same 
+/// applies to Sync since shared &Arc<T> can be cloned into a new Arc<T>.
+///
+/// Sync - safe to share references between threads.
+/// Send - move ownership of T from one thread to another.
+unsafe impl<T: Send + Sync> Send for Arc<T> {}
+unsafe impl<T: Send + Sync> Sync for Arc<T> {}
+
+/// let a = Arc::new(123)
+///
+/// Create a new allocation with a reference count set to 1.
+/// Box::new creates a new allocation and Box::leak gives up exclusive 
+/// ownership of the allocation. NonNull turns into a pointer.
+impl<T> Arc<T> {
+    pub fn new(data: T) -> Arc<T> {
+        Arc {
+            ptr: NonNull::from(Box::leak(Box::new(
+                ArcData {
+                    ref_count: AtomicUsize::new(1),
+                    data,
+                }
+            ))),
+        }
+    }
+}
+
