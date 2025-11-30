@@ -38,7 +38,7 @@ unsafe impl<T: Send + Sync> Sync for Arc<T> {}
 ///
 /// Create a new allocation with a reference count set to 1.
 /// Box::new creates a new allocation and Box::leak gives up exclusive 
-/// ownership of the allocation. NonNull turns into a pointer.
+/// ownership of the allocation. NonNull turns it into a pointer.
 impl<T> Arc<T> {
     pub fn new(data: T) -> Arc<T> {
         Arc {
@@ -49,6 +49,13 @@ impl<T> Arc<T> {
                 }
             ))),
         }
+    }
+
+    /// Pointer will point to a valid ArcData<T> as long as the object exists.
+    /// The compiler does not know this however, therefore accessing data 
+    /// through the pointer requires unsafe code. 
+    fn data(&self) -> &ArcData<T> {
+        unsafe { self.ptr.as_ref() }
     }
 }
 
