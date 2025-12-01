@@ -59,3 +59,17 @@ impl<T> Arc<T> {
     }
 }
 
+/// Using Deref, we can make Arc<T> behave like a reference to T.
+///
+/// let arc = Arc::new(1);
+/// let arc_derefed = *arc;
+///
+/// What ran behind the scenes - *(y.deref())
+impl<T> Deref for Arc<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.data().data
+    }
+}
+
