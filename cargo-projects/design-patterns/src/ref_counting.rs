@@ -1,4 +1,5 @@
 use std::{ptr::NonNull, sync::atomic::AtomicUsize};
+use std::ops::Deref;
 
 /// Count the number of Arc objects that share an allocation.
 ///
@@ -60,6 +61,9 @@ impl<T> Arc<T> {
 }
 
 /// Using Deref, we can make Arc<T> behave like a reference to T.
+///
+/// DerefMut is not implemented since Arc<T> represents shared ownership,
+/// T cannot be &mut T.
 ///
 /// let arc = Arc::new(1);
 /// let arc_derefed = *arc;
