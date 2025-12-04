@@ -62,8 +62,8 @@ impl<T> Arc<T> {
 
 /// Using Deref, we can make Arc<T> behave like a reference to T.
 ///
-/// DerefMut is not implemented since Arc<T> represents shared ownership,
-/// T cannot be &mut T.
+/// DerefMut is not implemented since Arc<T> represents shared ownership and cannot be 
+/// mutated hence T cannot be &mut T. 
 ///
 /// let arc = Arc::new(1);
 /// let arc_derefed = *arc;
@@ -74,6 +74,17 @@ impl<T> Deref for Arc<T> {
 
     fn deref(&self) -> &T {
         &self.data().data
+    }
+}
+
+// For cloning, the same pointer is used and the reference number is incremented.
+impl<T> Clone for Arc<T> {
+    fn clone(&self) -> Self {
+        // fetch_add() - fetches the current count and increments by the value (1 in this case)
+        self.data().ref_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Arc {
+            ptr: self.ptr
+        }
     }
 }
 
