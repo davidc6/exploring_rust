@@ -1,3 +1,4 @@
+use std::usize;
 use std::{ptr::NonNull, sync::atomic::AtomicUsize};
 use std::ops::Deref;
 
@@ -81,7 +82,11 @@ impl<T> Deref for Arc<T> {
 impl<T> Clone for Arc<T> {
     fn clone(&self) -> Self {
         // fetch_add() - fetches the current count and increments by the value (1 in this case)
-        self.data().ref_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        // We don't want to overflow when cloning so to avoid that, we have a usize check
+        if self.data().ref_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed) > usize::MAX / 2 {
+            std::process::abort();
+        }
+
         Arc {
             ptr: self.ptr
         }
