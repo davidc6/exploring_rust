@@ -1,3 +1,4 @@
+use std::sync::atomic::fence;
 use std::usize;
 use std::{ptr::NonNull, sync::atomic::AtomicUsize};
 use std::ops::Deref;
@@ -93,3 +94,17 @@ impl<T> Clone for Arc<T> {
     }
 }
 
+// Decrement the ref count by dropping an Arc
+impl<T> Drop for Arc<T> {
+    fn drop(&mut self) {
+        // Memory ordering cannot be "Relaxed" since we need to make sure that nothing else is
+        // accessing the data when we drop it.
+        if self.data().ref_count.fetch_sub(1, std::sync::atomic::Ordering::Release) == 1 {
+            // Use "Acquire" for the last drop/last decrement 
+            fence(std::sync::atomic::Ordering::Acquire);
+            unsafe {
+                drop(Box::from_raw(self.ptr.as_ptr()));
+            }
+        }
+    }
+}
