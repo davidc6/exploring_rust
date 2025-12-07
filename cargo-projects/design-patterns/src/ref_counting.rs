@@ -100,7 +100,8 @@ impl<T> Drop for Arc<T> {
         // Memory ordering cannot be "Relaxed" since we need to make sure that nothing else is
         // accessing the data when we drop it.
         if self.data().ref_count.fetch_sub(1, std::sync::atomic::Ordering::Release) == 1 {
-            // Use "Acquire" for the last drop/last decrement 
+            // Use "Acquire" for the last drop/last decrement.
+            // All memory operations after the fence can see operations before it.
             fence(std::sync::atomic::Ordering::Acquire);
             unsafe {
                 drop(Box::from_raw(self.ptr.as_ptr()));
@@ -108,3 +109,4 @@ impl<T> Drop for Arc<T> {
         }
     }
 }
+
