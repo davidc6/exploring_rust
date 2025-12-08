@@ -110,3 +110,31 @@ impl<T> Drop for Arc<T> {
     }
 }
 
+#[test]
+fn test_drop_count() {
+    static NUM_DROPS: AtomicUsize = AtomicUsize::new(0);
+
+    struct DropDetect;
+
+    impl Drop for DropDetect {
+        fn drop(&mut self) {
+            NUM_DROPS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+
+    let a_1 = Arc::new(("hi", DropDetect));
+    let a_2 = a_1.clone();
+
+    let t = std::thread::spawn(move || {
+        assert_eq!(a_1.0, "hi");
+    });
+
+    t.join().unwrap();
+
+    assert_eq!(NUM_DROPS.load(std::sync::atomic::Ordering::Relaxed), 0);
+
+    drop(a_2);
+
+    assert_eq!(NUM_DROPS.load(std::sync::atomic::Ordering::Relaxed), 1);
+}
+
