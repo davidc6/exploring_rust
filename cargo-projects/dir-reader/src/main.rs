@@ -1,4 +1,4 @@
-use std::{env, fs::{read_dir, ReadDir}, iter, path::Path};
+use std::{env, error::Error, fs::{read_dir, ReadDir}, io::Result, iter, path::Path};
 
 // fn traverse_file_tree(space_count: u8, path: &ReadDir) {
 //     for (index, entry) in read_dir(path).into_iter().enumerate() {
@@ -17,59 +17,50 @@ use std::{env, fs::{read_dir, ReadDir}, iter, path::Path};
 //     }
 // }
 
-fn trav() {
-
-}
-
-fn main() {
-    // TODO: Take a directory as an argument to a function as an option.
-    // Initially can just work from the directory it runs in.
-    let Ok(current_directory) = Path::new(".").read_dir() else {
-        panic!("Current directory is invalid"); 
-    };
-
-    // let b = Path::new(".");
-    let _b = Path::new("../../../../cargo-projects/vivs/src/");
-    let b = Path::new("./../../../cargo-projects/vivs/src");
-    let path = env::current_dir().unwrap();
-
-    println!("The current directory is {}", path.display());
-    println!("{:?}", b);
-
-    let r = b.read_dir().unwrap();
-
-    for dir in current_directory {
-        let Ok(dir_entry) = dir else {
+fn trav(current_directory: Result<ReadDir>, depth: usize) {
+    let current_directory = current_directory.unwrap();
+    for dir_entry in current_directory {
+        let Ok(dir_entry) = dir_entry else {
             panic!("Directory entry is invalid");
         };
 
+        // let path = dir_entry.path();
+
         let path = dir_entry.path();
-        let last_entry = path.iter().last();
+        let last_entry = path.iter().last().unwrap();
+        let last_entry_unwrapped = last_entry.to_str().unwrap();
 
-        let l = iter::repeat_n(" ", 3);
+        let l = iter::repeat_n(" ", depth);
         let l: Vec<_> = l.collect();
+        let w = format!("{}{}", l.join(""), last_entry_unwrapped);
 
-        // let p = .to_str().unwrap();
+        println!("{}", w);
 
         let Ok(current_dir) = env::current_dir() else {
             panic!("Current path incorrect");
         };
 
-        let processed_entry = true;
+        // println!("{:?}", path);
 
         if path.is_dir() {
             // let w = format!("{}-- {}", l.join(""), p);
-            println!("  {p}");
+            let w = read_dir(path.as_path());
+
+            // println!("  {}", last_entry_unwrapped);
+            trav(w, depth + 2);
         } else {
             // let h = format!("{}-- {}", l.join(""), p);
-            println!("{}", p);
+            // println!("{}", last_entry_unwrapped);
         }
-
-        // g.is_dir();
     }
+}
 
-
+fn main() {
+    // TODO: Take a directory as an argument to a function as an option.
+    // Initially can just work from the directory it runs in.
+    let current_directory = Path::new(".").read_dir();
 
     // traverse_file_tree(0, &a.unwrap());
+    trav(current_directory, 2);
 }
 
