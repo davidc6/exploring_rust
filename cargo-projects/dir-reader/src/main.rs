@@ -1,4 +1,4 @@
-use std::{env, fs::{read_dir, ReadDir}, io::Result, iter, path::Path};
+use std::{fs::{read_dir, ReadDir}, io::Result, iter, path::Path};
 
 fn traverse_file_tree(current_directory: Result<ReadDir>, depth: usize) {
     let Ok(current_directory) = current_directory else {
@@ -25,8 +25,8 @@ fn traverse_file_tree(current_directory: Result<ReadDir>, depth: usize) {
         println!("{}", value);
 
         if path.is_dir() {
-            let w = read_dir(path.as_path());
-            traverse_file_tree(w, depth + 4);
+            let next_directory = read_dir(path.as_path());
+            traverse_file_tree(next_directory, depth + 4);
         }
     }
 }
