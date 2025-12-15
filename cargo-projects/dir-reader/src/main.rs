@@ -19,8 +19,8 @@ fn traverse_file_tree(current_directory: Result<ReadDir>, depth: usize) {
             panic!("Cannot cast entry into a string");
         };
 
-        let spacing = iter::repeat_n(" ", depth).collect::<Vec<_>>();
-        let value = format!("{}{}", spacing.join(""), last_entry_unwrapped);
+        let spacing = iter::repeat_n(" ", depth).collect::<Vec<_>>().join("");
+        let value = format!("{}{}", spacing, last_entry_unwrapped);
 
         println!("{}", value);
 
