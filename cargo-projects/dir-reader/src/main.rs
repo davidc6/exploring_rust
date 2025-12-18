@@ -20,11 +20,7 @@ enum Entities {
     }
 }
 
-struct Tree {
-    
-}
-
-fn traverse_tree(current_directory: Result<ReadDir>, mut node: Node) -> Node {
+fn traverse_tree(current_directory: Result<ReadDir>, node: &mut Node) -> &mut Node {
     let Ok(current_directory) = current_directory else {
         panic!("Cannot read current directory");
     };
@@ -50,25 +46,31 @@ fn traverse_tree(current_directory: Result<ReadDir>, mut node: Node) -> Node {
         // let value = format!("{}{}", line_to_print, last_entry_unwrapped);
 
         if path.is_dir() {
-            let n = Node {
-                value: "".to_owned(),
-                children: Some(vec![])
-            };
+            let next_directory = read_dir(path.as_path());
 
-//            let next_directory = read_dir(path.as_path());
-
-            // println!("{}", last_entry_unwrapped);
             let n = Node { value: last_entry_unwrapped.to_string(), children: Some(vec![]) };
 
-            if let Some(ref mut children) = node.children {
+            if let Some(children) = node.children.as_mut() {
                 children.push(Box::new(n));
             }
 
+            if let Some(children) = node.children.as_mut() {
+                if let Some(last) = children.last_mut() {
+                    let n: &mut Node = last;
+                    traverse_tree(next_directory, n);
+                }
+
+               //  if let Some(last) = children.last().as_mut() {
+               //      let mut n = last;
+               //      traverse_tree(next_directory, &mut n);
+               //  }
+            }
 
         } else {
             let n = Node { value: last_entry_unwrapped.to_string(), children: None };
-            if let Some(ref mut children) = node.children {
-                children.push(Box::new(n));
+            if let Some(children) = node.children.as_mut() {
+                let n = Box::new(n);
+                children.push(n);
             }
 
         }
@@ -140,12 +142,12 @@ fn main() {
         panic!("Cannot get root");
     };
 
-    let root = Node {
+    let mut root = Node {
         value: ".".to_owned(),
         children: Some(vec![])
     };
 
-    let node = traverse_tree(Ok(current_directory), root);
+    let node = traverse_tree(Ok(current_directory), &mut root);
     println!("{:?}", node);
 
     // traverse_file_tree(current_directory, String::new());
