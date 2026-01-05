@@ -58,6 +58,11 @@ results. (tip, Arc can come in handy in such cases).
 on it's own, does not perform any synchronisation. UnsafeCell does not come with 
 any conditions to avoid undefined behaviour. Usually it is not used on it's own 
 but rather wrapped in any type that provides safety such as Cell or Mutex.
+- Types that allow interior mutability without thread-safe synchronisation are 
+usually `Send` but not `Sync`. For example, `RefCell<T>` can be `Send` if `T` 
+is `Send`. It is never `Sync` because it allows borrowing at runtime which is 
+not thread-safe. Same applies to `Cell`, it is movable but its reference would 
+allow concurrent non-atomic writes (unsynchronised mutation). 
 
 ## Primitives
 
@@ -344,6 +349,11 @@ impl<T> Drop for Arc<T> {
     }
 }
 ```
+
+## Testing
+
+- [Loom](https://github.com/tokio-rs/loom)
+
 
 #### Resources
 
