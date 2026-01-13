@@ -13,21 +13,24 @@ use std::{
 
 mod block;
 
-/// We need to get the OS page size in order to create
+/// NonNull does not guarantee that the memory that is pointed to is valid.
+/// It is essentially just a wrapper type that reinforces that the pointer isn't null.
+/// It is not allowed to be a null therefore and must always be ensured that it's non-null.
+type Ptr<T> = Option<NonNull<T>>;
+type AllocResult = Result<NonNull<[u8]>, AllocError>;
+
+/// Get the OS page size in order to create.
+///
+/// A page is a contiguous block of memory.
+///
+/// 
 fn page_size() -> usize {
-    // Get the size of page. A page is a contiguous block of memory
     unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
 }
 
 /// Unix requires to call a function to get the page size
 /// hence initialized lazily (only when accessed) once.
 static PAGE_SIZE: LazyLock<usize> = LazyLock::new(page_size);
-
-/// NonNull does not guarantee that the memory that is pointed to is valid.
-/// It is essentially just a wrapper type that reinforces that the pointer isn't null.
-/// It is not allowed to be a null therefore and must always be ensured that it's non-null.
-type Ptr<T> = Option<NonNull<T>>;
-type AllocResult = Result<NonNull<[u8]>, AllocError>;
 
 /// FreeList type aliases.
 /// Free list keeps track of the free memory chunks.
@@ -254,7 +257,7 @@ impl InnerAlloc {
                 // Memory is protected, the contents of the region can be READ and modified (WRITE)
                 // - Memory mapping
                 // Make memory private to our process (MAP_PRIVATE | MAP_ANONYMOUS)
-                // MAP_PRIVATE - other processes that map tha same file,
+                // MAP_PRIVATE - other processes that map the same file,
                 // cannot see updates to the mapping.
                 // MAP_ANONYMOUS - large zero-filled blocks not backed by a file.
                 // From the man: some implementations require fd to be -1 if MAP_ANONYMOUS
@@ -405,6 +408,7 @@ impl PageAllocator {
     }
 }
 
+/// Registers as the standard library default allocator.
 unsafe impl GlobalAlloc for PageAllocator {
     // Layout - describes a layout of memory.
     // Returning raw unsafe pointer which is the address of the allocated memory.
