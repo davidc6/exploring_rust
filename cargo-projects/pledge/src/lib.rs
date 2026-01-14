@@ -233,19 +233,35 @@ impl Region {
     }
 }
 
+pub(crate) struct Platform;
+
+#[cfg(unix)]
+mod unix {
+    use super::Platform;
+
+    impl Platform {
+        unsafe fn page_size() -> usize {
+            libc::sysconf(libc::_SC_PAGESIZE) as usize
+        }
+    }
+}
+
 pub struct InnerAlloc {
     free_space: FreeList,
     regions: LinkedList<Region>,
 }
 
 impl InnerAlloc {
-    // Return an address which then can be casted to a pointer
+    /// Return an address which then can be casted to a pointer.
     unsafe fn allocate(&mut self, layout: Layout) -> NonNull<[u8]> {
+        // How many bytes does the allocation need?
         let size = layout.size();
+        // Find a free chunk in the free space.
         let free_chunk = self.free_space.find_free_chunk(size);
 
         // check if free block exists that will be enough.
-        // TODO: "size" here has to be something meaningful and not just the size of an object to allocate
+        // TODO: 
+        //  - "size" here has to be meaningful, not just the size of an object to allocate.
         let mut chunk = match free_chunk {
             Some(val) => val,
             None => {
@@ -410,11 +426,15 @@ impl PageAllocator {
 
 /// Registers as the standard library default allocator.
 unsafe impl GlobalAlloc for PageAllocator {
-    // Layout - describes a layout of memory.
-    // Returning raw unsafe pointer which is the address of the allocated memory.
-    // Specifically the beginning of the memory block allocated.
+    /// Layout - describes a layout of memory (i.e. size in bytes and alignment for allocation).
+    ///
+    /// Returning raw unsafe pointer which is the address of the allocated memory.
+    /// Specifically the beginning of the memory block allocated.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.allocate(layout).unwrap().cast().as_ptr()
+        match self.allocate(layout) {
+            Ok(addr) => addr.cast().as_ptr(),
+            Err(_) => ptr::null_mut(),
+        }
 
         // Check whether a specific layout (description of memory size and alignment of a type)
         // can be aligned to a desired alignment.
