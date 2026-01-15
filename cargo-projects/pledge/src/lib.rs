@@ -19,14 +19,6 @@ mod block;
 type Ptr<T> = Option<NonNull<T>>;
 type AllocResult = Result<NonNull<[u8]>, AllocError>;
 
-/// Get the OS page size in order to create.
-///
-/// A page is a contiguous block of memory.
-///
-/// 
-fn page_size() -> usize {
-    unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
-}
 
 /// Unix requires to call a function to get the page size
 /// hence initialized lazily (only when accessed) once.
@@ -240,9 +232,20 @@ mod unix {
     use super::Platform;
 
     impl Platform {
-        unsafe fn page_size() -> usize {
+        pub unsafe fn page_size() -> usize {
             libc::sysconf(libc::_SC_PAGESIZE) as usize
         }
+    }
+}
+
+/// Get the OS page size in order to create.
+///
+/// A page is a contiguous block of memory.
+#[inline]
+pub(crate) fn page_size() -> usize {
+    // unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
+    unsafe {
+        Platform::page_size() 
     }
 }
 
