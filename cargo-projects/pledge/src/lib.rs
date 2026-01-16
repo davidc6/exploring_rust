@@ -10,8 +10,10 @@ use std::{
     ptr::{self, NonNull},
     sync::{LazyLock, Mutex},
 };
+use platform::page_size;
 
 mod block;
+mod platform;
 
 /// NonNull does not guarantee that the memory that is pointed to is valid.
 /// It is essentially just a wrapper type that reinforces that the pointer isn't null.
@@ -222,30 +224,6 @@ impl Region {
     unsafe fn first_chunk(&self) -> NonNull<LinkedListNode<Chunk>> {
         println!("CHUNKS {:?}", self);
         self.chunks.head.unwrap()
-    }
-}
-
-pub(crate) struct Platform;
-
-#[cfg(unix)]
-mod unix {
-    use super::Platform;
-
-    impl Platform {
-        pub unsafe fn page_size() -> usize {
-            libc::sysconf(libc::_SC_PAGESIZE) as usize
-        }
-    }
-}
-
-/// Get the OS page size in order to create.
-///
-/// A page is a contiguous block of memory.
-#[inline]
-pub(crate) fn page_size() -> usize {
-    // unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
-    unsafe {
-        Platform::page_size() 
     }
 }
 
