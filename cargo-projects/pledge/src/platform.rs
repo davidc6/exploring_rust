@@ -1,4 +1,4 @@
-trait PlatformT {
+trait PlatformMemory {
     unsafe fn page_size() -> usize; 
 }   
 
@@ -19,9 +19,9 @@ pub(crate) fn page_size() -> usize {
 #[cfg(not(miri))]
 #[cfg(unix)]
 mod unix {
-    use super::{Platform, PlatformT};
+    use super::{Platform, PlatformMemory};
 
-    impl PlatformT for Platform {
+    impl PlatformMemory for Platform {
         unsafe fn page_size() -> usize {
             libc::sysconf(libc::_SC_PAGESIZE) as usize
         }
@@ -30,9 +30,9 @@ mod unix {
 
 #[cfg(miri)]
 mod miri {
-    use super::{page_size, Platform, PlatformT};
+    use super::{page_size, Platform, PlatformMemory};
 
-    impl PlatformT for Platform {
+    impl PlatformMemory for Platform {
         unsafe fn page_size() -> usize {
             4096
         }
