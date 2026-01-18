@@ -14,6 +14,7 @@ use platform::page_size;
 
 mod block;
 mod platform;
+mod free_list;
 
 /// NonNull does not guarantee that the memory that is pointed to is valid.
 /// It is essentially just a wrapper type that reinforces that the pointer isn't null.
@@ -26,10 +27,6 @@ type AllocResult = Result<NonNull<[u8]>, AllocError>;
 /// hence initialized lazily (only when accessed) once.
 static PAGE_SIZE: LazyLock<usize> = LazyLock::new(page_size);
 
-/// FreeList type aliases.
-/// Free list keeps track of the free memory chunks.
-type FreeList = LinkedList<Chunk>;
-type FreeListNode = LinkedListNode<Chunk>;
 
 // List type aliases
 type List = LinkedList<()>;
@@ -195,16 +192,6 @@ impl<T> Iterator for ChunkIter<T> {
 
             node
         })
-    }
-}
-
-impl FreeList {
-    unsafe fn find_free_chunk(&self, size: usize) -> Ptr<LinkedListNode<Chunk>> {
-        self.iter().find(|node| node.as_ref().data.size >= size)
-    }
-
-    unsafe fn first_from_list(&self) -> NonNull<LinkedListNode<Chunk>> {
-        self.head().unwrap()
     }
 }
 
