@@ -3,15 +3,14 @@
 //! There are many ways to make it faster, examples:
 //! TODO
 
-use allocator_api2::alloc::AllocError;
 use libc::{MAP_ANONYMOUS, MAP_PRIVATE, PROT_READ, PROT_WRITE};
 use std::{
-    alloc::{GlobalAlloc, Layout}, ptr::{self, NonNull}, sync::{LazyLock, Mutex}
+    alloc::{GlobalAlloc, Layout}, ptr::{self, NonNull}, sync::{LazyLock}
 };
 use platform::page_size;
 use free_list::FreeList;
 
-use crate::{chunk::Chunk, linked_list::LinkedList, region::Region};
+use crate::{chunk::Chunk, linked_list::LinkedList, page_allocator::PageAllocator, region::Region};
 
 mod block;
 mod platform;
@@ -19,11 +18,7 @@ mod free_list;
 mod linked_list;
 mod chunk;
 mod region;
-
-/// NonNull does not guarantee that the memory that is pointed to is valid.
-/// It is essentially just a wrapper type that reinforces that the pointer isn't null.
-/// It is not allowed to be a null therefore and must always be ensured that it's non-null.
-type AllocResult = Result<NonNull<[u8]>, AllocError>;
+mod page_allocator;
 
 type Ptr<T> = Option<NonNull<T>>;
 
@@ -31,18 +26,10 @@ type Ptr<T> = Option<NonNull<T>>;
 /// hence initialized lazily (only when accessed) once.
 static PAGE_SIZE: LazyLock<usize> = LazyLock::new(page_size);
 
-// List type aliases
-
 struct Header {
     size: usize,
     magic: usize,
 }
-
-pub struct PageAllocator<const N: usize = 3> {
-    allocator: Mutex<InnerAlloc>,
-}
-
-unsafe impl<const N: usize> Sync for PageAllocator<N> {}
 
 pub struct InnerAlloc {
     free_space: FreeList,
@@ -198,29 +185,6 @@ impl InnerAlloc {
     }
 }
 
-impl PageAllocator {
-    pub const fn default_config() -> Self {
-        PageAllocator {
-            allocator: Mutex::new(InnerAlloc {
-                free_space: FreeList::new(),
-                regions: LinkedList::new(),
-            }),
-        }
-    }
-
-    unsafe fn allocate(&self, layout: Layout) -> AllocResult {
-        match self.allocator.lock() {
-            Ok(mut allocator) => Ok(allocator.allocate(layout)),
-            Err(_) => Err(AllocError),
-        }
-    }
-
-    unsafe fn deallocate(&self, ptr: *mut u8, layout: Layout) {
-        if let Ok(mut allocator) = self.allocator.lock() {
-            allocator.deallocate(ptr, layout)
-        }
-    }
-}
 
 /// Registers as the standard library default allocator.
 unsafe impl GlobalAlloc for PageAllocator {
