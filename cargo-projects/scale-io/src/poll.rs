@@ -1,8 +1,29 @@
 use std::net::TcpStream;
+use crate::ffi;
 
-/// This is the event queue.
+type Events = Vec<ffi::Event>;
+
+/// Poll represents the event queue.
 pub struct Poll {
     registry: Registry
+}
+
+impl Poll {
+    /// Creates an event queue.
+    fn new() -> Self {
+        todo!()
+    }
+
+    /// Returns a registry to register interest about events.
+    fn registry(&self) -> &Registry {
+        &self.registry
+    }
+
+    /// Blocks the thread while polling 
+    /// until the event is ready or times out.
+    fn poll(&mut self, events: &mut Events, timeout: Option<i32>) {
+        todo!()
+    }
 }
 
 pub struct Registry {
