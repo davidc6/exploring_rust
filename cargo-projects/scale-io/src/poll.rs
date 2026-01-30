@@ -43,6 +43,17 @@ impl Registry {
     pub fn register(&self, src: &TcpStream, token: usize, interests: i32) -> Result<()> {
         todo!()
     }
+
+    /// Creates an independenly owned registry
+    ///
+    /// This will give users an option to get an owned version of Registry.
+    /// The instance can be shared as well as passed to other threads. This 
+    /// will allow other threads to register interest to the same Poll instance.
+    ///
+    /// This is not implemented for now.
+    pub fn try_clone(&self) {
+        unimplemented!()
+    }
 }
 
 impl Drop for Registry {
