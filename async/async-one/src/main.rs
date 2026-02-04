@@ -24,13 +24,20 @@ fn block_on<F: Future>(future: F) -> F::Output {
 }
 
 async fn get_page(url: &str) -> Option<String> {
-    let res = get("https://jsonplaceholder.typicode.com/todos/1").await.text().await;
+    // Each await is where the control is handed back to the runtime. There is an invisible 
+    // state machine that operates behind the scenes here for Rust to keep track of 
+    // the state in the async block. Part of the runtime responsible for the executing 
+    // the async code is the executor.
+    let res = get(url).await.text().await;
     Some(res)
 }
 
 fn main() {
+    // A future gets passed into the blocking function call.
     block_on(async {
-        let r =  get_page("cc").await.unwrap();
+        let r =  get_page("https://jsonplaceholder.typicode.com/todos/1")
+            .await
+            .unwrap();
         print!("{r}");
     });
 }
