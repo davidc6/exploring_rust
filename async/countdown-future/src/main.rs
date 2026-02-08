@@ -1,14 +1,13 @@
-use std::{process::Output, sync::{Arc, Mutex}, task::Waker};
+use std::{sync::{Arc, Mutex}, task::Waker};
 use std::pin::Pin;
-use std::task::Context;
-use std::task::Poll;
+use std::task::{Context, Poll};
 
 impl Countdown {
-    fn new(duration: Duration) -> Self {
-        Delay {
+    fn new() -> Self {
+        Countdown {
             completed: Arc::new(Mutex::new(false)),
             waker_stored: Arc::new(Mutex::new(None)),
-            duration,
+            count: 0,
             started: false,
         }
     }
@@ -40,7 +39,7 @@ impl<'a> Future for InnerFut<'a> {
         if !self.inner.started {
             // self.inner.started = true;
 
-            let a = self.inner.completed;
+            let a = self.inner.completed.clone();
             let b = *a.lock().unwrap() = true;
             // a.inner.started = true;
 
