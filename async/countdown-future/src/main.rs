@@ -29,26 +29,41 @@ impl<'a> Future for InnerFut<'a> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         // Check if the countdown reached 0
-        if *self.inner.completed.lock().unwrap() {
-            return Poll::Ready("Liftoff!");
-        }
+        if self.inner.completed
+            .lock()
+            .map(|completed| *completed)
+            .unwrap_or(false) {
+                return Poll::Ready("Liftoff!");
+            }
 
         // Waker gets store for the background thread to wake.
-        *self.inner.waker_stored.lock().unwrap() = Some(cx.waker().clone());
+        let mut waker_slot = self.inner.waker_stored
+            .lock()
+            .expect("Stored waker is corrupt");
+        *waker_slot = Some(cx.waker().clone());
 
-        if !*self.inner.started.lock().unwrap() {
-            let mut started_lock = self.inner.started.lock().unwrap();
-            *started_lock = true;
+        let mut started = self.inner.started
+            .lock()
+            .expect("Started is corrupt");
 
-            let completed = Arc::clone(&self.inner.completed);
+        if !*started {
+            *started = true;
+
             let waker = Arc::clone(&self.inner.waker_stored);
 
-            if *self.inner.count.lock().unwrap() == 0 {
-                *completed.lock().unwrap() = true;
+            let mut count = self.inner.count
+                .lock()
+                .expect("Count is corrupt");
+
+            if *count == 0 {
+                let mut completed = self.inner.completed
+                    .lock()
+                    .expect("Completed is corrupt");
+                *completed = true;
 
                 return Poll::Ready("Liftoff");
             } else {
-                *self.inner.count.lock().unwrap() -= 1;
+                *count -= 1;
                 
                 if let Some(w) = waker.lock().unwrap().take() {
                     w.wake_by_ref();
