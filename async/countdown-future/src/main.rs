@@ -37,6 +37,7 @@ impl<'a> Future for InnerFut<'a> {
             }
 
         // Waker gets store for the background thread to wake.
+        // This is if using multi-threaded.
         let mut waker_slot = self.inner.waker_stored
             .lock()
             .expect("Stored waker is corrupt");
@@ -48,7 +49,7 @@ impl<'a> Future for InnerFut<'a> {
 
         if !*started {
             *started = true;
-
+            
             let waker = Arc::clone(&self.inner.waker_stored);
 
             let mut count = self.inner.count
@@ -66,6 +67,9 @@ impl<'a> Future for InnerFut<'a> {
                 *count -= 1;
                 
                 if let Some(w) = waker.lock().unwrap().take() {
+                    // re-poll immediately.
+                    // a timer would be used in production ideally since busy-polling is not very 
+                    // efficient.
                     w.wake_by_ref();
                 }
             }
