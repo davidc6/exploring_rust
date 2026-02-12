@@ -27,6 +27,7 @@ struct InnerFut<'a> {
 impl<'a> Future for InnerFut<'a> {
     type Output = &'a str;
 
+    // Pin here guarantees that the future won't be "moved" in memory
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         // Check if the countdown reached 0
         if self.inner.completed
